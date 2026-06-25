@@ -1,0 +1,364 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-inter: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-outfit: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Prevent default black focus ring on main after client-side redirects (e.g. OAuth) */
+main:focus {
+  outline: none;
+}
+
+main:focus-visible {
+  outline: 2px solid #0171F9;
+  outline-offset: 2px;
+}
+
+/* Chrome, Safari */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+/* Firefox */
+input[type="date"] {
+  appearance: none;
+}
+
+/* ── Table Scrollbar Styling ───────────────────────── */
+.overflow-x-auto {
+  scroll-behavior: smooth;
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Firefox */
+.overflow-x-auto {
+  scrollbar-color: #888 #f1f1f1;
+  scrollbar-width: thin;
+}
+
+/* ── Mockup area ───────────────────────────────────── */
+.hero-mockup-area {
+  position: relative;
+  width: 100%;
+  justify-content: center;
+  align-items: flex-end;
+  margin-top: 80px;
+  min-height: 420px;
+  flex: 1;
+}
+
+.hero-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid #E2E2E2;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-ring--outer {
+  width: 787px;
+  height: 787px;
+  opacity: 0.48;
+}
+
+.hero-ring--mid {
+  width: 709px;
+  height: 709px;
+  opacity: 0.72;
+}
+
+.hero-ring--inner {
+  width: 617px;
+  height: 617px;
+}
+
+.hero-circle-fill {
+  position: absolute;
+  width: 526px;
+  height: 526px;
+  border-radius: 50%;
+  background: #001A59;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(50%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ── Phone shell ───────────────────────────────────── */
+.phone-mockup {
+  position: relative;
+  z-index: 20;
+  width: 290px;
+  background: #fff;
+  border-radius: 46px;
+  border: 9px solid #111;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 28px 64px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+
+
+/* ── Anonymous Report Card ─────────────────────────── */
+.anon-report-card {
+  position: absolute;
+  right: calc(49% + 216px);
+  bottom: 71px;
+  display: inline-flex;
+  padding: 20px;
+  align-items: center;
+  gap: 12px;
+  border-radius: 20px;
+  background: #FFF;
+  box-shadow: 0 10px 50px -12px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(5px);
+  z-index: 30;
+}
+
+.anon-report-card__label {
+  width: 83px;
+  color: #191C1D;
+  font-family: var(--font-inter), Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.anon-report-card__badge {
+  display: flex;
+  padding: 4px 4px 4px 6px;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  background: linear-gradient(270deg, #0171F9 0%, #68ACFF 100%);
+}
+
+.anon-report-card__badge-text {
+  color: #FFF;
+  font-family: var(--font-inter), Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.anon-report-card__toggle {
+  width: 11px;
+  height: 20px;
+  border-radius: 3px;
+  background: #25CDCD;
+}
+
+/* ── Review Card ───────────────────────────────────── */
+.review-card {
+  position: absolute;
+  left: calc(51% + 130px);
+  bottom: 152px;
+  width: 400px;
+  padding: 16px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(5px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 30;
+}
+
+.review-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-card__school-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.review-card__school-name {
+  color: #191C1D;
+  font-family: var(--font-inter), Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.review-card__school-type {
+  color: #464555;
+  font-family: var(--font-inter), Inter, sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 15px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.review-card__rating-badge {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(1, 113, 249, 0.10);
+  color: #0171F9;
+  font-family: var(--font-inter), Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 15px;
+  white-space: nowrap;
+}
+
+.review-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.review-card__skeleton-wrapper {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-card__skeleton-line {
+  height: 13px;
+  border-radius: 10px;
+  background: #E6E6E6;
+}
+
+.review-card__skeleton-line--full {
+  width: 100%;
+}
+
+.review-card__skeleton-line--short {
+  width: 65%;
+}
+
+.review-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.review-card__verified {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #0171F9;
+  font-family: var(--font-inter), Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.review-card__timestamp {
+  color: #777587;
+  font-family: var(--font-inter), Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+/* ── Tablet ────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  .phone-mockup {
+    width: min(280px, 76vw);
+  }
+
+  .review-card {
+    left: auto;
+    right: -60px;
+    bottom: 160px;
+    width: 270px;
+  }
+
+  .anon-report-card {
+    right: calc(50% + 156px);
+    bottom: 171px;
+  }
+}
+
+/* ── Mobile ────────────────────────────────────────── */
+@media (max-width: 480px) {
+
+  .phone-mockup {
+    width: min(300px, 84vw);
+    border-radius: 40px;
+    border-width: 8px;
+  }
+
+  .review-card {
+    left: auto;
+    right: -185px;
+    bottom: 100px;
+    width: 250px;
+  }
+
+  .anon-report-card {
+    right: auto;
+    left: -60px;
+    bottom: 160px;
+    padding: 14px;
+    gap: 8px;
+    transform: scale(0.85);
+    transform-origin: left center;
+  }
+}
