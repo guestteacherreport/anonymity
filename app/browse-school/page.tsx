@@ -7,6 +7,7 @@ import { forwardRef, useEffect, useState } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/lib/icons";
 import { ObjectType } from "@/lib/types";
 import { useDebounce } from "@/lib/useDebounce";
+import { useRouter } from "next/navigation";
 import DatePicker from "react-datepicker";
 
 import "react-datepicker/dist/react-datepicker.css";
@@ -263,6 +264,7 @@ function SchoolCard({ school }: { school: School }) {
 const gradeOptions = ["Pre-K", "Elementary", "Middle School", "High School", "Special Ed"];
 
 export default function BrowseSchoolPage() {
+  const router = useRouter();
   const [fetchedSchools, setFetchedSchools] = useState<Report[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -393,6 +395,14 @@ export default function BrowseSchoolPage() {
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-14">
           {/* Page title */}
           <div className="pt-8 sm:pt-12 lg:pt-[72px] pb-6 sm:pb-8">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 text-[#0171F9] hover:text-blue-700 transition-colors mb-4 cursor-pointer"
+              aria-label="Go back"
+            >
+              <ChevronLeftIcon />
+              <span className="font-[Inter] text-sm font-medium">Back</span>
+            </button>
             <h1 className="text-[#121212] font-[Inter] text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold leading-[1.2]">
               Browse School
             </h1>
