@@ -25,11 +25,11 @@ export default function Footer() {
               <Link href="/submit-report" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Submit Report</Link>
             </div>
             <div className="w-44">
-              <Link href="/browse-school" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Browse School</Link>
+              <Link href="/browse-school" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors"> Schools</Link>
               
             </div>
              <div className="w-44">
-              <Link href="/browse-teacher" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Browse Teacher</Link>
+              <Link href="/browse-teacher" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Teachers</Link>
               
             </div>
             <div className="w-44">

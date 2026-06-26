@@ -56,8 +56,8 @@ export default function Header() {
           <nav className="hidden sm:flex items-center gap-10">
             <Link href="/" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Home</Link>
             <Link href="/submit-report" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Submit Report</Link>
-            <Link href="/browse-school" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Browse School</Link>
-            <Link href="/browse-teacher" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Browse Teacher</Link>
+            <Link href="/browse-school" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Schools</Link>
+            <Link href="/browse-teacher" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Teachers</Link>
             <button onClick={() => {
                 router.push("/my-reports");
               }} className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer">My Reports</button>
@@ -129,14 +129,14 @@ export default function Header() {
               onClick={closeMenu}
               className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2"
             >
-              Browse School
+              Schools
             </Link>
              <Link
               href="/browse-teacher"
               onClick={closeMenu}
               className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2"
             >
-              Browse Teacher
+              Teachers
             </Link>
             <button
               onClick={() => {

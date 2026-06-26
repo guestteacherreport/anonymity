@@ -485,7 +485,7 @@ export default function DashboardPage() {
           <h2 className="font-outfit font-semibold text-xl text-[#121212]">Sentiment Insights</h2>
           <div className="flex flex-col items-center gap-8">
             {/* Donut chart */}
-            {!loading ? <RiskChart
+            {!loading  ?  (stats.totalReports > 0 ? (<RiskChart
               data={[
                 {
                   label: "Positive",
@@ -509,7 +509,32 @@ export default function DashboardPage() {
                   ),
                 },
               ]}
-            /> :  <div className="flex flex-col items-center justify-center gap-4 h-[100px]">
+            /> ) : <div className="flex h-full min-h-[200px] w-full flex-col items-center justify-center">
+  <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-dashed border-gray-300 bg-gray-50">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-10 w-10 text-gray-400"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.8}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 17h6M12 13v4m0-10h.01M12 3a9 9 0 100 18 9 9 0 000-18z"
+      />
+    </svg>
+  </div>
+
+  <h3 className="mt-4 text-lg font-semibold text-gray-700">
+    No Data Found
+  </h3>
+
+  <p className="mt-1 max-w-xs text-center text-sm text-gray-500">
+    There is no report available to display chart.
+  </p>
+</div>) :  <div className="flex flex-col items-center justify-center gap-4 h-[100px]">
           <span className="font-inter text-sm text-[#6B727F]">Loading...</span>
         </div>}
             {/* Legend */}
