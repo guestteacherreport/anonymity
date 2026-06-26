@@ -14,7 +14,7 @@ export default function Footer() {
           <Link href="/" aria-label="Anonymity" className="flex items-center flex-shrink-0">
             <Image src="/logo.svg" height={150} width={150} alt="Logo"/>
           </Link>
-          <nav className="flex flex-col sm:flex-row items-start justify-end md:gap-8 gap-2 flex-wrap text-center">
+          <nav className="flex flex-col sm:flex-row items-start justify-end md:gap-0 gap-2 flex-wrap text-center">
             <div className="w-44">
               <Link href="/" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Home</Link>
             </div>

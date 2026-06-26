@@ -201,9 +201,9 @@ function TeacherCard({ teacher }: { teacher: Teacher }) {
                 <span className="font-[Inter] text-base sm:text-lg font-semibold leading-6 sm:leading-7" style={{ color: teacher.total_reports ? ratingColor : "" }}>
                   {teacher.total_reports ? (teacher.avg_rating ?? "0") : "N/A"}
                 </span>
-                {teacher.total_reports && <div className="hidden sm:flex">
+                {teacher.total_reports ? <div className="hidden sm:flex">
                   <StarOutlineIcon color={ratingColor} />
-                </div>}
+                </div>  :""}
               </div>
             </div>
             <div className="w-px h-[52px] bg-[#DADADA] opacity-40 flex-shrink-0" />
@@ -367,7 +367,7 @@ export default function BrowseTeacherPage() {
                   type="text"
                   value={searchInput?.school_name || ""}
                   onChange={(e) => { setSearchInput({ ...searchInput, school_name: e.target.value }) }}
-                  placeholder="Search by School Name..."
+                  placeholder="Search Teachers by School Name..."
                   className="flex-1 bg-transparent text-[#737685] font-[Inter] text-xs sm:text-base font-normal outline-none placeholder:text-[#737685] min-w-0"
                 />
               </div>

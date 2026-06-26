@@ -399,7 +399,7 @@ console.log("loading",loading);
                   type="text"
                   value={searchInput?.teacher_name || ""}
                   onChange={(e) => { setSearchInput({ ...searchInput, teacher_name: e.target.value }) }}
-                  placeholder="Search by Teacher Name..."
+                  placeholder="Search School by Teacher Name..."
                   className="flex-1 bg-transparent text-[#737685] font-[Inter] text-xs sm:text-base font-normal outline-none placeholder:text-[#737685] min-w-0"
                 />
               </div>

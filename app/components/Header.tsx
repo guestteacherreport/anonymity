@@ -131,6 +131,13 @@ export default function Header() {
             >
               Browse School
             </Link>
+             <Link
+              href="/browse-teacher"
+              onClick={closeMenu}
+              className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2"
+            >
+              Browse Teacher
+            </Link>
             <button
               onClick={() => {
                 router.push("/my-reports");
