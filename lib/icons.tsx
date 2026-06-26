@@ -1,6 +1,13 @@
-export const ChevronLeftIcon = () => (
+export const ChevronLeftIcon = ({
+  fill = "#323152",
+}: {
+  fill?: string;
+}) => (
   <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-    <path d="M5.67629 0L0 6L5.67629 12L7 10.5996L2.64856 6L7 1.4004L5.67629 0Z" fill="#323152" />
+    <path
+      d="M5.67629 0L0 6L5.67629 12L7 10.5996L2.64856 6L7 1.4004L5.67629 0Z"
+      fill={fill}
+    />
   </svg>
 );
 

@@ -10,6 +10,7 @@ import { ChatIcon, ChevronLeftIcon, ChevronRightIcon, LocationIcon, SchoolIcon }
 import toast from "react-hot-toast";
 import { ObjectType } from "@/lib/types";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const FileIcon = () => (
   <svg width="19" height="19" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -148,17 +149,6 @@ interface ApiResponse {
     total: number;
     totalPages: number;
   };
-}
-
-function getSentimentBadgeStyle(sentiment: SentimentType) {
-  switch (sentiment) {
-    case "Positive":
-      return "bg-[#BBFBE6] text-[#2D7D65]";
-    case "Negative":
-      return "bg-[#FFE0E0] text-[#E02C2C]";
-    default:
-      return "bg-[#FFEABD] text-[#E8A411]";
-  }
 }
 
 function getReturnAnswerStyle(answer: ReturnAnswer) {
@@ -437,6 +427,7 @@ export default function TeacherDetailPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [loadingReports, setLoadingReports] = useState<boolean>(false);
   const itemsPerPage = 10;
+  const router = useRouter();
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -590,7 +581,14 @@ export default function TeacherDetailPage() {
       <Header />
 
       <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-14 py-6 sm:py-10 pb-12 sm:pb-[80px]">
-
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-[#0171F9] hover:text-blue-700 transition-colors mb-4 cursor-pointer"
+          aria-label="Go back"
+        >
+          <ChevronLeftIcon fill="#0171F9" />
+          <span className="font-[Inter] text-sm font-medium">Back</span>
+        </button>
         {/* Teacher Info Card */}
         <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.10)] p-4 sm:p-6 lg:p-10 mb-6 sm:mb-10">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 sm:gap-6">
@@ -621,7 +619,7 @@ export default function TeacherDetailPage() {
 
             {/* Right: rating */}
             <div className="flex items-start gap-2 sm:gap-4 lg:flex-shrink-0">
-              <span className="text-[#191C1D] font-[Outfit] font-bold text-3xl sm:text-4xl lg:text-5xl sm:mt-0 mt-[-7px] leading-10">{teacherData.avg_rating?.toFixed(1)}</span>
+              <span className="text-[#191C1D] font-[Outfit] font-bold text-3xl sm:text-4xl lg:text-5xl sm:mt-0 mt-[-7px] leading-10">{teacherData.avg_rating?.toFixed(1) || "0.0"}</span>
               <div className="flex flex-col items-end gap-1 sm:gap-1.5 pb-1">
                 <StarRating rating={teacherData.avg_rating} size="lg" />
                 <span className="text-[#9CA3AF] font-inter text-sm font-normal">{teacherData.total_reports || 0} reviews</span>

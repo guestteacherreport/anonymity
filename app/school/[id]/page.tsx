@@ -9,6 +9,7 @@ import { useId } from "react";
 import { ChatIcon, ChevronLeftIcon, ChevronRightIcon, LocationIcon, SchoolIcon } from "@/lib/icons";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // --- Icon Components ---
 
@@ -200,7 +201,7 @@ interface Review {
   teacher_id: number;
   teacher_name?: string;
   created_at: string;
-  AI_sentiment:SentimentType;
+  AI_sentiment: SentimentType;
   avg_rating: number;
   feedback: string;
   tags: string[];
@@ -508,6 +509,7 @@ export default function SchoolDetailPage() {
   const [loadingReports, setLoadingReports] = useState<boolean>(false);
   const itemsPerPage = 10;
 
+  const router = useRouter();
 
   useEffect(() => {
 
@@ -583,6 +585,7 @@ export default function SchoolDetailPage() {
       <div className="min-h-screen bg-[#F8FAFE] flex flex-col">
         <Header />
         <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-14 py-6 sm:py-10 pb-12 sm:pb-[80px]">
+
           {/* School Info Skeleton */}
           <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.10)] p-4 sm:p-6 lg:p-10 mb-6 sm:mb-10">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 sm:gap-6">
@@ -668,6 +671,14 @@ export default function SchoolDetailPage() {
       <Header />
 
       <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-14 py-6 sm:py-10 pb-12 sm:pb-[80px]">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-[#0171F9] hover:text-blue-700 transition-colors mb-4 cursor-pointer"
+          aria-label="Go back"
+        >
+          <ChevronLeftIcon fill="#0171F9" />
+          <span className="font-[Inter] text-sm font-medium">Back</span>
+        </button>
 
         {/* School Info Card */}
         <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.10)] p-4 sm:p-6 lg:p-10 mb-6 sm:mb-10">
@@ -679,8 +690,8 @@ export default function SchoolDetailPage() {
               </h1>
               <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 <div className="flex gap-[7px] items-center">
-                <LocationIcon />
-                <p className="text-[#414141] text-sm font-normal leading-[20px] break-words"> {[schoolData.city, schoolData.state].filter(Boolean).join(", ")}</p>
+                  <LocationIcon />
+                  <p className="text-[#414141] text-sm font-normal leading-[20px] break-words"> {[schoolData.city, schoolData.state].filter(Boolean).join(", ")}</p>
                 </div>
                 {schoolData?.grade_level && schoolData.grade_level?.map((level: string, i: number) => (
                   <span key={i} className="inline-flex items-center px-2 sm:px-2.5 py-1 sm:py-1.5 rounded text-xs sm:text-sm bg-[#DFEEFF] text-[#0171F9] font-inter font-semibold leading-[15px]">
