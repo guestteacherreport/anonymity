@@ -26,6 +26,11 @@ export default function Footer() {
             </div>
             <div className="w-44">
               <Link href="/browse-school" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Browse School</Link>
+              
+            </div>
+             <div className="w-44">
+              <Link href="/browse-teacher" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Browse Teacher</Link>
+              
             </div>
             <div className="w-44">
               {!session?

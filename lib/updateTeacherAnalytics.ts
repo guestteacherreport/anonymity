@@ -12,7 +12,7 @@ export async function updateTeacherAnalytics(
 
   const { data: analytics } = await supabase
     .from("teachers")
-    .select("total_reports,high_risk_reports,avg_rating,ai_summary")
+    .select("total_reports,high_risk_reports,avg_rating,ai_summary,return_to_teacher_percentage,teacher_yes,teacher_no,teacher_maybe")
     .eq("id", teacherId)
     .maybeSingle();
 
@@ -36,11 +36,11 @@ export async function updateTeacherAnalytics(
         : 0; // No
 
   const avgRating = Number(
-  (
-    (currentAvg * currentReports + newRating) /
-    totalReports
-  ).toFixed(2)
-);
+    (
+      (currentAvg * currentReports + newRating) /
+      totalReports
+    ).toFixed(2)
+  );
 
 
   if (avgRating >= 4) {
@@ -51,11 +51,32 @@ export async function updateTeacherAnalytics(
     risk = "High";
   }
 
+  // =========================
+  // RETURN TO TEACHER %
+  // =========================
+
+  const currentReturnScore =
+    (analytics?.return_to_teacher_percentage || 0) *
+    currentReports;
+
+  const newReturnScore =
+    report.return_to_teacher === 1
+      ? 100
+      : report.return_to_teacher === 3
+        ? 50
+        : 0;
+
+
+  const returnToTeacherPercentage =
+    (currentReturnScore +
+      newReturnScore) /
+    totalReports;
+
   // Generate summary on first report and every 5 reports thereafter
 
   if (
-    (analytics?.high_risk_reports === 0 && report.return_to_teacher === 2) ||
-    (highRiskReports % 5 === 0 && report.return_to_teacher === 2)
+    totalReports === 1 ||
+    totalReports % 5 === 0
   ) {
     try {
 
@@ -63,10 +84,9 @@ export async function updateTeacherAnalytics(
         await supabase
           .from("reports")
           .select(
-            "feedback, teacher_comment, AI_teacherIssues"
+            "feedback, teacher_comment, AI_teacherIssues, AI_teacherStrength"
           )
           .eq("teacher_id", teacherId)
-          .eq("return_to_teacher", 2)
           .eq("status", 2)
           .order("created_at", {
             ascending: false,
@@ -82,6 +102,7 @@ export async function updateTeacherAnalytics(
               r.feedback,
               r.teacher_comment,
               ...(r.AI_teacherIssues || []),
+              ...(r.AI_teacherStrength || []),
             ]
               .filter(Boolean)
               .join("\n")
@@ -105,7 +126,7 @@ Total Reports: ${totalReports}
 High Risk Reports: ${highRiskReports}
 Existing Feedback: ${analytics?.ai_summary || "No existing summary"}
 
-High Risk Feedback:
+Feedback:
 ${feedbackText}
 
 Instructions:
@@ -141,6 +162,18 @@ Return JSON only:
             (highRiskReports / totalReports) * 100,
           avg_rating: avgRating,
           risk,
+          return_to_teacher_percentage: returnToTeacherPercentage,
+          teacher_yes:
+            (analytics?.teacher_yes || 0) +
+            (report.return_to_teacher === 1 ? 1 : 0),
+
+          teacher_no:
+            (analytics?.teacher_no || 0) +
+            (report.return_to_teacher === 2 ? 1 : 0),
+
+          teacher_maybe:
+            (analytics?.teacher_maybe || 0) +
+            (report.return_to_teacher === 3 ? 1 : 0),
         })
         .eq("id", teacherId)
 
@@ -163,6 +196,18 @@ Return JSON only:
           (highRiskReports / totalReports) * 100,
         avg_rating: avgRating,
         risk,
+        return_to_teacher_percentage: returnToTeacherPercentage,
+        teacher_yes:
+          (analytics?.teacher_yes || 0) +
+          (report.return_to_teacher === 1 ? 1 : 0),
+
+        teacher_no:
+          (analytics?.teacher_no || 0) +
+          (report.return_to_teacher === 2 ? 1 : 0),
+
+        teacher_maybe:
+          (analytics?.teacher_maybe || 0) +
+          (report.return_to_teacher === 3 ? 1 : 0),
       })
       .eq("id", teacherId);
   }

@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
 
       const minRating = Math.min(...values);
 
-      query = query.gte("avg_rating", minRating);
+      query = query.gt("avg_rating", minRating);
     }
 
     // =========================

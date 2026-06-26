@@ -57,6 +57,7 @@ export default function Header() {
             <Link href="/" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Home</Link>
             <Link href="/submit-report" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Submit Report</Link>
             <Link href="/browse-school" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Browse School</Link>
+            <Link href="/browse-teacher" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Browse Teacher</Link>
             <button onClick={() => {
                 router.push("/my-reports");
               }} className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer">My Reports</button>

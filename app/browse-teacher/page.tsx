@@ -4,7 +4,7 @@ import Link from "next/link";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useEffect, useState } from "react";
-import { ChevronLeftIcon, ChevronRightIcon } from "@/lib/icons";
+import { ChevronLeftIcon, ChevronRightIcon, SchoolIcon } from "@/lib/icons";
 import { ObjectType } from "@/lib/types";
 import { useDebounce } from "@/lib/useDebounce";
 
@@ -83,29 +83,28 @@ const OneStar = () => (
 
 type SentimentType = "Positive" | "Neutral" | "Negative";
 
-interface School {
+interface Teacher {
   id: Number;
-  school_name: string;
+  name: string;
+  school_id: number;
+  schools: ObjectType;
   ai_summary: string;
   city: string;
   state: string;
-  grade_level: [];
-  sentiment: SentimentType;
+  subject: string;
+  risk: string;
   avg_rating: number;
-  return_to_school_percentage: number;
+  return_to_teacher_percentage: number;
   total_reports: number;
-  calculated_risk: SentimentType;
 }
 
-function NoSchoolsFound({
+function NoTeachersFound({
   onReset,
 }: {
   onReset?: () => void;
 }) {
   return (
     <div className="w-full flex flex-col items-center justify-center py-16 px-6 text-center">
-
-      {/* Icon */}
       <div className="w-20 h-20 rounded-full bg-[#F3F6FF] flex items-center justify-center mb-4">
         <svg
           width="34"
@@ -121,18 +120,15 @@ function NoSchoolsFound({
         </svg>
       </div>
 
-      {/* Title */}
       <h2 className="text-lg font-semibold text-[#111827]">
-        No Schools Found
+        No Teachers Found
       </h2>
 
-      {/* Description */}
       <p className="text-sm text-[#6B7280] mt-2 max-w-md">
-        We couldn’t find any schools matching your filters or search.
-        Try adjusting your location, grade, or rating filters.
+        We couldn't find any teachers matching your filters or search.
+        Try adjusting your location, subject, or rating filters.
       </p>
 
-      {/* Actions */}
       <div className="flex gap-3 mt-6">
         <button
           onClick={onReset}
@@ -169,83 +165,73 @@ function getSentimentStyle(sentiment: SentimentType) {
   }
 }
 
-function SchoolCard({ school }: { school: School }) {
-  const ratingColor = getRatingColor(school.avg_rating);
-  const schoolratingColor = getRatingColor(school.return_to_school_percentage);
-  const sentimentStyle = getSentimentStyle(school.sentiment);
+function TeacherCard({ teacher }: { teacher: Teacher }) {
+  const ratingColor = getRatingColor(teacher.avg_rating);
+  const teacherRatingColor = getRatingColor(teacher.return_to_teacher_percentage);
+  const sentimentStyle = getSentimentStyle(teacher?.risk == "High" ? "Negative" : teacher?.risk == "Low" ? "Positive" : "Neutral");
 
   return (
     <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.10)] flex flex-col">
       <div className="flex flex-col gap-3 sm:gap-4 p-4 sm:p-5 flex-1">
-        {/* Card top section */}
         <div className="flex flex-col gap-3 sm:gap-[14px]">
-          {/* School name, location, grade + sentiment badge */}
           <div className="flex flex-row sm:items-start gap-2 sm:gap-3">
             <div className="flex flex-col gap-2 sm:gap-3 flex-1 min-w-0">
-              <h3 className="text-[#121212] font-[Inter] text-sm sm:text-base font-bold leading-5">{school.school_name}</h3>
-              <div className="flex items-center gap-1.5 opacity-80">
-                <CardMapPinIcon />
+              <h3 className="text-[#121212] font-[Inter] text-sm sm:text-base font-bold leading-5">{teacher.name}</h3>
+              <Link href={`/school/${teacher.school_id}`} className="flex items-center gap-1.5 opacity-80">
+                <SchoolIcon />
                 <span className="font-[Outfit] text-xs text-[#414141]">
-                  {[school.city, school.state].filter(Boolean).join(", ")}
-                </span>              </div>
-              <div className="flex flex-row gap-2">
-                {school.grade_level?.map((grade: string, idx: number) => {
-                  return <span key={idx} className="inline-flex self-start px-2 py-1 rounded bg-[#DFEEFF] text-[#0171F9] font-[Inter] text-xs font-semibold leading-[15px]">
-                    {grade}
-                  </span>
-                })}
-              </div>
+                  {teacher?.schools.school_name}
+                </span>
+              </Link>
+              {/* {teacher.subject && <span className="inline-flex self-start px-2 py-1 rounded bg-[#DFEEFF] text-[#0171F9] font-[Inter] text-xs font-semibold leading-[15px]">
+                {teacher.subject}
+              </span>} */}
             </div>
-            {school?.sentiment && <span className={`flex-shrink-0 h-fit inline-flex px-2 py-1 w-fit rounded font-[Inter] text-xs font-semibold leading-[15px] ${sentimentStyle.bg} ${sentimentStyle.text}`}>
-              {school.sentiment}
+            {teacher?.risk && <span className={`flex-shrink-0 h-fit inline-flex px-2 py-1 w-fit rounded font-[Inter] text-xs font-semibold leading-[15px] ${sentimentStyle.bg} ${sentimentStyle.text}`}>
+              {teacher?.risk == "High" ? "Negative" : teacher?.risk == "Low" ? "Positive" : "Neutral"}
             </span>}
           </div>
 
-          {/* Divider */}
           <div className="h-px w-full bg-[#DADADA] opacity-40" />
 
-          {/* Stats: Avg Rating / Would Return / Reviews */}
           <div className="flex items-center gap-2">
             <div className="flex flex-col flex-1 p-2 sm:p-2.5 rounded-[8px_8px_0_8px] bg-white">
               <span className="text-[#434654] font-[Inter] text-xs font-normal leading-[13px] sm:leading-[15px] opacity-80">Avg Rating</span>
               <div className="flex justify-left items-center gap-1 mt-1">
-                <span className="font-[Inter] text-base sm:text-lg font-semibold leading-6 sm:leading-7" style={{ color: ratingColor }}>
-                  {school.avg_rating}
+                <span className="font-[Inter] text-base sm:text-lg font-semibold leading-6 sm:leading-7" style={{ color: teacher.total_reports ? ratingColor : "" }}>
+                  {teacher.total_reports ? (teacher.avg_rating ?? "0") : "N/A"}
                 </span>
-                <div className="hidden sm:flex">
+                {teacher.total_reports && <div className="hidden sm:flex">
                   <StarOutlineIcon color={ratingColor} />
-                </div>
+                </div>}
               </div>
             </div>
             <div className="w-px h-[52px] bg-[#DADADA] opacity-40 flex-shrink-0" />
             <div className="flex flex-col flex-1 p-2 sm:p-2.5 rounded-lg bg-white">
               <span className="text-[#434654] font-[Inter] text-xs font-normal leading-[13px] sm:leading-[15px] opacity-80">Would Return</span>
-              <span className="font-[Inter] text-base sm:text-lg font-semibold leading-6 sm:leading-7 mt-1" style={{ color: schoolratingColor }}>
-                {school.return_to_school_percentage || 0}%
+              <span className="font-[Inter] text-base sm:text-lg font-semibold leading-6 sm:leading-7 mt-1" style={{ color: teacher.total_reports ? teacherRatingColor : "" }}>
+                {teacher.total_reports ? (`${teacher.return_to_teacher_percentage || 0}%`) : "N/A"}
               </span>
             </div>
             <div className="w-px h-[52px] bg-[#DADADA] opacity-40 flex-shrink-0" />
             <div className="flex flex-col flex-1 p-2 sm:p-2.5 rounded-lg bg-white">
               <span className="text-[#434654] font-[Inter] text-xs font-normal leading-[13px] sm:leading-[15px] tracking-[-0.5px] opacity-80">Reviews</span>
-              <span className="text-[#191C1D] font-[Inter] text-base sm:text-lg font-semibold leading-6 sm:leading-7 mt-1">{school.total_reports}</span>
+              <span className="text-[#191C1D] font-[Inter] text-base sm:text-lg font-semibold leading-6 sm:leading-7 mt-1">{teacher.total_reports || "0"}</span>
             </div>
           </div>
 
-          {/* Divider */}
           <div className="h-px w-full bg-[#DADADA] opacity-40" />
 
-          {/* Quote snippet */}
-         {school.ai_summary && <div className="flex items-start gap-2 p-2 sm:p-2.5 rounded bg-[#F8F9FD]">
+          {teacher.ai_summary && <div className="flex items-start gap-2 p-2 sm:p-2.5 rounded bg-[#F8F9FD]">
             <div className="flex-shrink-0 mt-0.5 sm:mt-1">
               <QuoteIcon />
             </div>
-             <p className="flex-1 text-[#464555] font-[Inter] text-xs sm:text-[13px] font-normal leading-[16px] sm:leading-[18px]">{school.ai_summary}</p>
+            <p className="flex-1 text-[#464555] font-[Inter] text-xs sm:text-[13px] font-normal leading-[16px] sm:leading-[18px]">{teacher.ai_summary}</p>
           </div>}
         </div>
 
-        {/* View Details button */}
         <Link
-          href={`/school/${school.id}`}
+          href={`/teacher/${teacher.id}`}
           className="flex items-center justify-center gap-2 w-full py-2 sm:py-2.5 px-6 sm:px-8 rounded-md bg-[#0171F9] text-white font-[Inter] text-xs sm:text-sm font-medium leading-6 hover:bg-blue-700 transition-colors cursor-pointer mt-auto"
         >
           View Details
@@ -255,12 +241,10 @@ function SchoolCard({ school }: { school: School }) {
   );
 }
 
+const subjectOptions = ["Math", "Science", "English", "History", "Physical Education", "Arts", "Special Education"];
 
-
-const gradeOptions = ["Pre-K", "Elementary", "Middle School", "High School", "Special Ed"];
-
-export default function BrowseSchoolPage() {
-  const [fetchedSchools, setFetchedSchools] = useState<Report[]>([]);
+export default function BrowseTeacherPage() {
+  const [fetchedTeachers, setFetchedTeachers] = useState<Teacher[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [searchInput, setSearchInput] = useState<ObjectType>({});
@@ -272,52 +256,49 @@ export default function BrowseSchoolPage() {
 
   const debouncedFilters = useDebounce(filters, 1000);
 
-  const loadSchools = async () => {
+  const loadTeachers = async () => {
     try {
-     
-
       if (firstLoad) {
         setLoading(true);
       }
 
-console.log("loading",loading);
       const params = new URLSearchParams({
         page: String(currentPage),
         limit: "10",
         location: filters.location || "",
       });
 
-      filters.grade?.forEach((g: string) => {
-        params.append("grade", g);
+      filters.subject?.forEach((s: string) => {
+        params.append("subject", s);
       });
 
       filters.rating?.forEach((r: string) => {
         params.append("rating", r);
       });
 
-      if (searchInput?.school_name?.trim()) {
-        params.append("searchBySchool", searchInput.school_name.trim());
-      }
-
       if (searchInput?.teacher_name?.trim()) {
         params.append("searchByTeacher", searchInput.teacher_name.trim());
       }
 
+      if (searchInput?.school_name?.trim()) {
+        params.append("searchBySchool", searchInput.school_name.trim());
+      }
+
       const response = await fetch(
-        `/api/browse-schools?${params.toString()}`
+        `/api/browse-teachers?${params.toString()}`
       );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch schools");
+        throw new Error("Failed to fetch teachers");
       }
 
       const result = await response.json();
 
-      setFetchedSchools(result?.schools || []);
+      setFetchedTeachers(result?.teachers || []);
       setTotalPages(result?.pagination?.totalPages || 0);
       setFirstLoad(false);
     } catch (err) {
-      console.error("Error loading reports:", err);
+      console.error("Error loading teachers:", err);
       setLoading(false);
       setPageLoading(false);
       setFirstLoad(false);
@@ -334,76 +315,62 @@ console.log("loading",loading);
     setLoading(true);
     if (currentPage !== 1) {
       setCurrentPage(1);
-      
     } else {
-      loadSchools();
+      loadTeachers();
     }
-    
   }, [debouncedFilters]);
 
-
-
   useEffect(() => {
- 
-    if(!searchingLoad){
-      loadSchools();
+    if (!searchingLoad) {
+      loadTeachers();
       setPageLoading(true);
     }
-    
   }, [currentPage]);
 
-  useEffect(()=>{
-    
-    if(searchingLoad){
-      loadSchools();
+  useEffect(() => {
+    if (searchingLoad) {
+      loadTeachers();
       setLoading(true);
     }
-  },[searchingLoad])
-
+  }, [searchingLoad]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFE] flex flex-col">
       <Header />
 
-      {/* Hero + Search — white background section */}
       <div className="bg-white w-full">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-14">
-          {/* Page title */}
           <div className="pt-8 sm:pt-12 lg:pt-[72px] pb-6 sm:pb-8">
             <h1 className="text-[#121212] font-[Inter] text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold leading-[1.2]">
-              Browse School
+              Browse Teacher
             </h1>
             <p className="text-[#121212] font-[Inter] text-sm sm:text-base lg:text-lg font-normal leading-[1.5] sm:leading-[26px] tracking-[0.2px] opacity-[0.88] mt-2">
               Share your experience to help other guest teachers.
             </p>
           </div>
 
-          {/* Search bar */}
           <div className="pb-6 sm:pb-8">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center bg-[#E9F2FF] rounded-2xl p-2  shadow-[0_1px_2px_0_rgba(0,0,0,0.05)]">
-              {/* School name input */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center bg-[#E9F2FF] rounded-2xl p-2 shadow-[0_1px_2px_0_rgba(0,0,0,0.05)]">
               <div className="flex items-center gap-2 flex-1 py-3.5 px-3 sm:px-4 bg-white rounded-lg border border-[rgba(195,198,214,0.20)]">
                 <SearchIcon />
                 <input
                   type="text"
-                  value={searchInput?.school_name || ""}
-                  onChange={(e) => { setSearchInput({ ...searchInput, school_name: e.target.value }); }}
-                  placeholder="Search by School Name..."
-                  className="flex-1 bg-transparent text-[#737685] font-[Inter] text-xs sm:text-base font-normal outline-none placeholder:text-[#737685] min-w-0"
-                />
-              </div>
-              {/* Teacher name input */}
-              <div className="flex items-center gap-2 flex-1 px-3 py-3.5 sm:px-4 bg-white rounded-lg border border-[rgba(195,198,214,0.20)]">
-                <SearchIcon />
-                <input
-                  type="text"
                   value={searchInput?.teacher_name || ""}
-                  onChange={(e) => { setSearchInput({ ...searchInput, teacher_name: e.target.value }) }}
+                  onChange={(e) => { setSearchInput({ ...searchInput, teacher_name: e.target.value }); }}
                   placeholder="Search by Teacher Name..."
                   className="flex-1 bg-transparent text-[#737685] font-[Inter] text-xs sm:text-base font-normal outline-none placeholder:text-[#737685] min-w-0"
                 />
               </div>
-              {/* Search button */}
+              <div className="flex items-center gap-2 flex-1 px-3 py-3.5 sm:px-4 bg-white rounded-lg border border-[rgba(195,198,214,0.20)]">
+                <SearchIcon />
+                <input
+                  type="text"
+                  value={searchInput?.school_name || ""}
+                  onChange={(e) => { setSearchInput({ ...searchInput, school_name: e.target.value }) }}
+                  placeholder="Search by School Name..."
+                  className="flex-1 bg-transparent text-[#737685] font-[Inter] text-xs sm:text-base font-normal outline-none placeholder:text-[#737685] min-w-0"
+                />
+              </div>
               <button disabled={searchingLoad} onClick={() => {
                 setSearchingLoad(true);
                 setCurrentPage(1);
@@ -415,40 +382,35 @@ console.log("loading",loading);
         </div>
       </div>
 
-      {/* Main content: filter + cards */}
       <main className="flex-1 w-full">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-14 py-6 sm:py-8 pb-12 sm:pb-[80px]">
           <div className="flex flex-col lg:flex-row gap-5 sm:gap-7 items-start">
 
-            {/* Filter sidebar */}
             <aside className="w-full lg:w-[302px] flex-shrink-0">
-              <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.10)] p-4 sm:p-6">
-                {/* Filter header */}
+              <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.10)] p-4 sm:p-6 min-h-[500px]">
                 <div className="flex items-end justify-between mb-5 sm:mb-7">
                   <span className="font-[Outfit] text-lg font-medium leading-5 text-black">Filter</span>
                   {Object.values(filters).some((value) => {
-  if (Array.isArray(value)) return value.length > 0;
-  return !!value;
-}) &&
-                  
-                  <button onClick={() => {
-                    setFilters({})
-                    setSearchInput({})
-                  }} className="font-[Outfit] text-sm  font-medium leading-5 text-[#0171F9] hover:underline cursor-pointer">
-                    Clear all
-                  </button>}
+                    if (Array.isArray(value)) return value.length > 0;
+                    return !!value;
+                  }) &&
+                    <button onClick={() => {
+                      setFilters({})
+                      setSearchInput({})
+                    }} className="font-[Outfit] text-sm font-medium leading-5 text-[#0171F9] hover:underline cursor-pointer">
+                      Clear all
+                    </button>}
                 </div>
 
-                {/* Location filter */}
-                <div className="flex flex-col gap-3 mb-5 sm:mb-7">
+                {/* <div className="flex flex-col gap-3 mb-5 sm:mb-7">
                   <span className="font-[Outfit] text-sm sm:text-base font-medium leading-6 text-[#121212]">
                     Location
                   </span>
 
                   <div className="flex items-center gap-1 px-[14px] py-3 bg-[#F3F4F5] rounded-lg">
-                    <LocationPinIcon />
+                    {/* <LocationPinIcon /> */}
 
-                    <input
+                    {/* <input
                       type="text"
                       onChange={(e) => setFilters({ ...filters, ["location"]: e.target.value })}
                       placeholder="City or Zip Code"
@@ -456,30 +418,30 @@ console.log("loading",loading);
                       className="ml-1 w-full bg-transparent outline-none border-none font-[Inter] text-xs font-normal text-[#121212] placeholder:text-[#6B7280]"
                     />
                   </div>
-                </div>
-                {/* Grade Level filter */}
-                <div className="flex flex-col gap-4 sm:gap-5 mb-5 sm:mb-7">
-                  <span className="font-[Outfit] text-sm sm:text-base font-medium leading-6 text-[#121212]">Grade Level</span>
+                </div>  */}
+
+                {/* <div className="flex flex-col gap-4 sm:gap-5 mb-5 sm:mb-7">
+                  <span className="font-[Outfit] text-sm sm:text-base font-medium leading-6 text-[#121212]">Subject</span>
                   <div className="flex flex-col gap-2 sm:gap-3">
-                    {gradeOptions.map((grade, index) => (
+                    {subjectOptions.map((subject) => (
                       <label
-                        key={grade}
+                        key={subject}
                         className="flex items-center gap-2 cursor-pointer"
                       >
                         <input
                           type="checkbox"
-                          checked={(filters.grade || []).includes(grade)}
+                          checked={(filters.subject || []).includes(subject)}
                           onChange={(e) => {
                             if (e.target.checked) {
                               setFilters((prev: any) => ({
                                 ...prev,
-                                grade: [...(prev.grade || []), grade],
+                                subject: [...(prev.subject || []), subject],
                               }));
                             } else {
                               setFilters((prev: any) => ({
                                 ...prev,
-                                grade: (prev.grade || []).filter(
-                                  (item: string) => item !== grade
+                                subject: (prev.subject || []).filter(
+                                  (item: string) => item !== subject
                                 ),
                               }));
                             }
@@ -494,14 +456,13 @@ console.log("loading",loading);
                         </div>
 
                         <span className="font-[Outfit] text-xs sm:text-sm font-normal text-[#212121] opacity-[0.88]">
-                          {grade}
+                          {subject}
                         </span>
                       </label>
                     ))}
                   </div>
-                </div>
+                </div> */}
 
-                {/* Rating filter */}
                 <div className="flex flex-col gap-4 sm:gap-5">
                   <span className="font-[Outfit] text-sm sm:text-base font-medium leading-6 text-[#121212]">Rating</span>
                   <div className="flex flex-col gap-2 sm:gap-3">
@@ -510,7 +471,7 @@ console.log("loading",loading);
                       { label: "3.0+", icon: <ThreeStars />, value: 3 },
                       { label: "2.0+", icon: <TwoStars />, value: 2 },
                       { label: "1.0+", icon: <OneStar />, value: 1 },
-                       { label: "0.0+", icon: "", value: 0.0 },
+                      { label: "0.0+", icon: "", value: 0.0 },
                     ].map((item: ObjectType) => (
                       <label
                         key={item.label}
@@ -555,82 +516,58 @@ console.log("loading",loading);
                 </div>
               </div>
             </aside>
+
             {loading ?
               <div className="sm:min-h-[600px] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-5 lg:gap-7 content-start w-full">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="p-4 sm:p-5 rounded-xl border border-gray-100 bg-white animate-pulse">
-
-                    {/* Top row: title + badge */}
                     <div className="flex justify-between items-start">
                       <div className="space-y-2 w-full">
-
-                        {/* School name */}
                         <div className="h-5 bg-gray-200 rounded w-2/5" />
-
-                        {/* Location */}
                         <div className="h-4 bg-gray-200 rounded w-1/3" />
-
-                        {/* Grade chip */}
                       </div>
-
-                      {/* Status badge */}
                       <div className="h-6 w-16 bg-gray-200 rounded-full" />
                     </div>
-
-                    {/* Divider */}
                     <div className="my-4 h-px bg-gray-100" />
-
-                    {/* Stats row */}
                     <div className="grid grid-cols-3 gap-3 text-center">
-
                       <div className="space-y-2">
                         <div className="h-4 w-16 bg-gray-200 rounded mx-auto" />
                         <div className="h-5 w-12 bg-gray-200 rounded mx-auto" />
                       </div>
-
                       <div className="space-y-2 border-l border-r border-gray-100">
                         <div className="h-4 w-20 bg-gray-200 rounded mx-auto" />
                         <div className="h-5 w-14 bg-gray-200 rounded mx-auto" />
                       </div>
-
                       <div className="space-y-2">
                         <div className="h-4 w-14 bg-gray-200 rounded mx-auto" />
                         <div className="h-5 w-10 bg-gray-200 rounded mx-auto" />
                       </div>
                     </div>
-
-                    {/* Review box */}
                     <div className="mt-4 p-3 bg-gray-100 rounded-lg space-y-2">
                       <div className="h-3 bg-gray-200 rounded w-full" />
                       <div className="h-3 bg-gray-200 rounded w-5/6" />
                     </div>
-
-                    {/* Button */}
                     <div className="mt-4 h-10 bg-gray-200 rounded-lg w-full" />
                   </div>
                 ))}
               </div>
               : ""}
-            {!loading && fetchedSchools.length === 0 && (
-              <NoSchoolsFound
+            {!loading && fetchedTeachers.length === 0 && (
+              <NoTeachersFound
                 onReset={() => {
                   setFilters({});
                   setSearchInput({});
                 }}
               />
             )}
-            {/* School cards grid */}
-            {!loading && fetchedSchools?.length > 0 &&
+
+            {!loading && fetchedTeachers?.length > 0 &&
               <div className="flex flex-col w-full">
-
-
                 <div className="sm:min-h-[600px] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-5 lg:gap-7 content-start w-full">
-                  {fetchedSchools.map((school: any, idx: number) => (
-                    <SchoolCard key={idx} school={school} />
+                  {fetchedTeachers.map((teacher: any, idx: number) => (
+                    <TeacherCard key={idx} teacher={teacher} />
                   ))}
                 </div>
-
-
 
                 <div className="flex items-center justify-center gap-3 mt-6 sm:mt-9 relative">
                   <div className="flex items-center gap-1 sm:gap-2">
@@ -663,15 +600,12 @@ console.log("loading",loading);
                       ));
                     })()}
 
-
                     <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages}
                       className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-md border border-[rgba(0,0,0,0.08)] bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer">
                       <ChevronRightIcon />
                     </button>
-
                   </div>
-
 
                   <div className="text-sm text-gray-500 absolute right-0">
                     {pageLoading && (
@@ -681,10 +615,9 @@ console.log("loading",loading);
                       </div>
                     )}
                   </div>
-
-                </div></div>}
+                </div>
+              </div>}
           </div>
-
         </div>
       </main>
 
