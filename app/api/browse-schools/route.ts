@@ -71,7 +71,9 @@ export async function GET(req: NextRequest) {
         ai_summary
       `,
         { count: "exact" }
-      );
+      ).order("school_name", {
+        ascending: true,
+      });
 
     // =========================
     // SEARCH

@@ -112,8 +112,8 @@ export async function GET(req: NextRequest) {
         count: "exact",
       })
       .eq("school_id", school_id)
-      .order("id", {
-        ascending: false,
+      .order("name", {
+        ascending: true,
       })
       .range(offset, offset + limit - 1);
 

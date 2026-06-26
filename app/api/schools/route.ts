@@ -27,7 +27,8 @@ export async function GET(req: NextRequest) {
     // =========================
     let query = supabase
       .from("schools") // IMPORTANT CHANGE
-      .select("*", { count: "exact" });
+      .select("*", { count: "exact" })
+      .order("school_name",{ ascending: true });
 
     // =========================
     // SEARCH FILTER

@@ -55,7 +55,9 @@ export async function GET(req: NextRequest) {
     )
       `,
         { count: "exact" }
-      );
+      ).order("name", {
+        ascending: true,
+      });
 
     if (searchByTeacher) {
       query = query.ilike(
