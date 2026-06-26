@@ -3,10 +3,13 @@
 import Link from "next/link";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/lib/icons";
 import { ObjectType } from "@/lib/types";
 import { useDebounce } from "@/lib/useDebounce";
+import DatePicker from "react-datepicker";
+
+import "react-datepicker/dist/react-datepicker.css";
 
 const SearchIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -235,11 +238,11 @@ function SchoolCard({ school }: { school: School }) {
           <div className="h-px w-full bg-[#DADADA] opacity-40" />
 
           {/* Quote snippet */}
-         {school.ai_summary && <div className="flex items-start gap-2 p-2 sm:p-2.5 rounded bg-[#F8F9FD]">
+          {school.ai_summary && <div className="flex items-start gap-2 p-2 sm:p-2.5 rounded bg-[#F8F9FD]">
             <div className="flex-shrink-0 mt-0.5 sm:mt-1">
               <QuoteIcon />
             </div>
-             <p className="flex-1 text-[#464555] font-[Inter] text-xs sm:text-[13px] font-normal leading-[16px] sm:leading-[18px]">{school.ai_summary}</p>
+            <p className="flex-1 text-[#464555] font-[Inter] text-xs sm:text-[13px] font-normal leading-[16px] sm:leading-[18px]">{school.ai_summary}</p>
           </div>}
         </div>
 
@@ -269,22 +272,43 @@ export default function BrowseSchoolPage() {
   const [firstLoad, setFirstLoad] = useState<boolean>(true);
   const [searchingLoad, setSearchingLoad] = useState<boolean>(false);
   const [pageLoading, setPageLoading] = useState<boolean>(false);
+  const [selectedYear, setSelectedYear] = useState<Date | null>(null);
+
+  const schoolYear = selectedYear
+    ? `${selectedYear.getFullYear()}-${selectedYear.getFullYear() + 1}`
+    : "Select School Year";
 
   const debouncedFilters = useDebounce(filters, 1000);
 
+  const YearInput = forwardRef<
+    HTMLButtonElement,
+    { value?: string; onClick?: () => void }
+  >(({ value, onClick }, ref) => (
+    <button
+      ref={ref}
+      type="button"
+      onClick={onClick}
+      className="ml-1 w-full bg-transparent outline-none border-none font-[Inter] text-xs font-normal text-[#121212] placeholder:text-[#6B7280]"
+    >
+      {value || "Select School Year"}
+    </button>
+  ));
+
+  YearInput.displayName = "YearInput";
+
   const loadSchools = async () => {
     try {
-     
+
 
       if (firstLoad) {
         setLoading(true);
       }
 
-console.log("loading",loading);
       const params = new URLSearchParams({
         page: String(currentPage),
         limit: "10",
         location: filters.location || "",
+        year: schoolYear != "Select School Year" ? schoolYear : ""
       });
 
       filters.grade?.forEach((g: string) => {
@@ -334,31 +358,30 @@ console.log("loading",loading);
     setLoading(true);
     if (currentPage !== 1) {
       setCurrentPage(1);
-      
+
     } else {
       loadSchools();
     }
-    
+
   }, [debouncedFilters]);
 
 
-
   useEffect(() => {
- 
-    if(!searchingLoad){
+
+    if (!searchingLoad) {
       loadSchools();
       setPageLoading(true);
     }
-    
+
   }, [currentPage]);
 
-  useEffect(()=>{
-    
-    if(searchingLoad){
+  useEffect(() => {
+
+    if (searchingLoad) {
       loadSchools();
       setLoading(true);
     }
-  },[searchingLoad])
+  }, [searchingLoad])
 
 
   return (
@@ -427,16 +450,17 @@ console.log("loading",loading);
                 <div className="flex items-end justify-between mb-5 sm:mb-7">
                   <span className="font-[Outfit] text-lg font-medium leading-5 text-black">Filter</span>
                   {Object.values(filters).some((value) => {
-  if (Array.isArray(value)) return value.length > 0;
-  return !!value;
-}) &&
-                  
-                  <button onClick={() => {
-                    setFilters({})
-                    setSearchInput({})
-                  }} className="font-[Outfit] text-sm  font-medium leading-5 text-[#0171F9] hover:underline cursor-pointer">
-                    Clear all
-                  </button>}
+                    if (Array.isArray(value)) return value.length > 0;
+                    return !!value;
+                  }) &&
+
+                    <button onClick={() => {
+                      setFilters({})
+                      setSelectedYear(null)
+                      setSearchInput({})
+                    }} className="font-[Outfit] text-sm  font-medium leading-5 text-[#0171F9] hover:underline cursor-pointer">
+                      Clear all
+                    </button>}
                 </div>
 
                 {/* Location filter */}
@@ -457,6 +481,27 @@ console.log("loading",loading);
                     />
                   </div>
                 </div>
+
+                <div className="flex flex-col gap-3 mb-5 sm:mb-7 relative">
+                  <span className="font-[Outfit] text-sm sm:text-base font-medium leading-6 text-[#121212]">
+                    School Year
+                  </span>
+
+                  <DatePicker
+                    selected={selectedYear}
+                    onChange={(date: any) => {
+                      setSelectedYear(date)
+                      setFilters({ ...filters, ["year"]: schoolYear })
+
+                    }}
+                    showYearPicker
+                    dateFormat="yyyy"
+                    value={schoolYear}
+                    customInput={<YearInput />}
+                  />
+
+                </div>
+
                 {/* Grade Level filter */}
                 <div className="flex flex-col gap-4 sm:gap-5 mb-5 sm:mb-7">
                   <span className="font-[Outfit] text-sm sm:text-base font-medium leading-6 text-[#121212]">Grade Level</span>
@@ -501,6 +546,7 @@ console.log("loading",loading);
                   </div>
                 </div>
 
+
                 {/* Rating filter */}
                 <div className="flex flex-col gap-4 sm:gap-5">
                   <span className="font-[Outfit] text-sm sm:text-base font-medium leading-6 text-[#121212]">Rating</span>
@@ -510,7 +556,7 @@ console.log("loading",loading);
                       { label: "3.0+", icon: <ThreeStars />, value: 3 },
                       { label: "2.0+", icon: <TwoStars />, value: 2 },
                       { label: "1.0+", icon: <OneStar />, value: 1 },
-                       { label: "0.0+", icon: "", value: 0.0 },
+                      { label: "0.0+", icon: "", value: 0.0 },
                     ].map((item: ObjectType) => (
                       <label
                         key={item.label}
@@ -615,6 +661,7 @@ console.log("loading",loading);
               <NoSchoolsFound
                 onReset={() => {
                   setFilters({});
+                  setSelectedYear(null);
                   setSearchInput({});
                 }}
               />

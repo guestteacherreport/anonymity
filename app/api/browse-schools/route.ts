@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
     );
 
     const risk = searchParams.get("risk");
+    const year = searchParams.get("year");
 
     const state = searchParams.get("state");
 
@@ -101,6 +102,9 @@ export async function GET(req: NextRequest) {
 
     if (searchByTeacher && teacherSchoolIds.length > 0) {
       query = query.in("id", teacherSchoolIds);
+    }
+    if(year){
+      query = query.eq("school_year", year);
     }
 
     // =========================
