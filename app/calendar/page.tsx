@@ -297,15 +297,25 @@ function AddEventSidebar({
   const [endTime, setEndTime] = useState("15:00");
   const [schoolName, setSchoolName] = useState("");
   const [schoolAddress, setSchoolAddress] = useState("");
+  const [schoolId, setSchoolId] = useState<any>();
+
   const [schoolPhone, setSchoolPhone] = useState("");
   const [schoolEmail, setSchoolEmail] = useState("");
   const [teacherName, setTeacherName] = useState("");
+  const [teacherId, setTeacherId] = useState<any>();
   const [teacherPhone, setTeacherPhone] = useState("");
   const [teacherEmail, setTeacherEmail] = useState("");
   const [notes, setNotes] = useState("");
   const [colorChoice, setColorChoice] = useState<"green" | "orange" | "purple">("green");
   const dateRef1 = useRef<HTMLInputElement>(null);
   const dateRef2 = useRef<HTMLInputElement>(null);
+  const [schoolSuggestions, setSchoolSuggestions] = useState<string[]>([]);
+  const [schoolSearchLoading, setSchoolSearchLoading] = useState(false);
+  const [showSchoolSuggestions, setShowSchoolSuggestions] = useState(false);
+  // Teachers search state
+  const [teacherSuggestions, setTeacherSuggestions] = useState<string[]>([]);
+  const [teacherSearchLoading, setTeacherSearchLoading] = useState(false);
+  const [showTeacherSuggestions, setShowTeacherSuggestions] = useState(false);
 
   const colorMap = {
     green: { color: "#2DA357", bgColor: "#DDFCE9", borderColor: "#BDF7D3" },
@@ -341,6 +351,51 @@ function AddEventSidebar({
     reset();
     onClose();
   };
+
+    const fetchSchools = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setSchoolSuggestions([]);
+      return;
+    }
+
+    try {
+      setSchoolSearchLoading(true);
+      const response = await fetch(`/api/schoolSearch?search=${encodeURIComponent(query)}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setSchoolSuggestions(Array.isArray(data) ? data : data.schools || []);
+      }
+    } catch (error) {
+      console.error("Error fetching schools:", error);
+      setSchoolSuggestions([]);
+    } finally {
+      setSchoolSearchLoading(false);
+    }
+  }, []);
+
+    // Fetch teachers by search query
+    const fetchTeachers = useCallback(async (query: string, schoolId: number) => {
+      if (!query.trim()) {
+        setTeacherSuggestions([]);
+        return;
+      }
+  
+      try {
+        setTeacherSearchLoading(true);
+        const response = await fetch(`/api/teachers?search=${encodeURIComponent(query)}&school_id=${schoolId}`);
+  
+        if (response.ok) {
+          const data = await response.json();
+          setTeacherSuggestions(Array.isArray(data) ? data : data.teachers || []);
+        }
+      } catch (error) {
+        console.error("Error fetching teachers:", error);
+        setTeacherSuggestions([]);
+      } finally {
+        setTeacherSearchLoading(false);
+      }
+    }, []);
 
   return (
     <>
@@ -449,7 +504,7 @@ function AddEventSidebar({
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all pr-10"
+                    className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all "
                   />
                 </div>
               </div>
@@ -460,7 +515,7 @@ function AddEventSidebar({
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all pr-10"
+                    className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all"
                   />
                 </div>
               </div>
@@ -480,11 +535,46 @@ function AddEventSidebar({
                 </svg>
               }
             />
-            <div className="flex flex-col gap-4">
-              <div>
+            <div className="flex flex-col gap-4 ">
+              <div className="relative">
                 <FieldLabel required>School Name</FieldLabel>
-                <TextInput value={schoolName} onChange={setSchoolName} placeholder="e.g. Lincoln High School" />
+                <TextInput value={schoolName} onChange={(value: string)=>{
+                  setSchoolName(value)
+                  fetchSchools(value);
+                  setSchoolId("");
+                  setShowSchoolSuggestions(true);
+                  }} placeholder="e.g. Lincoln High School" />
+                  {/* School suggestions dropdown */}
+                    {showSchoolSuggestions && (schoolSuggestions.length > 0) && (
+                      <div className="absolute  top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                        {schoolSearchLoading && (
+                          <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
+                        )}
+                        {!schoolSearchLoading && schoolSuggestions.length > 0 && (
+                          schoolSuggestions.map((school: any, idx: number) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                 setSchoolAddress(`${school.street_address}, ${school.city}, ${school.state}, ${school.zipcode}`)
+                                setSchoolName(school.school_name)
+                                setSchoolId(school.id)
+                                setShowSchoolSuggestions(false);
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-[#F3F4F5] font-inter text-sm text-[#121212] border-b border-[#E0E0E2] last:border-b-0 transition-colors"
+                            >
+                              {school.school_name}
+                            </button>
+                          ))
+                        )}
+                        {!schoolSearchLoading && schoolSuggestions.length === 0  && (
+                          <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No schools found</div>
+                        )}
+                      </div>
+                    )}
               </div>
+               
               <div>
                 <FieldLabel required>School Address</FieldLabel>
                 <TextInput value={schoolAddress} onChange={setSchoolAddress} placeholder="e.g. 3501 Lincoln Blvd, Los Angeles, CA" />
@@ -516,9 +606,41 @@ function AddEventSidebar({
               }
             />
             <div className="flex flex-col gap-4">
-              <div>
+              <div className="relative">
                 <FieldLabel>Teacher's Full Name</FieldLabel>
-                <TextInput value={teacherName} onChange={setTeacherName} placeholder="e.g. Maria Gonzalez" />
+                <TextInput value={teacherName} onChange={(value: string)=>{
+                  setTeacherName(value);
+                  setTeacherId("");
+                  setShowTeacherSuggestions(true);
+                  fetchTeachers(value, schoolId);
+                }} placeholder="e.g. Maria Gonzalez" />
+                {/* Teacher suggestions dropdown */}
+                      {showTeacherSuggestions && (teacherName.trim() || teacherSuggestions.length > 0) && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                          {teacherSearchLoading && (
+                            <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
+                          )}
+                          {!teacherSearchLoading && teacherSuggestions.length > 0 && (
+                            teacherSuggestions.map((teacher: any, idx1: number) => (
+                              <button
+                                key={idx1}
+                                type="button"
+                                onMouseDown={() => {
+                                  setTeacherName(teacher.name);  
+                                  setTeacherId(teacher.id)
+                                  setShowTeacherSuggestions(false);
+                                }}
+                                className="w-full text-left px-4 py-3 hover:bg-[#F3F4F5] font-inter text-sm text-[#121212] border-b border-[#E0E0E2] last:border-b-0 transition-colors"
+                              >
+                                {teacher.name}
+                              </button>
+                            ))
+                          )}
+                          {!teacherSearchLoading && teacherSuggestions.length === 0 && teacherName.trim() && (
+                            <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No teachers found</div>
+                          )}
+                        </div>
+                      )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -565,7 +687,7 @@ function AddEventSidebar({
           </button>
           <button
             onClick={handleSave}
-            disabled={!schoolName.trim() || !startDate}
+            disabled={!schoolName?.trim() || !startDate}
             className="flex-1 py-3 rounded-xl bg-[#0171F9] text-white font-inter text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Save Event
