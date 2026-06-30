@@ -12,7 +12,7 @@ export default function Footer() {
       <div className="px-6 sm:px-[120px] flex flex-col">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 w-full py-12">
           <Link href="/" aria-label="Anonymity" className="flex items-center flex-shrink-0">
-            <Image src="/logo.svg" height={150} width={150} alt="Logo"/>
+            <Image src="/logo.png" height={90} width={90} alt="Logo"/>
           </Link>
           <nav className="flex flex-col sm:flex-row items-start justify-end md:gap-0 gap-2 flex-wrap text-center">
             <div className="w-44">

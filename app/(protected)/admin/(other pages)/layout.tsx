@@ -42,7 +42,7 @@ export default function AdminLayout({
           {/* Logo - Left side */}
           <div className="flex-shrink-0 sm:hidden">
             <Link href="/" className="flex items-center">
-              <Image src="/logo.svg" height={150} width={150} alt="Logo" className="w-auto" />
+              <Image src="/logo.png" height={90} width={90} alt="Logo" className="w-auto" />
             </Link>
           </div>
 

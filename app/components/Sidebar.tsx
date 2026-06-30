@@ -75,7 +75,7 @@ export default function Sidebar() {
     {/* Logo area - Hidden on mobile since header serves this purpose */}
     <div className="hidden lg:flex h-23 items-center px-12 border-b border-black/10 flex-shrink-0">
       <Link href="/" className="flex flex-col gap-1">
-        <Image src="/logo.svg" height={150} width={150} alt="Logo" />
+        <Image src="/logo.png" height={75} width={75} alt="Logo" />
       </Link>
     </div>
 

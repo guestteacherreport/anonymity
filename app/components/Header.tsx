@@ -49,8 +49,12 @@ export default function Header() {
     <>
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-black/6">
         <div className="flex items-center justify-between h-[92px] max-w-[1440px] mx-auto px-6 sm:px-8">
-          <Link href="/" className="flex items-center flex-shrink-0" aria-label="Anonymity">
-            <Image src="/logo.svg" height={150} width={150} alt="Logo" />
+          <Link href="/" className="flex items-center flex-shrink-0 md:hidden" aria-label="Anonymity">
+            <Image src="/logo.png" height={65} width={65} alt="Logo" />
+          </Link>
+
+          <Link href="/" className="flex items-center flex-shrink-0 md:block hidden" aria-label="Anonymity">
+            <Image src="/logo.png" height={75} width={75} alt="Logo" />
           </Link>
 
           <nav className="hidden sm:flex items-center gap-10">

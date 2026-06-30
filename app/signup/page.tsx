@@ -125,7 +125,7 @@ export default function SignUpPage() {
       {/* Logo + Tagline */}
       <div className="flex flex-col items-center gap-3 mb-6">
         <Link href={"/"}>
-          <Image src="/logo.svg" height={150} width={150} alt="Logo" />
+          <Image src="/logo.png" height={100} width={100} alt="Logo" />
         </Link>
         <p className="font-inter text-sm text-[#737786] text-center">
           Your identity stays private - always.
