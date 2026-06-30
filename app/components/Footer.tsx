@@ -10,9 +10,9 @@ export default function Footer() {
   return (
     <footer className="bg-[#FAFCFE] border-t border-[rgba(226,232,240,0.64)]">
       <div className="px-6 sm:px-[120px] flex flex-col">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 w-full py-12">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 w-full py-4">
           <Link href="/" aria-label="Anonymity" className="flex items-center flex-shrink-0">
-            <Image src="/logo.png" height={90} width={90} alt="Logo"/>
+            <Image src="/logo.png" height={75} width={75} alt="Logo"/>
           </Link>
           <nav className="flex flex-col sm:flex-row items-start justify-end md:gap-0 gap-2 flex-wrap text-center">
             <div className="w-44">

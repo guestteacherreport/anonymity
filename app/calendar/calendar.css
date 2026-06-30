@@ -1,0 +1,100 @@
+.rbc-calendar {
+          font-family: Inter, sans-serif;
+        }
+        .rbc-month-view {
+          border: none;
+          border-radius: 0 0 16px 16px;
+          overflow: hidden;
+        }
+        .rbc-header {
+          border-bottom: 1px solid #E2E2E2 !important;
+          padding: 12px 0 !important;
+          color: #9CA3B2;
+          font-size: 13px;
+          font-weight: 600;
+          font-family: Inter, sans-serif;
+          background: #fff;
+          border-left: none !important;
+        }
+        .rbc-header + .rbc-header {
+          border-left: 1px solid #F9FAFB !important;
+        }
+        .rbc-month-row {
+          border-top: 1px solid #E2E2E2;
+          overflow: visible;
+        }
+        .rbc-day-bg {
+          border-left: 1px solid #F9FAFB;
+        }
+        .rbc-day-bg + .rbc-day-bg {
+          border-left: 1px solid #F9FAFB;
+        }
+        .rbc-off-range-bg {
+          background: #FAFAFA !important;
+        }
+        .rbc-today {
+          background: transparent !important;
+        }
+        .rbc-date-cell {
+          padding: 12px 12px 0;
+          text-align: left;
+          font-size: 14px;
+          font-weight: 600;
+          font-family: Inter, sans-serif;
+          color: #121212;
+        }
+        .rbc-date-cell.rbc-off-range {
+          color: #9CA3AF;
+        }
+        .rbc-date-cell.rbc-now button,
+        .rbc-date-cell.rbc-now a {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: #0171F9;
+          color: #fff !important;
+          font-size: 14px;
+          font-weight: 600;
+        }
+        .rbc-date-cell button,
+        .rbc-date-cell a {
+          color: inherit;
+          font-weight: inherit;
+          font-size: inherit;
+          cursor: pointer;
+        }
+        .rbc-event {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          min-height: unset;
+        }
+        .rbc-event:focus {
+          outline: none;
+        }
+        .rbc-event-content {
+          font-size: 11px;
+          font-family: Inter, sans-serif;
+        }
+        .rbc-selected-day {
+          background: #EFF6FF !important;
+        }
+        .rbc-show-more {
+          color: #0171F9;
+          font-size: 11px;
+          font-weight: 500;
+          font-family: Inter, sans-serif;
+        }
+        .rbc-toolbar {
+          display: none !important;
+        }
+        .rbc-row-content {
+          z-index: 1;
+        }
+        .rbc-month-header {
+          border-top: 1px solid #E2E2E2;
+        }

@@ -10,7 +10,15 @@ export const ChevronLeftIcon = ({
     />
   </svg>
 );
-
+export const CalendarIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g opacity="0.6" clipPath="url(#cal-clip)">
+      <path d="M12.0002 2.66675H4.00016C2.5274 2.66675 1.3335 3.86066 1.3335 5.33341V12.0001C1.3335 13.4728 2.5274 14.6667 4.00016 14.6667H12.0002C13.4729 14.6667 14.6668 13.4728 14.6668 12.0001V5.33341C14.6668 3.86066 13.4729 2.66675 12.0002 2.66675Z" stroke="#1E1E1E" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5.3335 1.33337V4.00004M10.6668 1.33337V4.00004M1.3335 6.66671H14.6668" stroke="#1E1E1E" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+    </g>
+    <defs><clipPath id="cal-clip"><rect width="16" height="16" fill="white" /></clipPath></defs>
+  </svg>
+);
 export const ChevronRightIcon = () => (
   <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
     <path d="M1.32371 0L7 6L1.32371 12L0 10.5996L4.35144 6L0 1.4004L1.32371 0Z" fill="#323152" />

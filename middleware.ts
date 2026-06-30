@@ -24,13 +24,18 @@ export default withAuth(
       !token &&
       (pathname.startsWith("/admin") ||
         pathname.startsWith("/my-reports") ||
-        pathname.startsWith("/submit-report"))
+        pathname.startsWith("/submit-report") ||
+        pathname.startsWith("/calendar"))
     ) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
     if (token && pathname.startsWith("/admin") && role !== "admin") {
       return NextResponse.redirect(new URL("/my-reports", req.url));
+    }
+
+    if (token && pathname.startsWith("/calendar") && role !== "guest_teacher") {
+      return NextResponse.redirect(new URL("/", req.url));
     }
   },
   {
@@ -50,5 +55,6 @@ export const config = {
     "/my-reports",
     "/submit-report",
     "/auth-redirect",
+    "/calendar",
   ],
 };
