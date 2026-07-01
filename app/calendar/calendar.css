@@ -1,12 +1,12 @@
 /* FullCalendar Custom Styling */
 .fc-custom-calendar {
   --fc-border-color: #E2E2E2;
-  --fc-button-text-color: #0171F9;
+  --fc-button-text-color: white;
   --fc-button-border-color: #0171F9;
-  --fc-button-bg-color: transparent;
+  --fc-button-bg-color: #0171F9;
   --fc-button-active-bg-color: #0171F9;
   --fc-button-active-border-color: #0171F9;
-  --fc-button-hover-bg-color: #f0f7ff;
+  --fc-button-hover-bg-color: #0054d4;
   --fc-event-bg-color: transparent;
   --fc-event-border-color: transparent;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -30,7 +30,8 @@
 
 .fc-custom-calendar .fc-button-primary:hover {
   background-color: var(--fc-button-hover-bg-color);
-  border-color: var(--fc-button-border-color);
+  border-color: var(--fc-button-hover-bg-color);
+  color: white;
 }
 
 .fc-custom-calendar .fc-button-primary.fc-button-active,
