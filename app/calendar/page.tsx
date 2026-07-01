@@ -864,10 +864,11 @@ function AddEventSidebar({
 export default function CalendarPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [events, setEvents] = useState<CalendarEvent[]>(SAMPLE_EVENTS);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 3));
   const [selectedDay, setSelectedDay] = useState<Date>(new Date(2026, 3, 7));
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -876,6 +877,27 @@ export default function CalendarPage() {
       router.push("/");
     }
   }, [status, session, router]);
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role === "guest_teacher") {
+      fetchEvents();
+    }
+  }, [status, session]);
+
+  const fetchEvents = async () => {
+    try {
+      setIsLoadingEvents(true);
+      const response = await fetch("/api/calendar-events/get");
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data.events || []);
+      }
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  };
 
   const selectedDayEvents = events.filter((e) => isSameDay(e.start, selectedDay));
 
@@ -899,6 +921,7 @@ export default function CalendarPage() {
     setEvents((prev) => [...prev, newEvent]);
     setSelectedDay(newEvent.start);
     setCurrentDate(newEvent.start);
+    fetchEvents();
   };
 
   const eventPropGetter = useCallback((event: CalendarEvent) => {
@@ -941,7 +964,7 @@ export default function CalendarPage() {
     [selectedDay, currentDate]
   );
 
-  if (status === "loading") {
+  if (status === "loading" || isLoadingEvents) {
     return <PageLoader className="min-h-screen flex items-center justify-center bg-[#F8FAFE]" />;
   }
 
