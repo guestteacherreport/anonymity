@@ -324,13 +324,13 @@ function AddEventSidebar({
         throw new Error(data.message || "Failed to save event");
       }
 
-      const startDate = new Date(eventData.start);
-      const endDate = new Date(eventData.end);
+      const startDate1 = new Date(eventData.start);
+      const endDate1 = new Date(eventData.end);
 
       onSave({
         title: eventData.title,
-        start: startDate,
-        end: endDate,
+        start: startDate1,
+        end: endDate1,
         school: schoolName,
         color: colorMap[colorChoice].color,
         bgColor: colorMap[colorChoice].bgColor,
@@ -744,7 +744,7 @@ export default function CalendarPage() {
     if (status === "authenticated" && session?.user?.role === "guest_teacher") {
       fetchEvents();
     }
-  }, [status, session]);
+  }, [status]);
 
   const fetchEvents = async () => {
     try {
