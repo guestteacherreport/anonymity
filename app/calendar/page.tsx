@@ -256,17 +256,22 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
   );
 }
 
-function TextInput({ placeholder, value, onChange, type = "text" }: {
-  placeholder?: string; value: string; onChange: (v: string) => void; type?: string;
+function TextInput({ placeholder, value, onChange, type = "text", error }: {
+  placeholder?: string; value: string; onChange: (v: string) => void; type?: string; error?: string;
 }) {
   return (
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] placeholder:text-[#ADADAD] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all"
-    />
+    <div>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`w-full bg-[#F5F6FA] border rounded-lg px-4 py-3 text-sm font-inter text-[#121212] placeholder:text-[#ADADAD] outline-none focus:ring-2 transition-all ${
+          error ? "border-red-500 focus:ring-red-200" : "border-0 focus:ring-[#0171F9]/30"
+        }`}
+      />
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    </div>
   );
 }
 
@@ -312,10 +317,11 @@ function AddEventSidebar({
   const [schoolSuggestions, setSchoolSuggestions] = useState<string[]>([]);
   const [schoolSearchLoading, setSchoolSearchLoading] = useState(false);
   const [showSchoolSuggestions, setShowSchoolSuggestions] = useState(false);
-  // Teachers search state
   const [teacherSuggestions, setTeacherSuggestions] = useState<string[]>([]);
   const [teacherSearchLoading, setTeacherSearchLoading] = useState(false);
   const [showTeacherSuggestions, setShowTeacherSuggestions] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const colorMap = {
     green: { color: "#2DA357", bgColor: "#DDFCE9", borderColor: "#BDF7D3" },
@@ -330,26 +336,138 @@ function AddEventSidebar({
     setSchoolPhone(""); setSchoolEmail("");
     setTeacherName(""); setTeacherPhone(""); setTeacherEmail("");
     setNotes(""); setColorChoice("green");
+    setErrors({});
   };
 
   const handleClose = () => { reset(); onClose(); };
 
-  const handleSave = () => {
-    if (!schoolName.trim() || !startDate) return;
-    const [sy, sm, sd] = startDate.split("-").map(Number);
-    const [sh, smin] = startTime.split(":").map(Number);
-    const [ey, em, ed] = endDate.split("-").map(Number);
-    const [eh, emin] = endTime.split(":").map(Number);
-    onSave({
-      title: `Sub Assignment - ${schoolName}`,
-      start: new Date(sy, sm - 1, sd, sh, smin),
-      end: new Date(ey, em - 1, ed, eh, emin),
-      school: schoolName,
-      ...colorMap[colorChoice],
-      reminders: 0,
-    });
-    reset();
-    onClose();
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!schoolName.trim()) {
+      newErrors.schoolName = "School name is required";
+    }
+
+    if (!schoolAddress.trim()) {
+      newErrors.schoolAddress = "School address is required";
+    }
+
+    if (!startDate) {
+      newErrors.startDate = "Start date is required";
+    }
+
+    if (!endDate) {
+      newErrors.endDate = "End date is required";
+    }
+
+    if (!startTime) {
+      newErrors.startTime = "Start time is required";
+    }
+
+    if (!endTime) {
+      newErrors.endTime = "End time is required";
+    }
+
+    const startDateTime = new Date(`${startDate}T${startTime}`);
+    const endDateTime = new Date(`${endDate}T${endTime}`);
+
+    if (endDateTime <= startDateTime) {
+      newErrors.endTime = "End time must be after start time";
+    }
+
+    if (schoolEmail.trim() && !isValidEmail(schoolEmail)) {
+      newErrors.schoolEmail = "Invalid email address";
+    }
+
+    if (teacherEmail.trim() && !isValidEmail(teacherEmail)) {
+      newErrors.teacherEmail = "Invalid email address";
+    }
+
+    if (schoolPhone.trim() && !isValidPhone(schoolPhone)) {
+      newErrors.schoolPhone = "Invalid phone number";
+    }
+
+    if (teacherPhone.trim() && !isValidPhone(teacherPhone)) {
+      newErrors.teacherPhone = "Invalid phone number";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const isValidPhone = (phone: string): boolean => {
+    const phoneRegex = /^[\d\s\-\(\)\+]{10,}$/;
+    return phoneRegex.test(phone.replace(/\s/g, ""));
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) return;
+
+    setIsSaving(true);
+    try {
+      const [sy, sm, sd] = startDate.split("-").map(Number);
+      const [sh, smin] = startTime.split(":").map(Number);
+      const [ey, em, ed] = endDate.split("-").map(Number);
+      const [eh, emin] = endTime.split(":").map(Number);
+
+      const eventData = {
+        title: `Sub Assignment - ${schoolName}`,
+        start: new Date(sy, sm - 1, sd, sh, smin).toISOString(),
+        end: new Date(ey, em - 1, ed, eh, emin).toISOString(),
+        school: schoolName,
+        schoolAddress,
+        schoolPhone: schoolPhone.trim() || null,
+        schoolEmail: schoolEmail.trim() || null,
+        schoolId: schoolId || null,
+        teacherName: teacherName.trim() || null,
+        teacherId: teacherId || null,
+        teacherPhone: teacherPhone.trim() || null,
+        teacherEmail: teacherEmail.trim() || null,
+        notes: notes.trim() || null,
+        color: colorMap[colorChoice].color,
+        bgColor: colorMap[colorChoice].bgColor,
+        borderColor: colorMap[colorChoice].borderColor,
+        reminders: 0,
+      };
+
+      const response = await fetch("/api/calendar-events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventData),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Failed to save event");
+      }
+
+      const startDate = new Date(eventData.start);
+      const endDate = new Date(eventData.end);
+
+      onSave({
+        title: eventData.title,
+        start: startDate,
+        end: endDate,
+        school: schoolName,
+        color: colorMap[colorChoice].color,
+        bgColor: colorMap[colorChoice].bgColor,
+        borderColor: colorMap[colorChoice].borderColor,
+        reminders: 0,
+      });
+
+      reset();
+      onClose();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to save event";
+      setErrors({ submit: errorMessage });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
     const fetchSchools = useCallback(async (query: string) => {
@@ -460,64 +578,65 @@ function AddEventSidebar({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <FieldLabel required>Start Date</FieldLabel>
-                <div onClick={() => dateRef1.current?.showPicker()} className={`flex items-center text-sm gap-[6px] px-4  rounded-lg bg-[#F3F4F5] overflow-hidden justify-between py-[14px]`}>
+                <div onClick={() => dateRef1.current?.showPicker()} className={`flex items-center text-sm gap-[6px] px-4 rounded-lg overflow-hidden justify-between py-[14px] ${errors.startDate ? "bg-red-50 border border-red-500" : "bg-[#F3F4F5]"}`}>
                   <input
                     type="date"
                     max={endDate}
                     ref={dateRef1}
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-
-                    className="bg-[#F5F6FA] outline-none w-full font-inter text-sm text-[#121212] appearance-none"
-
+                    className="bg-transparent outline-none w-full font-inter text-sm text-[#121212] appearance-none"
                   />
-                  <div
-                    className="cursor-pointer"
-                  >
+                  <div className="cursor-pointer">
                     <CalendarIcon />
                   </div>
                 </div>
+                {errors.startDate && <p className="text-red-500 text-xs mt-1">{errors.startDate}</p>}
               </div>
               <div>
                 <FieldLabel required>End Date</FieldLabel>
-                <div onClick={() => dateRef2.current?.showPicker()} className={`flex items-center text-sm gap-[6px] px-4  rounded-lg bg-[#F3F4F5] overflow-hidden justify-between py-[14px]`}>
+                <div onClick={() => dateRef2.current?.showPicker()} className={`flex items-center text-sm gap-[6px] px-4 rounded-lg overflow-hidden justify-between py-[14px] ${errors.endDate ? "bg-red-50 border border-red-500" : "bg-[#F3F4F5]"}`}>
                   <input
                     type="date"
                     ref={dateRef2}
                     min={startDate}
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="bg-[#F5F6FA] outline-none w-full font-inter text-sm text-[#121212] appearance-none"
-
+                    className="bg-transparent outline-none w-full font-inter text-sm text-[#121212] appearance-none"
                   />
-                  <div
-                    className="cursor-pointer"
-                  >
+                  <div className="cursor-pointer">
                     <CalendarIcon />
                   </div>
                 </div>
+                {errors.endDate && <p className="text-red-500 text-xs mt-1">{errors.endDate}</p>}
               </div>
               <div>
                 <FieldLabel required>Start Time</FieldLabel>
-                <div className="relative">
+                <div>
                   <input
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all "
+                    className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${
+                      errors.startTime ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
+                    }`}
                   />
                 </div>
+                {errors.startTime && <p className="text-red-500 text-xs mt-1">{errors.startTime}</p>}
               </div>
               <div>
                 <FieldLabel required>End Time</FieldLabel>
-                <div className="relative">
+                <div>
                   <input
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all"
+                    className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${
+                      errors.endTime ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
+                    }`}
                   />
                 </div>
+                {errors.endTime && <p className="text-red-500 text-xs mt-1">{errors.endTime}</p>}
               </div>
             </div>
           </div>
@@ -535,58 +654,76 @@ function AddEventSidebar({
                 </svg>
               }
             />
-            <div className="flex flex-col gap-4 ">
+            <div className="flex flex-col gap-4">
               <div className="relative">
                 <FieldLabel required>School Name</FieldLabel>
-                <TextInput value={schoolName} onChange={(value: string)=>{
-                  setSchoolName(value)
-                  fetchSchools(value);
-                  setSchoolId("");
-                  setShowSchoolSuggestions(true);
-                  }} placeholder="e.g. Lincoln High School" />
-                  {/* School suggestions dropdown */}
-                    {showSchoolSuggestions && (schoolSuggestions.length > 0) && (
-                      <div className="absolute  top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
-                        {schoolSearchLoading && (
-                          <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
-                        )}
-                        {!schoolSearchLoading && schoolSuggestions.length > 0 && (
-                          schoolSuggestions.map((school: any, idx: number) => (
-                            <button
-                              key={idx}
-                              type="button"
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                 setSchoolAddress(`${school.street_address}, ${school.city}, ${school.state}, ${school.zipcode}`)
-                                setSchoolName(school.school_name)
-                                setSchoolId(school.id)
-                                setShowSchoolSuggestions(false);
-                              }}
-                              className="w-full text-left px-4 py-3 hover:bg-[#F3F4F5] font-inter text-sm text-[#121212] border-b border-[#E0E0E2] last:border-b-0 transition-colors"
-                            >
-                              {school.school_name}
-                            </button>
-                          ))
-                        )}
-                        {!schoolSearchLoading && schoolSuggestions.length === 0  && (
-                          <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No schools found</div>
-                        )}
-                      </div>
+                <TextInput
+                  value={schoolName}
+                  onChange={(value: string) => {
+                    setSchoolName(value);
+                    fetchSchools(value);
+                    setSchoolId("");
+                    setShowSchoolSuggestions(true);
+                  }}
+                  placeholder="e.g. Lincoln High School"
+                  error={errors.schoolName}
+                />
+                {showSchoolSuggestions && (schoolSuggestions.length > 0) && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                    {schoolSearchLoading && (
+                      <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
                     )}
+                    {!schoolSearchLoading && schoolSuggestions.length > 0 && (
+                      schoolSuggestions.map((school: any, idx: number) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setSchoolAddress(`${school.street_address}, ${school.city}, ${school.state}, ${school.zipcode}`);
+                            setSchoolName(school.school_name);
+                            setSchoolId(school.id);
+                            setShowSchoolSuggestions(false);
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-[#F3F4F5] font-inter text-sm text-[#121212] border-b border-[#E0E0E2] last:border-b-0 transition-colors"
+                        >
+                          {school.school_name}
+                        </button>
+                      ))
+                    )}
+                    {!schoolSearchLoading && schoolSuggestions.length === 0 && (
+                      <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No schools found</div>
+                    )}
+                  </div>
+                )}
               </div>
-               
               <div>
                 <FieldLabel required>School Address</FieldLabel>
-                <TextInput value={schoolAddress} onChange={setSchoolAddress} placeholder="e.g. 3501 Lincoln Blvd, Los Angeles, CA" />
+                <TextInput
+                  value={schoolAddress}
+                  onChange={setSchoolAddress}
+                  placeholder="e.g. 3501 Lincoln Blvd, Los Angeles, CA"
+                  error={errors.schoolAddress}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <FieldLabel>School Phone</FieldLabel>
-                  <TextInput value={schoolPhone} onChange={setSchoolPhone} placeholder="(213)555-0000" />
+                  <TextInput
+                    value={schoolPhone}
+                    onChange={setSchoolPhone}
+                    placeholder="(213)555-0000"
+                    error={errors.schoolPhone}
+                  />
                 </div>
                 <div>
                   <FieldLabel>School Email</FieldLabel>
-                  <TextInput value={schoolEmail} onChange={setSchoolEmail} placeholder="admin@school.edu" />
+                  <TextInput
+                    value={schoolEmail}
+                    onChange={setSchoolEmail}
+                    placeholder="admin@school.edu"
+                    error={errors.schoolEmail}
+                  />
                 </div>
               </div>
             </div>
@@ -608,66 +745,73 @@ function AddEventSidebar({
             <div className="flex flex-col gap-4">
               <div className="relative">
                 <FieldLabel>Teacher's Full Name</FieldLabel>
-                <TextInput value={teacherName} onChange={(value: string)=>{
-                  setTeacherName(value);
-                  setTeacherId("");
-                  setShowTeacherSuggestions(true);
-                  fetchTeachers(value, schoolId);
-                }} placeholder="e.g. Maria Gonzalez" />
-                {/* Teacher suggestions dropdown */}
-                      {showTeacherSuggestions && (teacherName.trim() || teacherSuggestions.length > 0) && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-                          {teacherSearchLoading && (
-                            <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
-                          )}
-                          {!teacherSearchLoading && teacherSuggestions.length > 0 && (
-                            teacherSuggestions.map((teacher: any, idx1: number) => (
-                              <button
-                                key={idx1}
-                                type="button"
-                                onMouseDown={() => {
-                                  setTeacherName(teacher.name);  
-                                  setTeacherId(teacher.id)
-                                  setShowTeacherSuggestions(false);
-                                }}
-                                className="w-full text-left px-4 py-3 hover:bg-[#F3F4F5] font-inter text-sm text-[#121212] border-b border-[#E0E0E2] last:border-b-0 transition-colors"
-                              >
-                                {teacher.name}
-                              </button>
-                            ))
-                          )}
-                          {!teacherSearchLoading && teacherSuggestions.length === 0 && teacherName.trim() && (
-                            <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No teachers found</div>
-                          )}
-                        </div>
-                      )}
+                <TextInput
+                  value={teacherName}
+                  onChange={(value: string) => {
+                    setTeacherName(value);
+                    setTeacherId("");
+                    setShowTeacherSuggestions(true);
+                    fetchTeachers(value, schoolId);
+                  }}
+                  placeholder="e.g. Maria Gonzalez"
+                />
+                {showTeacherSuggestions && (teacherName.trim() || teacherSuggestions.length > 0) && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                    {teacherSearchLoading && (
+                      <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
+                    )}
+                    {!teacherSearchLoading && teacherSuggestions.length > 0 && (
+                      teacherSuggestions.map((teacher: any, idx1: number) => (
+                        <button
+                          key={idx1}
+                          type="button"
+                          onMouseDown={() => {
+                            setTeacherName(teacher.name);
+                            setTeacherId(teacher.id);
+                            setShowTeacherSuggestions(false);
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-[#F3F4F5] font-inter text-sm text-[#121212] border-b border-[#E0E0E2] last:border-b-0 transition-colors"
+                        >
+                          {teacher.name}
+                        </button>
+                      ))
+                    )}
+                    {!teacherSearchLoading && teacherSuggestions.length === 0 && teacherName.trim() && (
+                      <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No teachers found</div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <FieldLabel>Teacher's Phone</FieldLabel>
-                  <TextInput value={teacherPhone} onChange={setTeacherPhone} placeholder="(213)555-0000" />
+                  <TextInput
+                    value={teacherPhone}
+                    onChange={setTeacherPhone}
+                    placeholder="(213)555-0000"
+                    error={errors.teacherPhone}
+                  />
                 </div>
                 <div>
                   <FieldLabel>Teacher's Email</FieldLabel>
-                  <TextInput value={teacherEmail} onChange={setTeacherEmail} placeholder="teacher@school.edu" />
-                </div>
-
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-
-                <div>
-                  <FieldLabel>Notes</FieldLabel>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Add any additional notes here..."
-                    rows={4}
-                    className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] placeholder:text-[#ADADAD] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all resize-none"
+                  <TextInput
+                    value={teacherEmail}
+                    onChange={setTeacherEmail}
+                    placeholder="teacher@school.edu"
+                    error={errors.teacherEmail}
                   />
                 </div>
               </div>
-
+              <div>
+                <FieldLabel>Notes</FieldLabel>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add any additional notes here..."
+                  rows={4}
+                  className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] placeholder:text-[#ADADAD] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all resize-none"
+                />
+              </div>
             </div>
           </div>
 
@@ -678,20 +822,38 @@ function AddEventSidebar({
         </div>
 
         {/* Footer actions */}
-        <div className="flex-shrink-0 px-6 py-4 border-t border-[#E8E8E8] mt-[30px] flex gap-3 bg-white">
-          <button
-            onClick={handleClose}
-            className="flex-1 py-3 rounded-xl border border-[#E2E2E2] text-[#121212] font-inter text-sm font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!schoolName?.trim() || !startDate}
-            className="flex-1 py-3 rounded-xl bg-[#0171F9] text-white font-inter text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Save Event
-          </button>
+        <div className="flex-shrink-0 px-6 py-4 border-t border-[#E8E8E8] mt-[30px] flex flex-col gap-3 bg-white">
+          {errors.submit && (
+            <div className="px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {errors.submit}
+            </div>
+          )}
+          <div className="flex gap-3">
+            <button
+              onClick={handleClose}
+              disabled={isSaving}
+              className="flex-1 py-3 rounded-xl border border-[#E2E2E2] text-[#121212] font-inter text-sm font-semibold hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving || !schoolName?.trim() || !startDate}
+              className="flex-1 py-3 rounded-xl bg-[#0171F9] text-white font-inter text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isSaving ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                "Save Event"
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </>
