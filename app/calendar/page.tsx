@@ -821,20 +821,23 @@ export default function CalendarPage() {
       const response = await fetch(`/api/calendar-events/${eventId}`);
       if (response.ok) {
         const data = await response.json();
-        setSelectedEvent(data.event);
+        const event = data.event;
+        setSelectedEvent(event);
         setEditFormData({
-          title: data.event.title,
-          start_date: data.event.start_date,
-          end_date: data.event.end_date,
-          school_name: data.event.school_name,
-          school_address: data.event.school_address,
-          school_phone: data.event.school_phone || "",
-          school_email: data.event.school_email || "",
-          teacher_name: data.event.teacher_name || "",
-          teacher_phone: data.event.teacher_phone || "",
-          teacher_email: data.event.teacher_email || "",
-          notes: data.event.notes || "",
+          title: event.title || "",
+          start_date: event.start_date || "",
+          end_date: event.end_date || "",
+          school_name: event.school_name || "",
+          school_address: event.school_address || "",
+          school_phone: event.school_phone || "",
+          school_email: event.school_email || "",
+          teacher_name: event.teacher_name || "",
+          teacher_phone: event.teacher_phone || "",
+          teacher_email: event.teacher_email || "",
+          notes: event.notes || "",
         });
+      } else {
+        console.error("Failed to fetch event:", response.status);
       }
     } catch (error) {
       console.error("Error fetching event details:", error);
