@@ -167,6 +167,7 @@
 .fc-custom-calendar .fc-event {
   margin: 2px;
   cursor: pointer;
+  border: 1px solid !important;
 }
 
 .fc-custom-calendar .fc-daygrid-event {
@@ -177,6 +178,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  border: 1px solid !important;
 }
 
 .fc-custom-calendar .fc-event-title {
