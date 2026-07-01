@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       notes,
       color,
       bgColor,
-      borderColor,
+      user_id,
       reminders,
     } = body;
 
@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
           teacher_email: teacherEmail || null,
           notes: notes || null,
           color,
+          user_id,
           bg_color: bgColor,
           reminders,
           created_at: new Date().toISOString(),

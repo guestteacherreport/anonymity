@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getServerSession } from "next-auth";
+import NextAuth, { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
+
+  const session = await getServerSession(authOptions);
+  console.log("session",session)
   try {
-    const session = await getServerSession();
+    
 
     if (!session?.user?.email) {
       return NextResponse.json(
@@ -16,9 +20,9 @@ export async function GET(req: NextRequest) {
     const { data, error } = await supabase
       .from("calendar_event")
       .select("*")
-      .eq("user_email", session.user.email)
+      .eq("user_id", session.user.id)
       .order("start_date", { ascending: true });
-
+console.log("data",session)
     if (error) {
       console.error("Supabase Error:", error);
       return NextResponse.json(
@@ -35,7 +39,6 @@ export async function GET(req: NextRequest) {
       school: event.school_name,
       color: event.color,
       bgColor: event.bg_color,
-      borderColor: event.border_color,
       reminders: event.reminders || 0,
     }));
 
