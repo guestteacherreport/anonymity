@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 
