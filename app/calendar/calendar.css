@@ -17,9 +17,9 @@
 }
 
 .fc-custom-calendar .fc-button-primary {
-  background-color: var(--fc-button-bg-color);
-  border-color: var(--fc-button-border-color);
-  color: var(--fc-button-text-color);
+  background-color: #0171F9;
+  border-color: #0171F9;
+  color: white;
   text-transform: none;
   font-weight: 600;
   font-size: 14px;
@@ -28,33 +28,68 @@
   transition: all 0.2s ease;
 }
 
-.fc-custom-calendar .fc-button-primary:hover {
-  background-color: var(--fc-button-hover-bg-color);
-  border-color: var(--fc-button-hover-bg-color);
+.fc-custom-calendar .fc-button-primary:not(.fc-button-active) {
+  background-color: #0171F9;
+  border-color: #0171F9;
   color: white;
 }
 
-.fc-custom-calendar .fc-button-primary.fc-button-active,
+.fc-custom-calendar .fc-button-primary:hover:not(.fc-button-active) {
+  background-color: #0054d4;
+  border-color: #0054d4;
+  color: white;
+}
+
+.fc-custom-calendar .fc-button-primary.fc-button-active {
+  background-color: #0171F9;
+  border-color: #0171F9;
+  color: white;
+}
+
 .fc-custom-calendar .fc-button-primary.fc-button-active:hover {
-  background-color: var(--fc-button-active-bg-color);
-  border-color: var(--fc-button-active-border-color);
+  background-color: #0054d4;
+  border-color: #0054d4;
   color: white;
 }
 
 .fc-custom-calendar .fc-button-primary:disabled {
   opacity: 0.5;
+  background-color: #0171F9;
+  border-color: #0171F9;
+  color: white;
 }
 
 .fc-custom-calendar .fc-button-primary:focus {
   box-shadow: none;
+  outline: none;
 }
 
 .fc-custom-calendar .fc-button-group {
   gap: 4px;
+  display: flex;
+  align-items: center;
 }
 
 .fc-custom-calendar .fc-button-group > * {
   margin: 0;
+}
+
+.fc-custom-calendar .fc-button-group .fc-button-primary {
+  background-color: #0171F9;
+  border-color: #0171F9;
+  color: white;
+}
+
+.fc-custom-calendar .fc-button-group .fc-button-primary:hover {
+  background-color: #0054d4;
+  border-color: #0054d4;
+  color: white;
+}
+
+.fc-custom-calendar .fc-button-group .fc-button-primary.fc-button-active {
+  background-color: #0171F9;
+  border-color: #0171F9;
+  color: white;
 }
 
 .fc-custom-calendar .fc-toolbar {
