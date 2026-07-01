@@ -13,6 +13,7 @@ import Footer from "@/app/components/Footer";
 import PageLoader from "@/app/components/PageLoader";
 import "./calendar.css";
 import { CalendarIcon } from "@/lib/icons";
+import bootstrap5Plugin from "@fullcalendar/bootstrap5";
 
 interface CalendarEvent {
   id: number;
@@ -46,9 +47,8 @@ function TextInput({ placeholder, value, onChange, type = "text", error }: {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full bg-[#F5F6FA] border rounded-lg px-4 py-3 text-sm font-inter text-[#121212] placeholder:text-[#ADADAD] outline-none focus:ring-2 transition-all ${
-          error ? "border-red-500 focus:ring-red-200" : "border-0 focus:ring-[#0171F9]/30"
-        }`}
+        className={`w-full bg-[#F5F6FA] border rounded-lg px-4 py-3 text-sm font-inter text-[#121212] placeholder:text-[#ADADAD] outline-none focus:ring-2 transition-all ${error ? "border-red-500 focus:ring-red-200" : "border-0 focus:ring-[#0171F9]/30"
+          }`}
       />
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
@@ -123,7 +123,7 @@ function SelectedDayCard({ date, events }: { date: Date; events: CalendarEvent[]
 
 function UpcomingJobsCard({ events }: { events: CalendarEvent[] }) {
   const now = startOfDay(new Date());
-  
+
   const upcoming = events
     .filter((e) => !isBefore(startOfDay(e.start), now))
     .sort((a, b) => a.start.getTime() - b.start.getTime())
@@ -182,7 +182,7 @@ function AddEventSidebar({
   const [schoolName, setSchoolName] = useState("");
   const [schoolAddress, setSchoolAddress] = useState("");
   const [schoolId, setSchoolId] = useState<any>();
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [schoolPhone, setSchoolPhone] = useState("");
   const [schoolEmail, setSchoolEmail] = useState("");
   const [teacherName, setTeacherName] = useState("");
@@ -202,11 +202,33 @@ function AddEventSidebar({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
-  const colorMap = {
-    green: { color: "#2DA357", bgColor: "#DDFCE9", borderColor: "#BDF7D3" },
-    orange: { color: "#E85616", bgColor: "#FEF0E7", borderColor: "#FCD9C0" },
-    purple: { color: "#7940E9", bgColor: "#F0EAFD", borderColor: "#D9C7FA" },
-  };
+  function getRandomEventColors() {
+    const color = `#${Math.floor(Math.random() * 0xffffff)
+      .toString(16)
+      .padStart(6, "0")}`;
+
+    const hex = color.replace("#", "");
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    // Create a lighter version for the background
+    const lighten = (value: number) => Math.round(value + (255 - value) * 0.8);
+
+    const bgColor = `#${[
+      lighten(r),
+      lighten(g),
+      lighten(b),
+    ]
+      .map((v) => v.toString(16).padStart(2, "0"))
+      .join("")}`;
+
+    return {
+      color,
+      borderColor: color,
+      bgColor,
+    };
+  }
 
   const reset = () => {
     setStartDate(today); setEndDate(today);
@@ -293,6 +315,8 @@ function AddEventSidebar({
       const [sh, smin] = startTime.split(":").map(Number);
       const [ey, em, ed] = endDate.split("-").map(Number);
       const [eh, emin] = endTime.split(":").map(Number);
+      const eventColors = getRandomEventColors();
+
 
       const eventData = {
         title: `Sub Assignment - ${schoolName}`,
@@ -308,10 +332,9 @@ function AddEventSidebar({
         teacherPhone: teacherPhone.trim() || null,
         teacherEmail: teacherEmail.trim() || null,
         notes: notes.trim() || null,
-        color: colorMap[colorChoice].color,
-        bgColor: colorMap[colorChoice].bgColor,
-        borderColor: colorMap[colorChoice].borderColor,
+        ...eventColors,
         reminders: 0,
+        user_id: session?.user?.id
       };
 
       const response = await fetch("/api/calendar-events", {
@@ -333,9 +356,7 @@ function AddEventSidebar({
         start: startDate1,
         end: endDate1,
         school: schoolName,
-        color: colorMap[colorChoice].color,
-        bgColor: colorMap[colorChoice].bgColor,
-        borderColor: colorMap[colorChoice].borderColor,
+        ...eventColors,
         reminders: 0,
         user_id: session?.user?.id
       });
@@ -487,9 +508,8 @@ function AddEventSidebar({
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${
-                      errors.startTime ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
-                    }`}
+                    className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${errors.startTime ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
+                      }`}
                   />
                 </div>
                 {errors.startTime && <p className="text-red-500 text-xs mt-1">{errors.startTime}</p>}
@@ -501,9 +521,8 @@ function AddEventSidebar({
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${
-                      errors.endTime ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
-                    }`}
+                    className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${errors.endTime ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
+                      }`}
                   />
                 </div>
                 {errors.endTime && <p className="text-red-500 text-xs mt-1">{errors.endTime}</p>}
@@ -526,14 +545,14 @@ function AddEventSidebar({
             <div className="flex flex-col gap-4">
               <div className="relative">
                 <FieldLabel required>School Name</FieldLabel>
-                <TextInput 
-                  value={schoolName} 
+                <TextInput
+                  value={schoolName}
                   onChange={(value: string) => {
                     setSchoolName(value);
                     fetchSchools(value);
                     setSchoolId("");
                     setShowSchoolSuggestions(true);
-                  }} 
+                  }}
                   placeholder="e.g. Lincoln High School"
                   error={errors.schoolName}
                 />
@@ -568,9 +587,9 @@ function AddEventSidebar({
               </div>
               <div>
                 <FieldLabel required>School Address</FieldLabel>
-                <TextInput 
-                  value={schoolAddress} 
-                  onChange={setSchoolAddress} 
+                <TextInput
+                  value={schoolAddress}
+                  onChange={setSchoolAddress}
                   placeholder="e.g. 3501 Lincoln Blvd, Los Angeles, CA"
                   error={errors.schoolAddress}
                 />
@@ -578,18 +597,18 @@ function AddEventSidebar({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <FieldLabel>School Phone</FieldLabel>
-                  <TextInput 
-                    value={schoolPhone} 
-                    onChange={setSchoolPhone} 
+                  <TextInput
+                    value={schoolPhone}
+                    onChange={setSchoolPhone}
                     placeholder="(213)555-0000"
                     error={errors.schoolPhone}
                   />
                 </div>
                 <div>
                   <FieldLabel>School Email</FieldLabel>
-                  <TextInput 
-                    value={schoolEmail} 
-                    onChange={setSchoolEmail} 
+                  <TextInput
+                    value={schoolEmail}
+                    onChange={setSchoolEmail}
                     placeholder="admin@school.edu"
                     error={errors.schoolEmail}
                   />
@@ -613,14 +632,14 @@ function AddEventSidebar({
             <div className="flex flex-col gap-4">
               <div className="relative">
                 <FieldLabel>Teacher's Full Name</FieldLabel>
-                <TextInput 
-                  value={teacherName} 
+                <TextInput
+                  value={teacherName}
                   onChange={(value: string) => {
                     setTeacherName(value);
                     setTeacherId("");
                     setShowTeacherSuggestions(true);
                     fetchTeachers(value, schoolId);
-                  }} 
+                  }}
                   placeholder="e.g. Maria Gonzalez"
                 />
                 {showTeacherSuggestions && (teacherName.trim() || teacherSuggestions.length > 0) && (
@@ -653,18 +672,18 @@ function AddEventSidebar({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <FieldLabel>Teacher's Phone</FieldLabel>
-                  <TextInput 
-                    value={teacherPhone} 
-                    onChange={setTeacherPhone} 
+                  <TextInput
+                    value={teacherPhone}
+                    onChange={setTeacherPhone}
                     placeholder="(213)555-0000"
                     error={errors.teacherPhone}
                   />
                 </div>
                 <div>
                   <FieldLabel>Teacher's Email</FieldLabel>
-                  <TextInput 
-                    value={teacherEmail} 
-                    onChange={setTeacherEmail} 
+                  <TextInput
+                    value={teacherEmail}
+                    onChange={setTeacherEmail}
                     placeholder="teacher@school.edu"
                     error={errors.teacherEmail}
                   />
@@ -755,13 +774,13 @@ export default function CalendarPage() {
       if (response.ok) {
         const data = await response.json();
 
-setEvents(
-  data.events.map((event: any) => ({
-    ...event,
-    start: new Date(event.start),
-    end: new Date(event.end),
-  }))
-);
+        setEvents(
+          data.events.map((event: any) => ({
+            ...event,
+            start: new Date(event.start),
+            end: new Date(event.end),
+          }))
+        );
       }
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -791,12 +810,62 @@ setEvents(
     fetchEvents();
   };
 
-  const handleSelectEvent = (info: any) => {
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [isEditingEvent, setIsEditingEvent] = useState(false);
+  const [editFormData, setEditFormData] = useState<any>(null);
+
+  const handleSelectEvent = async (info: any) => {
     setSelectedDay(new Date(info.event.start));
+    const eventId = info.event.id;
+    try {
+      const response = await fetch(`/api/calendar-events/${eventId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedEvent(data.event);
+        setEditFormData({
+          title: data.event.title,
+          start_date: data.event.start_date,
+          end_date: data.event.end_date,
+          school_name: data.event.school_name,
+          school_address: data.event.school_address,
+          school_phone: data.event.school_phone || "",
+          school_email: data.event.school_email || "",
+          teacher_name: data.event.teacher_name || "",
+          teacher_phone: data.event.teacher_phone || "",
+          teacher_email: data.event.teacher_email || "",
+          notes: data.event.notes || "",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching event details:", error);
+    }
   };
 
   const handleSelectDate = (info: any) => {
     setSelectedDay(new Date(info.dateStr));
+  };
+
+  const handleSaveEventChanges = async () => {
+    if (!selectedEvent) return;
+
+    try {
+      const response = await fetch(`/api/calendar-events/${selectedEvent.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editFormData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save event");
+      }
+
+      const updatedEvent = await response.json();
+      setSelectedEvent(updatedEvent.event);
+      setIsEditingEvent(false);
+      fetchEvents();
+    } catch (error) {
+      console.error("Error saving event:", error);
+    }
   };
 
   if (status === "loading" || isLoadingEvents) {
@@ -810,13 +879,15 @@ setEvents(
   const totalEvents = events.length;
 
   const fullCalendarEvents = events.map((event) => ({
+
     id: event.id.toString(),
     title: event.title,
     start: new Date(event.start),
     end: new Date(event.end),
     backgroundColor: event.bgColor,
-    borderColor: event.borderColor,
+    borderColor: event.bgColor,
     textColor: event.color,
+    color: event.bgColor,
     extendedProps: {
       school: event.school,
       reminders: event.reminders,
@@ -867,7 +938,30 @@ setEvents(
               events={fullCalendarEvents}
               dateClick={handleSelectDate}
               eventClick={handleSelectEvent}
-              themeSystem="bootstrap5"
+              eventDidMount={(info) => {
+                const { backgroundColor, borderColor, textColor } = info.event;
+
+                // Multi-day bar events
+                if (info.el.classList.contains("fc-h-event")) {
+                  Object.assign(info.el.style, {
+                    backgroundColor,
+                    borderColor,
+                    color: textColor,
+                  });
+                }
+
+                // Month-view dot events
+                const dot = info.el.querySelector(".fc-daygrid-event-dot") as HTMLElement | null;
+                if (dot) {
+                  dot.style.borderColor = backgroundColor;
+                }
+
+                const title = info.el.querySelector(".fc-event-title") as HTMLElement | null;
+                if (title) {
+                  title.style.color = textColor;
+                }
+              }}
+              eventDisplay="block"
             />
           </div>
 
@@ -885,6 +979,262 @@ setEvents(
         onClose={() => setIsSidebarOpen(false)}
         onSave={handleAddEvent}
       />
+
+      {selectedEvent && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/30 transition-opacity duration-300"
+            onClick={() => setSelectedEvent(null)}
+          />
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl shadow-2xl w-full max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-5 pb-7 border-b border-[#E8E8E8] sticky top-0 bg-white">
+              <h2 className="text-[#121212] font-inter text-lg font-bold">Event Details</h2>
+              <button
+                onClick={() => setSelectedEvent(null)}
+                className="text-[#6B727F] hover:text-[#121212] transition-colors cursor-pointer p-1"
+                aria-label="Close"
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {!isEditingEvent ? (
+                <>
+                  <div>
+                    <h3 className="text-[#121212] font-inter text-base font-bold mb-4">Event Information</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[#9A9A9A] font-inter text-sm font-medium">Title</label>
+                        <p className="text-[#121212] font-inter text-base mt-1">{selectedEvent.title}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[#9A9A9A] font-inter text-sm font-medium">Start Date</label>
+                          <p className="text-[#121212] font-inter text-base mt-1">{format(new Date(selectedEvent.start_date), "MMM d, yyyy h:mm aa")}</p>
+                        </div>
+                        <div>
+                          <label className="text-[#9A9A9A] font-inter text-sm font-medium">End Date</label>
+                          <p className="text-[#121212] font-inter text-base mt-1">{format(new Date(selectedEvent.end_date), "MMM d, yyyy h:mm aa")}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <hr className="border-[#E8E8E8]" />
+
+                  <div>
+                    <h3 className="text-[#121212] font-inter text-base font-bold mb-4">School Information</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[#9A9A9A] font-inter text-sm font-medium">School Name</label>
+                        <p className="text-[#121212] font-inter text-base mt-1">{selectedEvent.school_name}</p>
+                      </div>
+                      <div>
+                        <label className="text-[#9A9A9A] font-inter text-sm font-medium">Address</label>
+                        <p className="text-[#121212] font-inter text-base mt-1">{selectedEvent.school_address}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[#9A9A9A] font-inter text-sm font-medium">Phone</label>
+                          <p className="text-[#121212] font-inter text-base mt-1">{selectedEvent.school_phone || "N/A"}</p>
+                        </div>
+                        <div>
+                          <label className="text-[#9A9A9A] font-inter text-sm font-medium">Email</label>
+                          <p className="text-[#121212] font-inter text-base mt-1">{selectedEvent.school_email || "N/A"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <hr className="border-[#E8E8E8]" />
+
+                  <div>
+                    <h3 className="text-[#121212] font-inter text-base font-bold mb-4">Teacher Information</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[#9A9A9A] font-inter text-sm font-medium">Name</label>
+                        <p className="text-[#121212] font-inter text-base mt-1">{selectedEvent.teacher_name || "N/A"}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[#9A9A9A] font-inter text-sm font-medium">Phone</label>
+                          <p className="text-[#121212] font-inter text-base mt-1">{selectedEvent.teacher_phone || "N/A"}</p>
+                        </div>
+                        <div>
+                          <label className="text-[#9A9A9A] font-inter text-sm font-medium">Email</label>
+                          <p className="text-[#121212] font-inter text-base mt-1">{selectedEvent.teacher_email || "N/A"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedEvent.notes && (
+                    <>
+                      <hr className="border-[#E8E8E8]" />
+                      <div>
+                        <h3 className="text-[#121212] font-inter text-base font-bold mb-4">Notes</h3>
+                        <p className="text-[#121212] font-inter text-base bg-[#F5F6FA] p-4 rounded-lg">{selectedEvent.notes}</p>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={() => setSelectedEvent(null)}
+                      className="flex-1 py-3 rounded-xl border border-[#E2E2E2] text-[#121212] font-inter text-sm font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={() => setIsEditingEvent(true)}
+                      className="flex-1 py-3 rounded-xl bg-[#0171F9] text-white font-inter text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                    >
+                      Edit Event
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <FieldLabel required>Title</FieldLabel>
+                    <TextInput
+                      value={editFormData.title}
+                      onChange={(v) => setEditFormData({ ...editFormData, title: v })}
+                      placeholder="Event title"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <FieldLabel required>Start Date</FieldLabel>
+                      <input
+                        type="datetime-local"
+                        value={new Date(editFormData.start_date).toISOString().slice(0, 16)}
+                        onChange={(e) => setEditFormData({ ...editFormData, start_date: new Date(e.target.value).toISOString() })}
+                        className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <FieldLabel required>End Date</FieldLabel>
+                      <input
+                        type="datetime-local"
+                        value={new Date(editFormData.end_date).toISOString().slice(0, 16)}
+                        onChange={(e) => setEditFormData({ ...editFormData, end_date: new Date(e.target.value).toISOString() })}
+                        className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <hr className="border-[#E8E8E8]" />
+
+                  <div>
+                    <h3 className="text-[#121212] font-inter text-base font-bold mb-4">School Information</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <FieldLabel required>School Name</FieldLabel>
+                        <TextInput
+                          value={editFormData.school_name}
+                          onChange={(v) => setEditFormData({ ...editFormData, school_name: v })}
+                          placeholder="School name"
+                        />
+                      </div>
+                      <div>
+                        <FieldLabel required>School Address</FieldLabel>
+                        <TextInput
+                          value={editFormData.school_address}
+                          onChange={(v) => setEditFormData({ ...editFormData, school_address: v })}
+                          placeholder="School address"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <FieldLabel>School Phone</FieldLabel>
+                          <TextInput
+                            value={editFormData.school_phone}
+                            onChange={(v) => setEditFormData({ ...editFormData, school_phone: v })}
+                            placeholder="Phone"
+                          />
+                        </div>
+                        <div>
+                          <FieldLabel>School Email</FieldLabel>
+                          <TextInput
+                            value={editFormData.school_email}
+                            onChange={(v) => setEditFormData({ ...editFormData, school_email: v })}
+                            placeholder="Email"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <hr className="border-[#E8E8E8]" />
+
+                  <div>
+                    <h3 className="text-[#121212] font-inter text-base font-bold mb-4">Teacher Information</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <FieldLabel>Teacher Name</FieldLabel>
+                        <TextInput
+                          value={editFormData.teacher_name}
+                          onChange={(v) => setEditFormData({ ...editFormData, teacher_name: v })}
+                          placeholder="Teacher name"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <FieldLabel>Teacher Phone</FieldLabel>
+                          <TextInput
+                            value={editFormData.teacher_phone}
+                            onChange={(v) => setEditFormData({ ...editFormData, teacher_phone: v })}
+                            placeholder="Phone"
+                          />
+                        </div>
+                        <div>
+                          <FieldLabel>Teacher Email</FieldLabel>
+                          <TextInput
+                            value={editFormData.teacher_email}
+                            onChange={(v) => setEditFormData({ ...editFormData, teacher_email: v })}
+                            placeholder="Email"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <FieldLabel>Notes</FieldLabel>
+                    <textarea
+                      value={editFormData.notes}
+                      onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                      placeholder="Add notes..."
+                      rows={4}
+                      className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] placeholder:text-[#ADADAD] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all resize-none"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={() => setIsEditingEvent(false)}
+                      className="flex-1 py-3 rounded-xl border border-[#E2E2E2] text-[#121212] font-inter text-sm font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveEventChanges}
+                      className="flex-1 py-3 rounded-xl bg-[#0171F9] text-white font-inter text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
