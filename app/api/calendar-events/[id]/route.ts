@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       );
     }
 
-    const eventId = params.id;
+    const eventId = parseInt(params.id, 10);
 
     const { data, error } = await supabase
       .from("calendar_event")
@@ -53,7 +54,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       );
     }
 
-    const eventId = params.id;
+    const eventId = parseInt(params.id, 10);
     const body = await req.json();
 
     const {
