@@ -1,100 +1,194 @@
-.rbc-calendar {
-          font-family: Inter, sans-serif;
-        }
-        .rbc-month-view {
-          border: none;
-          border-radius: 0 0 16px 16px;
-          overflow: hidden;
-        }
-        .rbc-header {
-          border-bottom: 1px solid #E2E2E2 !important;
-          padding: 12px 0 !important;
-          color: #9CA3B2;
-          font-size: 13px;
-          font-weight: 600;
-          font-family: Inter, sans-serif;
-          background: #fff;
-          border-left: none !important;
-        }
-        .rbc-header + .rbc-header {
-          border-left: 1px solid #F9FAFB !important;
-        }
-        .rbc-month-row {
-          border-top: 1px solid #E2E2E2;
-          overflow: visible;
-        }
-        .rbc-day-bg {
-          border-left: 1px solid #F9FAFB;
-        }
-        .rbc-day-bg + .rbc-day-bg {
-          border-left: 1px solid #F9FAFB;
-        }
-        .rbc-off-range-bg {
-          background: #FAFAFA !important;
-        }
-        .rbc-today {
-          background: transparent !important;
-        }
-        .rbc-date-cell {
-          padding: 12px 12px 0;
-          text-align: left;
-          font-size: 14px;
-          font-weight: 600;
-          font-family: Inter, sans-serif;
-          color: #121212;
-        }
-        .rbc-date-cell.rbc-off-range {
-          color: #9CA3AF;
-        }
-        .rbc-date-cell.rbc-now button,
-        .rbc-date-cell.rbc-now a {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          background: #0171F9;
-          color: #fff !important;
-          font-size: 14px;
-          font-weight: 600;
-        }
-        .rbc-date-cell button,
-        .rbc-date-cell a {
-          color: inherit;
-          font-weight: inherit;
-          font-size: inherit;
-          cursor: pointer;
-        }
-        .rbc-event {
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-          padding: 0 !important;
-          min-height: unset;
-        }
-        .rbc-event:focus {
-          outline: none;
-        }
-        .rbc-event-content {
-          font-size: 11px;
-          font-family: Inter, sans-serif;
-        }
-        .rbc-selected-day {
-          background: #EFF6FF !important;
-        }
-        .rbc-show-more {
-          color: #0171F9;
-          font-size: 11px;
-          font-weight: 500;
-          font-family: Inter, sans-serif;
-        }
-        .rbc-toolbar {
-          display: none !important;
-        }
-        .rbc-row-content {
-          z-index: 1;
-        }
-        .rbc-month-header {
-          border-top: 1px solid #E2E2E2;
-        }
+/* FullCalendar Custom Styling */
+.fc-custom-calendar {
+  --fc-border-color: #E2E2E2;
+  --fc-button-text-color: #0171F9;
+  --fc-button-border-color: #0171F9;
+  --fc-button-bg-color: transparent;
+  --fc-button-active-bg-color: #0171F9;
+  --fc-button-active-border-color: #0171F9;
+  --fc-button-hover-bg-color: #f0f7ff;
+  --fc-event-bg-color: transparent;
+  --fc-event-border-color: transparent;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.fc-custom-calendar .fc {
+  font-family: inherit;
+}
+
+.fc-custom-calendar .fc-button-primary {
+  background-color: var(--fc-button-bg-color);
+  border-color: var(--fc-button-border-color);
+  color: var(--fc-button-text-color);
+  text-transform: none;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.fc-custom-calendar .fc-button-primary:hover {
+  background-color: var(--fc-button-hover-bg-color);
+  border-color: var(--fc-button-border-color);
+}
+
+.fc-custom-calendar .fc-button-primary.fc-button-active,
+.fc-custom-calendar .fc-button-primary.fc-button-active:hover {
+  background-color: var(--fc-button-active-bg-color);
+  border-color: var(--fc-button-active-border-color);
+  color: white;
+}
+
+.fc-custom-calendar .fc-button-primary:disabled {
+  opacity: 0.5;
+}
+
+.fc-custom-calendar .fc-button-primary:focus {
+  box-shadow: none;
+}
+
+.fc-custom-calendar .fc-button-group {
+  gap: 4px;
+}
+
+.fc-custom-calendar .fc-button-group > * {
+  margin: 0;
+}
+
+.fc-custom-calendar .fc-toolbar {
+  gap: 12px;
+  padding: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #E2E2E2;
+}
+
+.fc-custom-calendar .fc-toolbar-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #121212;
+  margin: 0;
+}
+
+.fc-custom-calendar .fc-col-header {
+  background: white;
+  border-bottom: 1px solid #E2E2E2;
+}
+
+.fc-custom-calendar .fc-col-header-cell {
+  padding: 12px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+.fc-custom-calendar .fc-daygrid-day {
+  border-right: 1px solid #F0F0F0;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.fc-custom-calendar .fc-daygrid-day-frame {
+  min-height: 120px;
+}
+
+.fc-custom-calendar .fc-daygrid-day-number {
+  padding: 8px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #121212;
+}
+
+.fc-custom-calendar .fc-daygrid-day.fc-day-other .fc-daygrid-day-number {
+  color: #ADADAD;
+}
+
+.fc-custom-calendar .fc-daygrid-day.fc-day-other {
+  background: #FAFAFA;
+}
+
+.fc-custom-calendar .fc-daygrid-day.fc-day-today {
+  background: transparent;
+}
+
+.fc-custom-calendar .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: #0171F9;
+  color: white;
+  border-radius: 50%;
+}
+
+.fc-custom-calendar .fc-daygrid-day-events {
+  margin-top: 4px;
+}
+
+.fc-custom-calendar .fc-event {
+  margin: 2px;
+  cursor: pointer;
+}
+
+.fc-custom-calendar .fc-daygrid-event {
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fc-custom-calendar .fc-event-title {
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.fc-custom-calendar .fc-daygrid-day:hover {
+  background-color: #f9fafc;
+}
+
+.fc-custom-calendar .fc-daygrid-day.selected {
+  background: #EFF6FF;
+}
+
+/* Week and day view styles */
+.fc-custom-calendar .fc-timegrid-slot {
+  height: 3em;
+}
+
+.fc-custom-calendar .fc-col-time-anchor {
+  vertical-align: middle;
+}
+
+.fc-custom-calendar .fc-timegrid-axis {
+  width: 60px;
+}
+
+.fc-custom-calendar .fc-timegrid-axis .fc-timegrid-slot {
+  vertical-align: middle;
+}
+
+.fc-custom-calendar .fc-daygrid-body {
+  border-top: 1px solid #E2E2E2;
+}
+
+.fc-custom-calendar .fc-view-harness {
+  min-height: 500px;
+}
+
+/* Ensure proper spacing */
+.fc-custom-calendar .fc-daygrid-day-frame > div {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hide the scrollable event container on month view */
+.fc-custom-calendar .fc-daygrid-day-events-container {
+  max-height: none;
+  overflow: visible;
+}

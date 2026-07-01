@@ -3,17 +3,17 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Calendar, dateFnsLocalizer, Views } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay, isSameDay, isBefore, startOfDay } from "date-fns";
-import { enUS } from "date-fns/locale";
-import "react-big-calendar/lib/css/react-big-calendar.css";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import { format, startOfDay, isBefore } from "date-fns";
 import Header from "@/app/components/Header";
 import Footer from "@/app/components/Footer";
 import PageLoader from "@/app/components/PageLoader";
 import "./calendar.css";
 import { CalendarIcon } from "@/lib/icons";
 
-/* ─── Types ──────────────────────────────────────────────── */
 interface CalendarEvent {
   id: number;
   title: string;
@@ -27,124 +27,43 @@ interface CalendarEvent {
   resource?: any;
 }
 
-/* ─── Localizer ──────────────────────────────────────────── */
-const locales = { "en-US": enUS };
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-});
-
-/* ─── Sample Events ──────────────────────────────────────── */
-const SAMPLE_EVENTS: CalendarEvent[] = [
-  {
-    id: 1,
-    title: "Sub Assignment - Oakridge Academy",
-    start: new Date(2026, 3, 7, 8, 0),
-    end: new Date(2026, 3, 7, 15, 30),
-    school: "Oakridge Academy",
-    color: "#2DA357",
-    bgColor: "#DDFCE9",
-    borderColor: "#BDF7D3",
-    reminders: 2,
-  },
-  {
-    id: 2,
-    title: "Sub Assignment - Lincoln High School",
-    start: new Date(2026, 3, 14, 8, 0),
-    end: new Date(2026, 3, 14, 15, 0),
-    school: "Lincoln High School",
-    color: "#E85616",
-    bgColor: "#FEF0E7",
-    borderColor: "#FCD9C0",
-    reminders: 0,
-  },
-  {
-    id: 3,
-    title: "Sub Assignment - Lincoln High School",
-    start: new Date(2026, 3, 16, 8, 0),
-    end: new Date(2026, 3, 16, 15, 0),
-    school: "Lincoln High School",
-    color: "#E85616",
-    bgColor: "#FEF0E7",
-    borderColor: "#FCD9C0",
-    reminders: 0,
-  },
-  {
-    id: 4,
-    title: "Sub Assignment - Westview Elementary",
-    start: new Date(2026, 3, 23, 8, 0),
-    end: new Date(2026, 3, 23, 15, 0),
-    school: "Westview Elementary",
-    color: "#7940E9",
-    bgColor: "#F0EAFD",
-    borderColor: "#D9C7FA",
-    reminders: 0,
-  },
-];
-
-/* ─── Custom Toolbar ─────────────────────────────────────── */
-function CustomToolbar({ date, onNavigate }: { date: Date; onNavigate: (date: Date) => void }) {
-  const label = format(date, "MMMM yyyy");
-
-  const handlePrev = () => {
-    const prev = new Date(date);
-    prev.setMonth(prev.getMonth() - 1);
-    onNavigate(prev);
-  };
-
-  const handleNext = () => {
-    const next = new Date(date);
-    next.setMonth(next.getMonth() + 1);
-    onNavigate(next);
-  };
-
+function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <div className="flex items-center justify-between px-8 py-5 border-b border-[#E2E2E2]">
-      <button
-        onClick={handlePrev}
-        className="text-[#0171F9] hover:opacity-70 transition-opacity cursor-pointer p-1"
-        aria-label="Previous month"
-      >
-        <svg width="19" height="19" viewBox="0 0 19 19" fill="none">
-          <path d="M11.5939 12.6375L7.59394 8.63745L11.5939 4.63745" stroke="#0171F9" strokeWidth="1.54575" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-      <span className="text-[#121212] font-inter text-xl font-semibold">{label}</span>
-      <button
-        onClick={handleNext}
-        className="text-[#0171F9] hover:opacity-70 transition-opacity cursor-pointer p-1"
-        aria-label="Next month"
-      >
-        <svg width="19" height="19" viewBox="0 0 19 19" fill="none">
-          <path d="M6.95508 12.6375L10.9551 8.63745L6.95508 4.63745" stroke="#0171F9" strokeWidth="1.54575" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
+    <label className="block text-sm font-medium font-inter text-[#121212] mb-1.5">
+      {children}
+      {required && <span className="text-red-500 ml-0.5">*</span>}
+    </label>
+  );
+}
+
+function TextInput({ placeholder, value, onChange, type = "text", error }: {
+  placeholder?: string; value: string; onChange: (v: string) => void; type?: string; error?: string;
+}) {
+  return (
+    <div>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`w-full bg-[#F5F6FA] border rounded-lg px-4 py-3 text-sm font-inter text-[#121212] placeholder:text-[#ADADAD] outline-none focus:ring-2 transition-all ${
+          error ? "border-red-500 focus:ring-red-200" : "border-0 focus:ring-[#0171F9]/30"
+        }`}
+      />
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
   );
 }
 
-/* ─── Custom Event Component ─────────────────────────────── */
-function CustomEvent({ event }: { event: CalendarEvent }) {
-  const shortName = event.title.replace("Sub Assignment - ", "");
+function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
-    <div
-      className="text-xs font-medium font-inter px-2 py-0.5 rounded truncate"
-      style={{
-        color: event.color,
-        backgroundColor: event.bgColor,
-        border: `1px solid ${event.borderColor}`,
-      }}
-      title={event.title}
-    >
-      {shortName.length > 14 ? shortName.slice(0, 14) + "..." : shortName}
+    <div className="flex items-center gap-2 mb-6">
+      <span className="text-[#0171F9]">{icon}</span>
+      <h3 className="text-[#121212] font-inter text-base font-bold">{title}</h3>
     </div>
   );
 }
 
-/* ─── Sidebar Event Detail Card ──────────────────────────── */
 function SelectedDayCard({ date, events }: { date: Date; events: CalendarEvent[] }) {
   const dayLabel = format(date, "EEE, MMM d, yyyy");
 
@@ -202,7 +121,6 @@ function SelectedDayCard({ date, events }: { date: Date; events: CalendarEvent[]
   );
 }
 
-/* ─── Upcoming Jobs Card ─────────────────────────────────── */
 function UpcomingJobsCard({ events }: { events: CalendarEvent[] }) {
   const now = startOfDay(new Date());
   const upcoming = events
@@ -246,46 +164,6 @@ function UpcomingJobsCard({ events }: { events: CalendarEvent[] }) {
   );
 }
 
-/* ─── Shared form field components ──────────────────────── */
-function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
-  return (
-    <label className="block text-sm font-medium font-inter text-[#121212] mb-1.5">
-      {children}
-      {required && <span className="text-red-500 ml-0.5">*</span>}
-    </label>
-  );
-}
-
-function TextInput({ placeholder, value, onChange, type = "text", error }: {
-  placeholder?: string; value: string; onChange: (v: string) => void; type?: string; error?: string;
-}) {
-  return (
-    <div>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`w-full bg-[#F5F6FA] border rounded-lg px-4 py-3 text-sm font-inter text-[#121212] placeholder:text-[#ADADAD] outline-none focus:ring-2 transition-all ${
-          error ? "border-red-500 focus:ring-red-200" : "border-0 focus:ring-[#0171F9]/30"
-        }`}
-      />
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-    </div>
-  );
-}
-
-/* ─── Section header ─────────────────────────────────────── */
-function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
-  return (
-    <div className="flex items-center gap-2 mb-6">
-      <span className="text-[#0171F9]">{icon}</span>
-      <h3 className="text-[#121212] font-inter text-base font-bold">{title}</h3>
-    </div>
-  );
-}
-
-/* ─── Add Event Sidebar ──────────────────────────────────── */
 function AddEventSidebar({
   isOpen,
   onClose,
@@ -470,7 +348,7 @@ function AddEventSidebar({
     }
   };
 
-    const fetchSchools = useCallback(async (query: string) => {
+  const fetchSchools = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSchoolSuggestions([]);
       return;
@@ -492,42 +370,38 @@ function AddEventSidebar({
     }
   }, []);
 
-    // Fetch teachers by search query
-    const fetchTeachers = useCallback(async (query: string, schoolId: number) => {
-      if (!query.trim()) {
-        setTeacherSuggestions([]);
-        return;
+  const fetchTeachers = useCallback(async (query: string, schoolId: number) => {
+    if (!query.trim()) {
+      setTeacherSuggestions([]);
+      return;
+    }
+
+    try {
+      setTeacherSearchLoading(true);
+      const response = await fetch(`/api/teachers?search=${encodeURIComponent(query)}&school_id=${schoolId}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setTeacherSuggestions(Array.isArray(data) ? data : data.teachers || []);
       }
-  
-      try {
-        setTeacherSearchLoading(true);
-        const response = await fetch(`/api/teachers?search=${encodeURIComponent(query)}&school_id=${schoolId}`);
-  
-        if (response.ok) {
-          const data = await response.json();
-          setTeacherSuggestions(Array.isArray(data) ? data : data.teachers || []);
-        }
-      } catch (error) {
-        console.error("Error fetching teachers:", error);
-        setTeacherSuggestions([]);
-      } finally {
-        setTeacherSearchLoading(false);
-      }
-    }, []);
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+      setTeacherSuggestions([]);
+    } finally {
+      setTeacherSearchLoading(false);
+    }
+  }, []);
 
   return (
     <>
-      {/* Overlay */}
       <div
         className={`fixed inset-0 z-40 bg-black/30 transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
         onClick={handleClose}
       />
 
-      {/* Sidebar panel */}
       <div
         className={`fixed top-0 right-0 z-50 h-full w-full sm:w-[560px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 pb-7 border-b border-[#E8E8E8] mb-[30px] flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
@@ -544,19 +418,14 @@ function AddEventSidebar({
           </button>
         </div>
 
-        {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto px-6  flex flex-col ">
-
-          {/* Job / Event Details */}
+        <div className="flex-1 overflow-y-auto px-6 flex flex-col">
           <div>
             <SectionHeader
               title="Job / Event Details"
               icon={
-
                 <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M14.049 1.99292H9.36599C8.85085 1.99292 8.38254 2.19222 8.02797 2.51109C7.6734 2.19222 7.20509 1.99292 6.68995 1.99292H2.0069C1.63894 1.99292 1.33789 2.29187 1.33789 2.65725V12.6221C1.33789 12.9875 1.63894 13.2865 2.0069 13.2865H5.86038C6.21496 13.2865 6.55615 13.426 6.80369 13.6784L7.55298 14.4224C7.55298 14.4224 7.56636 14.4291 7.57305 14.4357C7.63326 14.4889 7.69347 14.5354 7.76706 14.5686C7.84734 14.6018 7.93431 14.6217 8.02128 14.6217C8.10825 14.6217 8.19522 14.6018 8.2755 14.5686C8.34909 14.5354 8.416 14.4889 8.46952 14.4357C8.46952 14.4357 8.4829 14.4291 8.48959 14.4224L9.23888 13.6784C9.48641 13.4326 9.83429 13.2865 10.1822 13.2865H14.0357C14.4036 13.2865 14.7047 12.9875 14.7047 12.6221V2.65725C14.7047 2.29187 14.4036 1.99292 14.0357 1.99292H14.049ZM5.86038 11.9578H2.67591V3.32157H6.68995C7.05791 3.32157 7.35896 3.62052 7.35896 3.9859V12.4162C6.91742 12.1239 6.39559 11.9578 5.86038 11.9578ZM13.38 11.9578H10.1956C9.66035 11.9578 9.13852 12.1239 8.69698 12.4162V3.9859C8.69698 3.62052 8.99803 3.32157 9.36599 3.32157H13.38V11.9578Z" fill="#0171F9" />
                 </svg>
-
               }
             />
             <hr className="border-[#E8E8E8] mb-[30px]" />
@@ -564,7 +433,6 @@ function AddEventSidebar({
 
           <div className="h-px bg-[#E8E8E8]" />
 
-          {/* Date & Time */}
           <div>
             <SectionHeader
               title="Date & Time"
@@ -643,7 +511,6 @@ function AddEventSidebar({
           <hr className="border-[#E8E8E8] my-[30px]" />
           <div className="h-px bg-[#E8E8E8]" />
 
-          {/* School Information */}
           <div>
             <SectionHeader
               title="School Information"
@@ -657,14 +524,14 @@ function AddEventSidebar({
             <div className="flex flex-col gap-4">
               <div className="relative">
                 <FieldLabel required>School Name</FieldLabel>
-                <TextInput
-                  value={schoolName}
+                <TextInput 
+                  value={schoolName} 
                   onChange={(value: string) => {
                     setSchoolName(value);
                     fetchSchools(value);
                     setSchoolId("");
                     setShowSchoolSuggestions(true);
-                  }}
+                  }} 
                   placeholder="e.g. Lincoln High School"
                   error={errors.schoolName}
                 />
@@ -699,9 +566,9 @@ function AddEventSidebar({
               </div>
               <div>
                 <FieldLabel required>School Address</FieldLabel>
-                <TextInput
-                  value={schoolAddress}
-                  onChange={setSchoolAddress}
+                <TextInput 
+                  value={schoolAddress} 
+                  onChange={setSchoolAddress} 
                   placeholder="e.g. 3501 Lincoln Blvd, Los Angeles, CA"
                   error={errors.schoolAddress}
                 />
@@ -709,18 +576,18 @@ function AddEventSidebar({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <FieldLabel>School Phone</FieldLabel>
-                  <TextInput
-                    value={schoolPhone}
-                    onChange={setSchoolPhone}
+                  <TextInput 
+                    value={schoolPhone} 
+                    onChange={setSchoolPhone} 
                     placeholder="(213)555-0000"
                     error={errors.schoolPhone}
                   />
                 </div>
                 <div>
                   <FieldLabel>School Email</FieldLabel>
-                  <TextInput
-                    value={schoolEmail}
-                    onChange={setSchoolEmail}
+                  <TextInput 
+                    value={schoolEmail} 
+                    onChange={setSchoolEmail} 
                     placeholder="admin@school.edu"
                     error={errors.schoolEmail}
                   />
@@ -731,7 +598,6 @@ function AddEventSidebar({
           <hr className="border-[#E8E8E8] my-[30px]" />
           <div className="h-px bg-[#E8E8E8]" />
 
-          {/* Regular Teacher's Info */}
           <div>
             <SectionHeader
               title="Regular Teacher's Info"
@@ -745,14 +611,14 @@ function AddEventSidebar({
             <div className="flex flex-col gap-4">
               <div className="relative">
                 <FieldLabel>Teacher's Full Name</FieldLabel>
-                <TextInput
-                  value={teacherName}
+                <TextInput 
+                  value={teacherName} 
                   onChange={(value: string) => {
                     setTeacherName(value);
                     setTeacherId("");
                     setShowTeacherSuggestions(true);
                     fetchTeachers(value, schoolId);
-                  }}
+                  }} 
                   placeholder="e.g. Maria Gonzalez"
                 />
                 {showTeacherSuggestions && (teacherName.trim() || teacherSuggestions.length > 0) && (
@@ -785,18 +651,18 @@ function AddEventSidebar({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <FieldLabel>Teacher's Phone</FieldLabel>
-                  <TextInput
-                    value={teacherPhone}
-                    onChange={setTeacherPhone}
+                  <TextInput 
+                    value={teacherPhone} 
+                    onChange={setTeacherPhone} 
                     placeholder="(213)555-0000"
                     error={errors.teacherPhone}
                   />
                 </div>
                 <div>
                   <FieldLabel>Teacher's Email</FieldLabel>
-                  <TextInput
-                    value={teacherEmail}
-                    onChange={setTeacherEmail}
+                  <TextInput 
+                    value={teacherEmail} 
+                    onChange={setTeacherEmail} 
                     placeholder="teacher@school.edu"
                     error={errors.teacherEmail}
                   />
@@ -816,12 +682,8 @@ function AddEventSidebar({
           </div>
 
           <div className="h-px bg-[#E8E8E8]" />
-
-          {/* Notes */}
-
         </div>
 
-        {/* Footer actions */}
         <div className="flex-shrink-0 px-6 py-4 border-t border-[#E8E8E8] mt-[30px] flex flex-col gap-3 bg-white">
           {errors.submit && (
             <div className="px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
@@ -860,15 +722,15 @@ function AddEventSidebar({
   );
 }
 
-/* ─── Calendar Page ──────────────────────────────────────── */
 export default function CalendarPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 3));
-  const [selectedDay, setSelectedDay] = useState<Date>(new Date(2026, 3, 7));
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const calendarRef = useRef<any>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -899,19 +761,15 @@ export default function CalendarPage() {
     }
   };
 
-  const selectedDayEvents = events.filter((e) => isSameDay(e.start, selectedDay));
-
-  const handleSelectSlot = useCallback(({ start }: { start: Date }) => {
-    setSelectedDay(start);
-  }, []);
-
-  const handleSelectEvent = useCallback((event: CalendarEvent) => {
-    setSelectedDay(event.start);
-  }, []);
-
-  const handleNavigate = useCallback((date: Date) => {
-    setCurrentDate(date);
-  }, []);
+  const selectedDayEvents = events.filter((e) => {
+    const eStart = new Date(e.start);
+    const eEnd = new Date(e.end);
+    const selected = new Date(selectedDay);
+    selected.setHours(0, 0, 0, 0);
+    eStart.setHours(0, 0, 0, 0);
+    eEnd.setHours(0, 0, 0, 0);
+    return (eStart <= selected && selected <= eEnd);
+  });
 
   const handleAddEvent = (eventData: Omit<CalendarEvent, "id">) => {
     const newEvent: CalendarEvent = {
@@ -924,45 +782,13 @@ export default function CalendarPage() {
     fetchEvents();
   };
 
-  const eventPropGetter = useCallback((event: CalendarEvent) => {
-    return {
-      style: {
-        backgroundColor: event.bgColor,
-        borderColor: event.borderColor,
-        color: event.color,
-        border: `1px solid ${event.borderColor}`,
-        borderRadius: "4px",
-        padding: "1px 4px",
-        fontSize: "11px",
-        fontWeight: 500,
-        fontFamily: "Inter, sans-serif",
-      },
-    };
-  }, []);
+  const handleSelectEvent = (info: any) => {
+    setSelectedDay(new Date(info.event.start));
+  };
 
-  const dayPropGetter = useCallback(
-    (date: Date) => {
-      const isSelected = isSameDay(date, selectedDay);
-      const isWeekend = getDay(date) === 0 || getDay(date) === 6;
-      const isCurrentMonthDay =
-        date.getMonth() === currentDate.getMonth() &&
-        date.getFullYear() === currentDate.getFullYear();
-
-      if (isSelected) {
-        return {
-          className: "rbc-selected-day",
-          style: { backgroundColor: "#EFF6FF" },
-        };
-      }
-      if (!isCurrentMonthDay || isWeekend) {
-        return {
-          style: { backgroundColor: "#FAFAFA" },
-        };
-      }
-      return {};
-    },
-    [selectedDay, currentDate]
-  );
+  const handleSelectDate = (info: any) => {
+    setSelectedDay(new Date(info.dateStr));
+  };
 
   if (status === "loading" || isLoadingEvents) {
     return <PageLoader className="min-h-screen flex items-center justify-center bg-[#F8FAFE]" />;
@@ -974,13 +800,25 @@ export default function CalendarPage() {
 
   const totalEvents = events.length;
 
+  const fullCalendarEvents = events.map((event) => ({
+    id: event.id.toString(),
+    title: event.title,
+    start: event.start,
+    end: event.end,
+    backgroundColor: event.bgColor,
+    borderColor: event.borderColor,
+    textColor: event.color,
+    extendedProps: {
+      school: event.school,
+      reminders: event.reminders,
+    },
+  }));
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFE]">
-
       <Header />
 
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-8 lg:px-14 py-8 lg:py-10">
-        {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -1004,35 +842,27 @@ export default function CalendarPage() {
           </button>
         </div>
 
-        {/* Main content grid */}
         <div className="flex flex-col xl:flex-row gap-6">
-          {/* Calendar */}
           <div className="flex-1 min-w-0 rounded-2xl border border-[#E2E2E2] bg-white overflow-hidden">
-            <CustomToolbar date={currentDate} onNavigate={setCurrentDate} />
-            <div className="h-[500px] sm:h-[580px]">
-              <Calendar<CalendarEvent>
-                localizer={localizer}
-                events={events}
-                date={currentDate}
-                onNavigate={handleNavigate}
-                view={Views.MONTH}
-                views={[Views.MONTH]}
-                onView={() => { }}
-                selectable
-                onSelectSlot={handleSelectSlot}
-                onSelectEvent={handleSelectEvent}
-                eventPropGetter={eventPropGetter}
-                dayPropGetter={dayPropGetter}
-                components={{
-                  event: CustomEvent as any,
-                  toolbar: () => null,
-                }}
-                popup
-              />
-            </div>
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              headerToolbar={{
+                left: "prev,next today",
+                center: "title",
+                right: "dayGridMonth,timeGridWeek,timeGridDay",
+              }}
+              height="auto"
+              contentHeight="auto"
+              events={fullCalendarEvents}
+              dateClick={handleSelectDate}
+              eventClick={handleSelectEvent}
+              themeSystem="bootstrap5"
+              className="fc-custom-calendar"
+            />
           </div>
 
-          {/* Sidebar */}
           <div className="xl:w-[350px] flex-shrink-0 flex flex-col gap-4">
             <SelectedDayCard date={selectedDay} events={selectedDayEvents} />
             <UpcomingJobsCard events={events} />
