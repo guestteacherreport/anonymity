@@ -24,7 +24,7 @@ interface CalendarEvent {
   bgColor: string;
   borderColor: string;
   reminders: number;
-  resource?: any;
+  user_id?: any;
 }
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
@@ -123,6 +123,7 @@ function SelectedDayCard({ date, events }: { date: Date; events: CalendarEvent[]
 
 function UpcomingJobsCard({ events }: { events: CalendarEvent[] }) {
   const now = startOfDay(new Date());
+  
   const upcoming = events
     .filter((e) => !isBefore(startOfDay(e.start), now))
     .sort((a, b) => a.start.getTime() - b.start.getTime())
@@ -181,7 +182,7 @@ function AddEventSidebar({
   const [schoolName, setSchoolName] = useState("");
   const [schoolAddress, setSchoolAddress] = useState("");
   const [schoolId, setSchoolId] = useState<any>();
-
+  const { data: session, status } = useSession();
   const [schoolPhone, setSchoolPhone] = useState("");
   const [schoolEmail, setSchoolEmail] = useState("");
   const [teacherName, setTeacherName] = useState("");
@@ -336,6 +337,7 @@ function AddEventSidebar({
         bgColor: colorMap[colorChoice].bgColor,
         borderColor: colorMap[colorChoice].borderColor,
         reminders: 0,
+        user_id: session?.user?.id
       });
 
       reset();
@@ -752,7 +754,14 @@ export default function CalendarPage() {
       const response = await fetch("/api/calendar-events/get");
       if (response.ok) {
         const data = await response.json();
-        setEvents(data.events || []);
+
+setEvents(
+  data.events.map((event: any) => ({
+    ...event,
+    start: new Date(event.start),
+    end: new Date(event.end),
+  }))
+);
       }
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -803,8 +812,8 @@ export default function CalendarPage() {
   const fullCalendarEvents = events.map((event) => ({
     id: event.id.toString(),
     title: event.title,
-    start: event.start,
-    end: event.end,
+    start: new Date(event.start),
+    end: new Date(event.end),
     backgroundColor: event.bgColor,
     borderColor: event.borderColor,
     textColor: event.color,
@@ -859,7 +868,6 @@ export default function CalendarPage() {
               dateClick={handleSelectDate}
               eventClick={handleSelectEvent}
               themeSystem="bootstrap5"
-              className="fc-custom-calendar"
             />
           </div>
 
