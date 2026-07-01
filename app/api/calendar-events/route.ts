@@ -61,9 +61,7 @@ export async function POST(req: NextRequest) {
           notes: notes || null,
           color,
           bg_color: bgColor,
-          border_color: borderColor,
           reminders,
-          user_email: session.user.email,
           created_at: new Date().toISOString(),
         },
       ])
