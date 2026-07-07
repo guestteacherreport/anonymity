@@ -963,10 +963,6 @@ export default function CalendarPage() {
   }, [errors2]);
 
 
-  if (status === "loading" || isLoadingEvents) {
-    return <PageLoader message="Loading Calendar..." className="min-h-screen flex items-center justify-center bg-[#F8FAFE]" />;
-  }
-
   if (status === "unauthenticated") return null;
 
   if (status === "authenticated" && session?.user?.role !== "guest_teacher") return null;
@@ -1018,7 +1014,7 @@ export default function CalendarPage() {
             Add Job / Event
           </button>
         </div>
-
+{(isLoadingEvents) ? <PageLoader message="Loading Calendar..." className="min-h-screen flex items-center justify-center bg-[#F8FAFE]" /> : ""}
         <div className="flex flex-col xl:flex-row gap-6">
           <div className="flex-1 min-w-0 rounded-2xl border border-[#E2E2E2] bg-white overflow-hidden">
             <FullCalendar
