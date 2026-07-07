@@ -1,7 +1,8 @@
 import { getServerSession } from "next-auth";
 import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
+// import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 const VALID_ROLES = ["admin", "guest_teacher"] as const;
 
