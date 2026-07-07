@@ -1,8 +1,8 @@
 // import { openai } from "@/lib/openai";
 
-export const scrollToError = (errors: Record<string, string>) => {
+export const scrollToError = (errors: Record<string, string>, formRef: any) => {
   const firstErrorKey = Object.keys(errors)[0];
-  if (!firstErrorKey) return;
+  if (!firstErrorKey || !formRef.current) return;
 
   const el = document.getElementById(firstErrorKey);
   if (el) {
@@ -12,6 +12,59 @@ export const scrollToError = (errors: Record<string, string>) => {
     }, 300);
   }
 };
+
+export const scrollToFirstError = (
+  errors: Record<string, any>,
+  formRef: any
+) => {
+  const firstError = Object.keys(errors).find((key) => errors[key]);
+
+  if (!firstError || !formRef.current) return;
+console.log("firstError:", firstError);
+  const el = formRef.current.querySelector(
+    `#${firstError}`
+  ) as HTMLElement | null;
+console.log("element:", el);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => {
+      el.focus();
+    }, 300);
+  }
+};
+
+export const formatDateTimeLocal = (date: string | Date) => {
+  const d = new Date(date);
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
+    d.getDate()
+  )}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+export function getRandomEventColors() {
+  const palettes = [
+    { color: "#2563EB", bgColor: "#DBEAFE" }, // Blue
+    { color: "#16A34A", bgColor: "#DCFCE7" }, // Green
+    { color: "#DC2626", bgColor: "#FEE2E2" }, // Red
+    { color: "#7C3AED", bgColor: "#EDE9FE" }, // Purple
+    { color: "#EA580C", bgColor: "#FFEDD5" }, // Orange
+    { color: "#0891B2", bgColor: "#CFFAFE" }, // Cyan
+    { color: "#DB2777", bgColor: "#FCE7F3" }, // Pink
+    { color: "#0F766E", bgColor: "#CCFBF1" }, // Teal
+    { color: "#4338CA", bgColor: "#E0E7FF" }, // Indigo
+    { color: "#B45309", bgColor: "#FEF3C7" }, // Amber
+  ];
+
+  const selected = palettes[Math.floor(Math.random() * palettes.length)];
+
+  return {
+    color: selected.color,
+    borderColor: selected.color,
+    bgColor: selected.bgColor,
+  };
+}
 
 export const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("en-US", {
@@ -77,11 +130,11 @@ export const getSentiment = (report: any) => {
     };
   }
   return {
-      label: "Not sure",
-      bg: "bg-[#F6F6F6]",
-      text: "text-[#030711]",
-    };
-  
+    label: "Not sure",
+    bg: "bg-[#F6F6F6]",
+    text: "text-[#030711]",
+  };
+
 };
 
 export const colors = [

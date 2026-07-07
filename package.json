@@ -11,6 +11,7 @@
     "import-teachers": "node scripts/import-teachers-from-csv.mjs"
   },
   "dependencies": {
+    "@fullcalendar/bootstrap5": "^6.1.21",
     "@fullcalendar/core": "^6.1.14",
     "@fullcalendar/daygrid": "^6.1.14",
     "@fullcalendar/interaction": "^6.1.14",

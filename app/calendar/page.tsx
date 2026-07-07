@@ -13,7 +13,7 @@ import Footer from "@/app/components/Footer";
 import PageLoader from "@/app/components/PageLoader";
 import "./calendar.css";
 import { CalendarIcon } from "@/lib/icons";
-import bootstrap5Plugin from "@fullcalendar/bootstrap5";
+import { formatDateTimeLocal, getRandomEventColors, scrollToFirstError } from "@/lib/function";
 
 interface CalendarEvent {
   id: number;
@@ -21,6 +21,7 @@ interface CalendarEvent {
   start: Date;
   end: Date;
   school: string;
+  school_name: string;
   color: string;
   bgColor: string;
   borderColor: string;
@@ -37,13 +38,14 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
   );
 }
 
-function TextInput({ placeholder, value, onChange, type = "text", error }: {
-  placeholder?: string; value: string; onChange: (v: string) => void; type?: string; error?: string;
+function TextInput({ placeholder, value, onChange, type = "text", error, id }: {
+  placeholder?: string; value: string; onChange: (v: string) => void; type?: string; error?: string; id?: string
 }) {
   return (
     <div>
       <input
         type={type}
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -103,7 +105,7 @@ function SelectedDayCard({ date, events }: { date: Date; events: CalendarEvent[]
                   <path d="M5.26562 6.45336H6.43561V7.6267H5.26562V6.45336ZM5.26562 4.10669H6.43561V5.28003H5.26562V4.10669ZM7.6056 6.45336H8.77559V7.6267H7.6056V6.45336ZM7.6056 4.10669H8.77559V5.28003H7.6056V4.10669Z" fill="#9A9A9A" />
                   <path d="M12.2848 5.28002H10.5298V2.93335H11.1148V1.76001H2.9249V2.93335H3.5099V5.28002H1.75492C1.43317 5.28002 1.16992 5.54402 1.16992 5.86669V11.7334C1.16992 12.056 1.43317 12.32 1.75492 12.32H12.2848C12.6065 12.32 12.8698 12.056 12.8698 11.7334V5.86669C12.8698 5.54402 12.6065 5.28002 12.2848 5.28002ZM2.33991 6.45336H3.5099V11.1467H2.33991V6.45336ZM5.84987 8.80003V11.1467H4.67988V2.93335H9.35983V11.1467H8.18984V8.80003H5.84987ZM11.6998 11.1467H10.5298V6.45336H11.6998V11.1467Z" fill="#9A9A9A" />
                 </svg>
-                <span className="text-[#9A9A9A] font-inter text-xs font-medium">{event.school}</span>
+                <span className="text-[#9A9A9A] font-inter text-xs font-medium">{event.school_name || event.school}</span>
               </div>
               {event.reminders > 0 && (
                 <div className="flex items-center gap-2">
@@ -172,7 +174,7 @@ function AddEventSidebar({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (event: Omit<CalendarEvent, "id">) => void;
+  onSave: (event: CalendarEvent) => void
 }) {
   const today = format(new Date(), "yyyy-MM-dd");
   const [startDate, setStartDate] = useState(today);
@@ -190,7 +192,6 @@ function AddEventSidebar({
   const [teacherPhone, setTeacherPhone] = useState("");
   const [teacherEmail, setTeacherEmail] = useState("");
   const [notes, setNotes] = useState("");
-  const [colorChoice, setColorChoice] = useState<"green" | "orange" | "purple">("green");
   const dateRef1 = useRef<HTMLInputElement>(null);
   const dateRef2 = useRef<HTMLInputElement>(null);
   const [schoolSuggestions, setSchoolSuggestions] = useState<string[]>([]);
@@ -201,34 +202,13 @@ function AddEventSidebar({
   const [showTeacherSuggestions, setShowTeacherSuggestions] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const formRef1 = useRef<HTMLDivElement>(null);
 
-  function getRandomEventColors() {
-    const color = `#${Math.floor(Math.random() * 0xffffff)
-      .toString(16)
-      .padStart(6, "0")}`;
+  const [title, setTitle] = useState("");
 
-    const hex = color.replace("#", "");
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-
-    // Create a lighter version for the background
-    const lighten = (value: number) => Math.round(value + (255 - value) * 0.8);
-
-    const bgColor = `#${[
-      lighten(r),
-      lighten(g),
-      lighten(b),
-    ]
-      .map((v) => v.toString(16).padStart(2, "0"))
-      .join("")}`;
-
-    return {
-      color,
-      borderColor: color,
-      bgColor,
-    };
-  }
+  useEffect(() => {
+    scrollToFirstError(errors, formRef1);
+  }, [errors]);
 
   const reset = () => {
     setStartDate(today); setEndDate(today);
@@ -236,7 +216,8 @@ function AddEventSidebar({
     setSchoolName(""); setSchoolAddress("");
     setSchoolPhone(""); setSchoolEmail("");
     setTeacherName(""); setTeacherPhone(""); setTeacherEmail("");
-    setNotes(""); setColorChoice("green");
+    setNotes("");
+    setTitle("");
     setErrors({});
   };
 
@@ -245,19 +226,15 @@ function AddEventSidebar({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!schoolName.trim()) {
-      newErrors.schoolName = "School name is required";
+    if (!title.trim()) {
+      newErrors.title = "Title is required";
     }
 
-    if (!schoolAddress.trim()) {
-      newErrors.schoolAddress = "School address is required";
-    }
-
-    if (!startDate) {
+    if (!startDate.trim()) {
       newErrors.startDate = "Start date is required";
     }
 
-    if (!endDate) {
+    if (!endDate.trim()) {
       newErrors.endDate = "End date is required";
     }
 
@@ -276,6 +253,15 @@ function AddEventSidebar({
       newErrors.endTime = "End time must be after start time";
     }
 
+    if (!schoolName.trim()) {
+      newErrors.schoolName = "School name is required";
+    }
+
+    if (!schoolAddress.trim()) {
+      newErrors.schoolAddress = "School address is required";
+    }
+
+
     if (schoolEmail.trim() && !isValidEmail(schoolEmail)) {
       newErrors.schoolEmail = "Invalid email address";
     }
@@ -293,6 +279,7 @@ function AddEventSidebar({
     }
 
     setErrors(newErrors);
+    console.log("newErrors", newErrors)
     return Object.keys(newErrors).length === 0;
   };
 
@@ -319,7 +306,7 @@ function AddEventSidebar({
 
 
       const eventData = {
-        title: `Sub Assignment - ${schoolName}`,
+        title: title,
         start: new Date(sy, sm - 1, sd, sh, smin).toISOString(),
         end: new Date(ey, em - 1, ed, eh, emin).toISOString(),
         school: schoolName,
@@ -347,15 +334,17 @@ function AddEventSidebar({
         const data = await response.json();
         throw new Error(data.message || "Failed to save event");
       }
-
+      const data = await response.json();
       const startDate1 = new Date(eventData.start);
       const endDate1 = new Date(eventData.end);
 
       onSave({
+        id: data.event.id,
         title: eventData.title,
         start: startDate1,
         end: endDate1,
         school: schoolName,
+        school_name: schoolName,
         ...eventColors,
         reminders: 0,
         user_id: session?.user?.id
@@ -424,6 +413,7 @@ function AddEventSidebar({
 
       <div
         className={`fixed top-0 right-0 z-50 h-full w-full sm:w-[560px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        ref={formRef1}
       >
         <div className="flex items-center justify-between px-6 py-5 pb-7 border-b border-[#E8E8E8] mb-[30px] flex-shrink-0">
           <div className="flex items-center gap-2.5">
@@ -453,8 +443,21 @@ function AddEventSidebar({
             />
             <hr className="border-[#E8E8E8] mb-[30px]" />
           </div>
+          <div className="flex flex-col gap-4" >
+            <div className="relative">
+              <FieldLabel required>Title</FieldLabel>
+              <TextInput
+                value={title}
+                id="title"
+                onChange={(value: string) => {
+                  setTitle(value);
+                }}
+                error={errors.title}
+              />
+            </div>
 
-          <div className="h-px bg-[#E8E8E8]" />
+          </div>
+          <hr className="border-[#E8E8E8] my-[30px]" />
 
           <div>
             <SectionHeader
@@ -467,12 +470,13 @@ function AddEventSidebar({
               }
             />
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div >
                 <FieldLabel required>Start Date</FieldLabel>
                 <div onClick={() => dateRef1.current?.showPicker()} className={`flex items-center text-sm gap-[6px] px-4 rounded-lg overflow-hidden justify-between py-[14px] ${errors.startDate ? "bg-red-50 border border-red-500" : "bg-[#F3F4F5]"}`}>
                   <input
                     type="date"
-                    max={endDate}
+                    id="startDate"
+                    // max={endDate}
                     ref={dateRef1}
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
@@ -484,13 +488,14 @@ function AddEventSidebar({
                 </div>
                 {errors.startDate && <p className="text-red-500 text-xs mt-1">{errors.startDate}</p>}
               </div>
-              <div>
+              <div >
                 <FieldLabel required>End Date</FieldLabel>
                 <div onClick={() => dateRef2.current?.showPicker()} className={`flex items-center text-sm gap-[6px] px-4 rounded-lg overflow-hidden justify-between py-[14px] ${errors.endDate ? "bg-red-50 border border-red-500" : "bg-[#F3F4F5]"}`}>
                   <input
                     type="date"
                     ref={dateRef2}
-                    min={startDate}
+                    id="endDate"
+                    // min={startDate}
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     className="bg-transparent outline-none w-full font-inter text-sm text-[#121212] appearance-none"
@@ -507,6 +512,7 @@ function AddEventSidebar({
                   <input
                     type="time"
                     value={startTime}
+                    id="startTime"
                     onChange={(e) => setStartTime(e.target.value)}
                     className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${errors.startTime ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
                       }`}
@@ -520,6 +526,7 @@ function AddEventSidebar({
                   <input
                     type="time"
                     value={endTime}
+                    id="endTime"
                     onChange={(e) => setEndTime(e.target.value)}
                     className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${errors.endTime ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
                       }`}
@@ -547,6 +554,7 @@ function AddEventSidebar({
                 <FieldLabel required>School Name</FieldLabel>
                 <TextInput
                   value={schoolName}
+                  id="schoolName"
                   onChange={(value: string) => {
                     setSchoolName(value);
                     fetchSchools(value);
@@ -585,10 +593,11 @@ function AddEventSidebar({
                   </div>
                 )}
               </div>
-              <div>
+              <div id="schoolAddress">
                 <FieldLabel required>School Address</FieldLabel>
                 <TextInput
                   value={schoolAddress}
+
                   onChange={setSchoolAddress}
                   placeholder="e.g. 3501 Lincoln Blvd, Los Angeles, CA"
                   error={errors.schoolAddress}
@@ -642,7 +651,7 @@ function AddEventSidebar({
                   }}
                   placeholder="e.g. Maria Gonzalez"
                 />
-                {showTeacherSuggestions && (teacherName.trim() || teacherSuggestions.length > 0) && (
+                {showTeacherSuggestions && (teacherSuggestions.length > 0) && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
                     {teacherSearchLoading && (
                       <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
@@ -721,7 +730,6 @@ function AddEventSidebar({
             </button>
             <button
               onClick={handleSave}
-              disabled={isSaving || !schoolName?.trim() || !startDate}
               className="flex-1 py-3 rounded-xl bg-[#0171F9] text-white font-inter text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSaving ? (
@@ -799,23 +807,26 @@ export default function CalendarPage() {
     return (eStart <= selected && selected <= eEnd);
   });
 
-  const handleAddEvent = (eventData: Omit<CalendarEvent, "id">) => {
+  const handleAddEvent = (eventData: CalendarEvent) => {
     const newEvent: CalendarEvent = {
       ...eventData,
-      id: Date.now(),
+      id: eventData.id,
     };
     setEvents((prev) => [...prev, newEvent]);
     setSelectedDay(newEvent.start);
     setCurrentDate(newEvent.start);
-    fetchEvents();
   };
 
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [editFormData, setEditFormData] = useState<any>(null);
+  const [isSavingEvent, setIsSavingEvent] = useState(false);
+  const [errors2, setErrors2] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLDivElement>(null);
 
   const handleSelectEvent = async (info: any) => {
     setSelectedDay(new Date(info.event.start));
+    setErrors2({});
     const eventId = info.event.id;
     try {
       const response = await fetch(`/api/calendar-events/${eventId}`);
@@ -848,9 +859,41 @@ export default function CalendarPage() {
     setSelectedDay(new Date(info.dateStr));
   };
 
-  const handleSaveEventChanges = async () => {
-    if (!selectedEvent) return;
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
 
+    if (!editFormData.title.trim()) {
+      newErrors.title = "Title is required";
+    }
+    if (!editFormData.start_date.trim()) {
+      newErrors.start_date = "Start date is required";
+    }
+
+    if (!editFormData.end_date.trim()) {
+      newErrors.end_date = "End date is required";
+    }
+
+    if ((editFormData.start_date && editFormData.end_date) && editFormData.end_date <= editFormData.start_date) {
+      newErrors.end_date = "End time must be after start time";
+    }
+    if (!editFormData.school_name.trim()) {
+      newErrors.school_name = "School name is required";
+    }
+
+    if (!editFormData.school_address.trim()) {
+      newErrors.school_address = "School address is required";
+    }
+
+    setErrors2(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSaveEventChanges = async () => {
+
+    if (!selectedEvent) return;
+    if (!validateForm()) return;
+
+    setIsSavingEvent(true);
     try {
       const response = await fetch(`/api/calendar-events/${selectedEvent.id}`, {
         method: "PUT",
@@ -863,16 +906,65 @@ export default function CalendarPage() {
       }
 
       const updatedEvent = await response.json();
-      setSelectedEvent(updatedEvent.event);
+      setErrors2({});
       setIsEditingEvent(false);
-      fetchEvents();
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === updatedEvent.event.id
+            ? {
+              ...updatedEvent.event,
+              start: new Date(updatedEvent.event.start_date),
+              end: new Date(updatedEvent.event.end_date),
+              bgColor: updatedEvent.event.bg_color,
+              borderColor: updatedEvent.event.bg_color,
+              textColor: updatedEvent.event.color,
+              color: updatedEvent.event.color,
+            }
+            : event
+        )
+      );
+      setSelectedEvent(updatedEvent.event);
     } catch (error) {
       console.error("Error saving event:", error);
+    } finally {
+      setIsSavingEvent(false);
     }
   };
 
+
+  const handleDeleteEvent = async () => {
+    if (!selectedEvent) return;
+
+    if (!confirm("Are you sure you want to delete this event?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/calendar-events/${selectedEvent.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete event");
+      }
+
+      setSelectedEvent(null);
+      setEvents((prevEvents) =>
+        prevEvents.filter((event) => event.id !== selectedEvent.id)
+      );
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      alert("Failed to delete event");
+    }
+  };
+
+  useEffect(() => {
+    scrollToFirstError(errors2, formRef);
+  }, [errors2]);
+
+
   if (status === "loading" || isLoadingEvents) {
-    return <PageLoader className="min-h-screen flex items-center justify-center bg-[#F8FAFE]" />;
+    return <PageLoader message="Loading Calendar..." className="min-h-screen flex items-center justify-center bg-[#F8FAFE]" />;
   }
 
   if (status === "unauthenticated") return null;
@@ -896,6 +988,8 @@ export default function CalendarPage() {
       reminders: event.reminders,
     },
   }));
+
+
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFE]">
@@ -929,6 +1023,7 @@ export default function CalendarPage() {
           <div className="flex-1 min-w-0 rounded-2xl border border-[#E2E2E2] bg-white overflow-hidden">
             <FullCalendar
               ref={calendarRef}
+              displayEventTime={false}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
               headerToolbar={{
@@ -1003,7 +1098,7 @@ export default function CalendarPage() {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6" ref={formRef}>
               {!isEditingEvent ? (
                 <>
                   <div>
@@ -1092,42 +1187,80 @@ export default function CalendarPage() {
                       Close
                     </button>
                     <button
-                      onClick={() => setIsEditingEvent(true)}
+                      onClick={() => {setIsEditingEvent(true)}}
                       className="flex-1 py-3 rounded-xl bg-[#0171F9] text-white font-inter text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
                     >
                       Edit Event
+                    </button>
+                    <button
+                      onClick={handleDeleteEvent}
+                      className="py-3 px-4 rounded-xl border border-red-300 text-red-600 font-inter text-sm font-semibold hover:bg-red-50 transition-colors cursor-pointer"
+                    >
+                      Delete
                     </button>
                   </div>
                 </>
               ) : (
                 <>
-                  <div>
+                  <div >
                     <FieldLabel required>Title</FieldLabel>
                     <TextInput
                       value={editFormData.title}
+                      id="title"
                       onChange={(v) => setEditFormData({ ...editFormData, title: v })}
                       placeholder="Event title"
+                      error={errors2.title}
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
+                    <div id="start_date">
                       <FieldLabel required>Start Date</FieldLabel>
                       <input
+
                         type="datetime-local"
-                        value={new Date(editFormData.start_date).toISOString().slice(0, 16)}
-                        onChange={(e) => setEditFormData({ ...editFormData, start_date: new Date(e.target.value).toISOString() })}
-                        className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all"
+                        value={
+                          editFormData.start_date
+                            ? formatDateTimeLocal(editFormData.start_date)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setEditFormData({
+                            ...editFormData,
+                            start_date: e.target.value
+                              ? new Date(e.target.value).toISOString()
+                              : "",
+                          })
+                        }
+                        className={`w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all ${errors2.start_date ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
+                          }`}
                       />
+                      {errors2.start_date && <p className="text-red-500 text-xs mt-1">{errors2.start_date}</p>}
+
+
                     </div>
-                    <div>
+                    <div id="end_date">
                       <FieldLabel required>End Date</FieldLabel>
                       <input
+
                         type="datetime-local"
-                        value={new Date(editFormData.end_date).toISOString().slice(0, 16)}
-                        onChange={(e) => setEditFormData({ ...editFormData, end_date: new Date(e.target.value).toISOString() })}
-                        className="w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all"
+                        value={
+                          editFormData.end_date
+                            ? formatDateTimeLocal(editFormData.end_date)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setEditFormData({
+                            ...editFormData,
+                            end_date: e.target.value
+                              ? new Date(e.target.value).toISOString()
+                              : "",
+                          })
+                        }
+
+                        className={`w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all ${errors2.start_date ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"}`}
                       />
+                      {errors2.end_date && <p className="text-red-500 text-xs mt-1">{errors2.end_date}</p>}
                     </div>
                   </div>
 
@@ -1136,20 +1269,24 @@ export default function CalendarPage() {
                   <div>
                     <h3 className="text-[#121212] font-inter text-base font-bold mb-4">School Information</h3>
                     <div className="space-y-4">
-                      <div>
+                      <div id="school_name">
                         <FieldLabel required>School Name</FieldLabel>
                         <TextInput
                           value={editFormData.school_name}
+
                           onChange={(v) => setEditFormData({ ...editFormData, school_name: v })}
                           placeholder="School name"
+                          error={errors2.school_name}
                         />
                       </div>
-                      <div>
+                      <div id="school_address">
                         <FieldLabel required>School Address</FieldLabel>
                         <TextInput
+
                           value={editFormData.school_address}
                           onChange={(v) => setEditFormData({ ...editFormData, school_address: v })}
                           placeholder="School address"
+                          error={errors2.school_address}
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
@@ -1227,9 +1364,26 @@ export default function CalendarPage() {
                     </button>
                     <button
                       onClick={handleSaveEventChanges}
-                      className="flex-1 py-3 rounded-xl bg-[#0171F9] text-white font-inter text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                      disabled={isSavingEvent}
+                      className="flex-1 py-3 rounded-xl bg-[#0171F9] text-white font-inter text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      Save Changes
+                      {isSavingEvent ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Changes"
+                      )}
+                    </button>
+                    <button
+                      onClick={handleDeleteEvent}
+                      className="py-3 px-4 rounded-xl border border-red-300 text-red-600 font-inter text-sm font-semibold hover:bg-red-50 transition-colors cursor-pointer"
+                    >
+                      Delete
                     </button>
                   </div>
                 </>
