@@ -431,7 +431,7 @@ function AddEventSidebar({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 flex flex-col">
+        <div className="flex-1 overflow-y-auto px-6 flex flex-col hide-scrollbar">
           <div>
             <SectionHeader
               title="Job / Event Details"
@@ -1084,8 +1084,8 @@ export default function CalendarPage() {
             className="fixed inset-0 z-40 bg-black/30 transition-opacity duration-300"
             onClick={() => setSelectedEvent(null)}
           />
-          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl shadow-2xl w-full max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-5 pb-7 border-b border-[#E8E8E8] sticky top-0 bg-white">
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl shadow-2xl w-full max-w-[600px] max-h-[90vh] hide-scrollbar overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#E8E8E8] sticky top-0 bg-white">
               <h2 className="text-[#121212] font-inter text-lg font-bold">Event Details</h2>
               <button
                 onClick={() => setSelectedEvent(null)}
@@ -1102,7 +1102,7 @@ export default function CalendarPage() {
               {!isEditingEvent ? (
                 <>
                   <div>
-                    <h3 className="text-[#121212] font-inter text-base font-bold mb-4">Event Information</h3>
+                    {/* <h3 className="text-[#121212] font-inter text-base font-bold mb-4">Event Information</h3> */}
                     <div className="space-y-4">
                       <div>
                         <label className="text-[#9A9A9A] font-inter text-sm font-medium">Title</label>
@@ -1173,8 +1173,8 @@ export default function CalendarPage() {
                     <>
                       <hr className="border-[#E8E8E8]" />
                       <div>
-                        <h3 className="text-[#121212] font-inter text-base font-bold mb-4">Notes</h3>
-                        <p className="text-[#121212] font-inter text-base bg-[#F5F6FA] p-4 rounded-lg">{selectedEvent.notes}</p>
+                        <h3 className="text-[#121212] font-inter text-base font-bold mb-1">Notes</h3>
+                        <p className="text-[#121212] font-inter text-base rounded-lg">{selectedEvent.notes}</p>
                       </div>
                     </>
                   )}
@@ -1194,9 +1194,26 @@ export default function CalendarPage() {
                     </button>
                     <button
                       onClick={handleDeleteEvent}
-                      className="py-3 px-4 rounded-xl border border-red-300 text-red-600 font-inter text-sm font-semibold hover:bg-red-50 transition-colors cursor-pointer"
+                      title="Delete"
+                      className="py-2 px-3 rounded-xl border border-red-300 text-red-600 font-inter text-sm font-semibold hover:bg-red-50 transition-colors cursor-pointer"
                     >
-                      Delete
+                       <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="w-5 h-5"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14H6L5 6" />
+    <path d="M10 11v6" />
+    <path d="M14 11v6" />
+    <path d="M9 6V4h6v2" />
+  </svg>
+
                     </button>
                   </div>
                 </>
@@ -1381,9 +1398,25 @@ export default function CalendarPage() {
                     </button>
                     <button
                       onClick={handleDeleteEvent}
-                      className="py-3 px-4 rounded-xl border border-red-300 text-red-600 font-inter text-sm font-semibold hover:bg-red-50 transition-colors cursor-pointer"
+                      title="Delete"
+                      className="py-2 px-3 rounded-xl border border-red-300 text-red-600 font-inter text-sm font-semibold hover:bg-red-50 transition-colors cursor-pointer"
                     >
-                      Delete
+                      <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="w-5 h-5"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14H6L5 6" />
+    <path d="M10 11v6" />
+    <path d="M14 11v6" />
+    <path d="M9 6V4h6v2" />
+  </svg>
                     </button>
                   </div>
                 </>

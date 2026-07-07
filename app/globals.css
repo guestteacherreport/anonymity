@@ -52,7 +52,14 @@ main:focus-visible {
   outline: 2px solid #0171F9;
   outline-offset: 2px;
 }
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
 
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
 /* Chrome, Safari */
 input[type="date"]::-webkit-calendar-picker-indicator {
   display: none;

@@ -62,9 +62,8 @@ export default function Header() {
             <Link href="/submit-report" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Submit Report</Link>
             <Link href="/browse-school" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Schools</Link>
             <Link href="/browse-teacher" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Teachers</Link>
-            <button onClick={() => {
-                router.push("/my-reports");
-              }} className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer">My Reports</button>
+            <Link href="/my-reports" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer">My Reports</Link>
+            <Link href="/calendar" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer">Calendar</Link>
           </nav>
 
           <div className="flex items-center gap-4 flex-shrink-0">
@@ -149,6 +148,14 @@ export default function Header() {
               className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer"
             >
               My Reports
+            </button>
+            <button
+              onClick={() => {
+                router.push("/calendar");
+              }}
+              className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer"
+            >
+              Calendar
             </button>
             <div className="border-t border-black/6 pt-3 mt-2">
               {session && session.user ? <div className="flex flex-row w-full gap-[10px]">
