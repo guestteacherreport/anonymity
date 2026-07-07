@@ -1,8 +1,8 @@
 // import { openai } from "@/lib/openai";
 
-export const scrollToError = (errors: Record<string, string>, formRef: any) => {
+export const scrollToError = (errors: Record<string, string>) => {
   const firstErrorKey = Object.keys(errors)[0];
-  if (!firstErrorKey || !formRef.current) return;
+  if (!firstErrorKey) return;
 
   const el = document.getElementById(firstErrorKey);
   if (el) {
