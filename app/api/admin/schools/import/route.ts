@@ -1,12 +1,12 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { supabase } from "@/lib/supabase";
 import {
   chunkArray,
   parseSchoolExcel,
   type SchoolImportRecord,
 } from "@/lib/school-import";
+import { authOptions } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
