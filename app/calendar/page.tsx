@@ -432,7 +432,7 @@ function AddEventSidebar({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 flex flex-col hide-scrollbar">
-          <div>
+          {/* <div>
             <SectionHeader
               title="Job / Event Details"
               icon={
@@ -442,10 +442,10 @@ function AddEventSidebar({
               }
             />
             <hr className="border-[#E8E8E8] mb-[30px]" />
-          </div>
+          </div> */}
           <div className="flex flex-col gap-4" >
             <div className="relative">
-              <FieldLabel required>Title</FieldLabel>
+              <FieldLabel required>Event Title</FieldLabel>
               <TextInput
                 value={title}
                 id="title"
@@ -1101,7 +1101,7 @@ export default function CalendarPage() {
                     {/* <h3 className="text-[#121212] font-inter text-base font-bold mb-4">Event Information</h3> */}
                     <div className="space-y-4">
                       <div>
-                        <label className="text-[#9A9A9A] font-inter text-sm font-medium">Title</label>
+                        <label className="text-[#9A9A9A] font-inter text-sm font-medium">Event Title</label>
                         <p className="text-[#121212] font-inter text-base mt-1">{selectedEvent.title}</p>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
@@ -1216,7 +1216,7 @@ export default function CalendarPage() {
               ) : (
                 <>
                   <div >
-                    <FieldLabel required>Title</FieldLabel>
+                    <FieldLabel required>Event Title</FieldLabel>
                     <TextInput
                       value={editFormData.title}
                       id="title"
