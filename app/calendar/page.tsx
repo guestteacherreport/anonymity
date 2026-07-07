@@ -1000,9 +1000,9 @@ export default function CalendarPage() {
               <path d="M4.66602 11.6665H23.3327V22.1665C23.3327 22.4759 23.2098 22.7727 22.991 22.9915C22.7722 23.2103 22.4754 23.3332 22.166 23.3332H5.83268C5.52326 23.3332 5.22652 23.2103 5.00772 22.9915C4.78893 22.7727 4.66602 22.4759 4.66602 22.1665V11.6665Z" stroke="#0171F9" strokeWidth="2.33333" strokeLinejoin="round" />
             </svg>
             <h1 className="text-[#121212] font-inter text-2xl sm:text-[28px] font-bold">My Calendar</h1>
-            <span className="px-2 py-1 rounded bg-[#DFEEFF] text-[#0171F9] font-inter text-xs font-semibold">
+            {!isLoadingEvents ? <span className="px-2 py-1 rounded bg-[#DFEEFF] text-[#0171F9] font-inter text-xs font-semibold">
               {totalEvents} Events
-            </span>
+            </span> : ""}
           </div>
           <button
             onClick={() => setIsSidebarOpen(true)}
@@ -1014,8 +1014,8 @@ export default function CalendarPage() {
             Add Job / Event
           </button>
         </div>
-{(isLoadingEvents) ? <PageLoader message="Loading Calendar..." className="min-h-screen flex items-center justify-center bg-[#F8FAFE]" /> : ""}
-        <div className="flex flex-col xl:flex-row gap-6">
+        {(isLoadingEvents) ? <PageLoader message="Loading Calendar..." className="min-h-[600px] flex items-center justify-center bg-[#F8FAFE]" /> : ""}
+        {!isLoadingEvents ? <div className="flex flex-col xl:flex-row gap-6">
           <div className="flex-1 min-w-0 rounded-2xl border border-[#E2E2E2] bg-white overflow-hidden">
             <FullCalendar
               ref={calendarRef}
@@ -1063,7 +1063,7 @@ export default function CalendarPage() {
             <SelectedDayCard date={selectedDay} events={selectedDayEvents} />
             <UpcomingJobsCard events={events} />
           </div>
-        </div>
+        </div> : ""}
       </main>
 
       <Footer />
@@ -1183,7 +1183,7 @@ export default function CalendarPage() {
                       Close
                     </button>
                     <button
-                      onClick={() => {setIsEditingEvent(true)}}
+                      onClick={() => { setIsEditingEvent(true) }}
                       className="flex-1 py-3 rounded-xl bg-[#0171F9] text-white font-inter text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
                     >
                       Edit Event
@@ -1193,22 +1193,22 @@ export default function CalendarPage() {
                       title="Delete"
                       className="py-2 px-3 rounded-xl border border-red-300 text-red-600 font-inter text-sm font-semibold hover:bg-red-50 transition-colors cursor-pointer"
                     >
-                       <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className="w-5 h-5"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="3 6 5 6 21 6" />
-    <path d="M19 6l-1 14H6L5 6" />
-    <path d="M10 11v6" />
-    <path d="M14 11v6" />
-    <path d="M9 6V4h6v2" />
-  </svg>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-5 h-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14H6L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M9 6V4h6v2" />
+                      </svg>
 
                     </button>
                   </div>
@@ -1398,21 +1398,21 @@ export default function CalendarPage() {
                       className="py-2 px-3 rounded-xl border border-red-300 text-red-600 font-inter text-sm font-semibold hover:bg-red-50 transition-colors cursor-pointer"
                     >
                       <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className="w-5 h-5"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="3 6 5 6 21 6" />
-    <path d="M19 6l-1 14H6L5 6" />
-    <path d="M10 11v6" />
-    <path d="M14 11v6" />
-    <path d="M9 6V4h6v2" />
-  </svg>
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-5 h-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14H6L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M9 6V4h6v2" />
+                      </svg>
                     </button>
                   </div>
                 </>
