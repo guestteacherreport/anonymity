@@ -129,7 +129,7 @@ function UpcomingJobsCard({ events }: { events: CalendarEvent[] }) {
   const upcoming = events
     .filter((e) => !isBefore(startOfDay(e.start), now))
     .sort((a, b) => a.start.getTime() - b.start.getTime())
-    .slice(0, 5);
+    ;
 
   return (
     <div className="rounded-2xl border border-[#F0F0F0] bg-white overflow-hidden">
@@ -304,51 +304,69 @@ function AddEventSidebar({
       const [eh, emin] = endTime.split(":").map(Number);
       const eventColors = getRandomEventColors();
 
+      // Generate all dates between start and end date
+      const startDateObj = new Date(sy, sm - 1, sd);
+      const endDateObj = new Date(ey, em - 1, ed);
+      const dates = [];
+      const currentDate = new Date(startDateObj);
 
-      const eventData = {
-        title: title,
-        start: new Date(sy, sm - 1, sd, sh, smin).toISOString(),
-        end: new Date(ey, em - 1, ed, eh, emin).toISOString(),
-        school: schoolName,
-        schoolAddress,
-        schoolPhone: schoolPhone.trim() || null,
-        schoolEmail: schoolEmail.trim() || null,
-        schoolId: schoolId || null,
-        teacherName: teacherName.trim() || null,
-        teacherId: teacherId || null,
-        teacherPhone: teacherPhone.trim() || null,
-        teacherEmail: teacherEmail.trim() || null,
-        notes: notes.trim() || null,
-        ...eventColors,
-        reminders: 0,
-        user_id: session?.user?.id
-      };
-
-      const response = await fetch("/api/calendar-events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(eventData),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Failed to save event");
+      while (currentDate <= endDateObj) {
+        dates.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
       }
-      const data = await response.json();
-      const startDate1 = new Date(eventData.start);
-      const endDate1 = new Date(eventData.end);
 
-      onSave({
-        id: data.event.id,
-        title: eventData.title,
-        start: startDate1,
-        end: endDate1,
-        school: schoolName,
-        school_name: schoolName,
-        ...eventColors,
-        reminders: 0,
-        user_id: session?.user?.id
-      });
+      // Create an event for each day
+      for (const date of dates) {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+
+        const eventData = {
+          title: title,
+          start: new Date(year, month, day, sh, smin).toISOString(),
+          end: new Date(year, month, day, eh, emin).toISOString(),
+          school: schoolName,
+          schoolAddress,
+          schoolPhone: schoolPhone.trim() || null,
+          schoolEmail: schoolEmail.trim() || null,
+          schoolId: schoolId || null,
+          teacherName: teacherName.trim() || null,
+          teacherId: teacherId || null,
+          teacherPhone: teacherPhone.trim() || null,
+          teacherEmail: teacherEmail.trim() || null,
+          notes: notes.trim() || null,
+          ...eventColors,
+          reminders: 0,
+          user_id: session?.user?.id
+        };
+
+        const response = await fetch("/api/calendar-events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(eventData),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || "Failed to save event");
+        }
+
+        const data = await response.json();
+        const startDateForEvent = new Date(eventData.start);
+        const endDateForEvent = new Date(eventData.end);
+
+        onSave({
+          id: data.event.id,
+          title: eventData.title,
+          start: startDateForEvent,
+          end: endDateForEvent,
+          school: schoolName,
+          school_name: schoolName,
+          ...eventColors,
+          reminders: 0,
+          user_id: session?.user?.id
+        });
+      }
 
       reset();
       onClose();
