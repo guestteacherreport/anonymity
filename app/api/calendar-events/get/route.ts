@@ -6,33 +6,30 @@ import { authOptions } from "@/lib/auth";
 export async function GET(req: NextRequest) {
 
   const session = await getServerSession(authOptions);
+
   try {
-    if (!session?.user?.email) {
+
+
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const pageUpcoming = searchParams.get("pageUpcoming");
+    const month = Number(req.nextUrl.searchParams.get("month"));
+    const year = Number(req.nextUrl.searchParams.get("year"));
 
-    const offset = (page - 1) * limit;
+    const startOfMonth = new Date(Date.UTC(year, month - 1, 1));
+    const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59));
 
-    let query = supabase
+    const { data, error } = await supabase
       .from("calendar_event")
-      .select("*", { count: "exact" })
+      .select("*")
       .eq("user_id", session.user.id)
+      .gte("start_date", startOfMonth.toISOString())
+      .lte("start_date", endOfMonth.toISOString())
       .order("start_date", { ascending: true });
-
-    if (pageUpcoming === "true") {
-      const now = new Date().toISOString();
-      query = query.gte("start_date", now);
-    }
-
-    const { data, error, count } = await query.range(offset, offset + limit - 1);
 
     if (error) {
       console.error("Supabase Error:", error);
@@ -56,9 +53,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       events,
-      total: count || 0,
-      page,
-      limit,
     });
   } catch (error) {
     console.error("Error fetching calendar events:", error);
