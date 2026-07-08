@@ -123,19 +123,61 @@ function SelectedDayCard({ date, events }: { date: Date; events: CalendarEvent[]
   );
 }
 
-function UpcomingJobsCard({ events }: { events: CalendarEvent[] }) {
-  const [displayCount, setDisplayCount] = useState(10);
-  const now = startOfDay(new Date());
+function UpcomingJobsCard() {
+  const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalEvents, setTotalEvents] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const upcoming = events
-    .filter((e) => !isBefore(startOfDay(e.start), now))
-    .sort((a, b) => a.start.getTime() - b.start.getTime());
+  const limit = 10;
+  const hasMore = upcomingEvents.length < totalEvents;
 
-  const displayedEvents = upcoming.slice(0, displayCount);
-  const hasMore = upcoming.length > displayCount;
+  useEffect(() => {
+    const fetchUpcomingEvents = async () => {
+      try {
+        const response = await fetch(`/api/calendar-events/get?page=1&limit=${limit}&pageUpcoming=true`);
+        if (response.ok) {
+          const data = await response.json();
+          setUpcomingEvents(
+            data.events.map((event: any) => ({
+              ...event,
+              start: new Date(event.start),
+              end: new Date(event.end),
+            }))
+          );
+          setTotalEvents(data.total || 0);
+          setCurrentPage(1);
+        }
+      } catch (error) {
+        console.error("Error fetching upcoming events:", error);
+      }
+    };
 
-  const handleLoadMore = () => {
-    setDisplayCount(prev => prev + 10);
+    fetchUpcomingEvents();
+  }, []);
+
+  const handleLoadMore = async () => {
+    setIsLoadingMore(true);
+    try {
+      const nextPage = currentPage + 1;
+      const response = await fetch(`/api/calendar-events/get?page=${nextPage}&limit=${limit}&pageUpcoming=true`);
+      if (response.ok) {
+        const data = await response.json();
+        setUpcomingEvents(prev => [
+          ...prev,
+          ...data.events.map((event: any) => ({
+            ...event,
+            start: new Date(event.start),
+            end: new Date(event.end),
+          }))
+        ]);
+        setCurrentPage(nextPage);
+      }
+    } catch (error) {
+      console.error("Error loading more events:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   return (
@@ -143,17 +185,17 @@ function UpcomingJobsCard({ events }: { events: CalendarEvent[] }) {
       <div className="border-b border-[#F0F0F0] bg-white px-4 py-4 rounded-t-2xl flex-shrink-0">
         <h3 className="text-[#121212] font-inter text-base font-bold">Upcoming Jobs</h3>
       </div>
-      {upcoming.length === 0 ? (
+      {upcomingEvents.length === 0 ? (
         <div className="px-4 py-6 text-center text-[#9A9A9A] font-inter text-sm">
           No upcoming jobs
         </div>
       ) : (
         <>
           <div className="flex-1 overflow-y-auto">
-            {displayedEvents.map((event, idx) => (
+            {upcomingEvents.map((event, idx) => (
               <div
                 key={event.id}
-                className={`px-4 py-4 ${idx < displayedEvents.length - 1 ? "border-b border-[#F0F0F0]" : ""} bg-white`}
+                className={`px-4 py-4 ${idx < upcomingEvents.length - 1 ? "border-b border-[#F0F0F0]" : ""} bg-white`}
               >
                 <div className="flex items-start gap-2">
                   <span
@@ -176,9 +218,10 @@ function UpcomingJobsCard({ events }: { events: CalendarEvent[] }) {
             <div className="border-t border-[#F0F0F0] px-4 py-3 bg-white flex-shrink-0">
               <button
                 onClick={handleLoadMore}
-                className="w-full py-2 text-[#0171F9] font-inter text-sm font-semibold hover:bg-[#F3F4F5] rounded-lg transition-colors cursor-pointer"
+                disabled={isLoadingMore}
+                className="w-full py-2 text-[#0171F9] font-inter text-sm font-semibold hover:bg-[#F3F4F5] rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Load More
+                {isLoadingMore ? "Loading..." : "Load More"}
               </button>
             </div>
           )}
@@ -1130,7 +1173,7 @@ export default function CalendarPage() {
 
           <div className="xl:w-[350px] flex-shrink-0 flex flex-col gap-4">
             <SelectedDayCard date={selectedDay} events={selectedDayEvents} />
-            <UpcomingJobsCard events={events} />
+            <UpcomingJobsCard />
           </div>
         </div> : ""}
       </main>
