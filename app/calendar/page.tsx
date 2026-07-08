@@ -897,6 +897,11 @@ export default function CalendarPage() {
 
       if (startDateOnly !== endDateOnly) {
         newErrors.end_date = "Start date and end date must be the same";
+      } else {
+        // If dates are same, check if start time is greater than end time
+        if (editFormData.start_date >= editFormData.end_date) {
+          newErrors.end_date = "End time must be after start time";
+        }
       }
     }
     if (!editFormData.school_name.trim()) {
