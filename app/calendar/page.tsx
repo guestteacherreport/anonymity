@@ -891,8 +891,13 @@ export default function CalendarPage() {
       newErrors.end_date = "End date is required";
     }
 
-    if ((editFormData.start_date && editFormData.end_date) && editFormData.end_date < editFormData.start_date) {
-      newErrors.end_date = "End time must be after or same as start time";
+    if (editFormData.start_date && editFormData.end_date) {
+      const startDateOnly = editFormData.start_date.split("T")[0];
+      const endDateOnly = editFormData.end_date.split("T")[0];
+
+      if (startDateOnly !== endDateOnly) {
+        newErrors.end_date = "Start date and end date must be the same";
+      }
     }
     if (!editFormData.school_name.trim()) {
       newErrors.school_name = "School name is required";
