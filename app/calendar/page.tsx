@@ -124,16 +124,23 @@ function SelectedDayCard({ date, events }: { date: Date; events: CalendarEvent[]
 }
 
 function UpcomingJobsCard({ events }: { events: CalendarEvent[] }) {
+  const [displayCount, setDisplayCount] = useState(10);
   const now = startOfDay(new Date());
 
   const upcoming = events
     .filter((e) => !isBefore(startOfDay(e.start), now))
-    .sort((a, b) => a.start.getTime() - b.start.getTime())
-    ;
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+
+  const displayedEvents = upcoming.slice(0, displayCount);
+  const hasMore = upcoming.length > displayCount;
+
+  const handleLoadMore = () => {
+    setDisplayCount(prev => prev + 10);
+  };
 
   return (
-    <div className="rounded-2xl border border-[#F0F0F0] bg-white overflow-hidden">
-      <div className="border-b border-[#F0F0F0] bg-white px-4 py-4 rounded-t-2xl">
+    <div className="rounded-2xl border border-[#F0F0F0] bg-white overflow-hidden flex flex-col">
+      <div className="border-b border-[#F0F0F0] bg-white px-4 py-4 rounded-t-2xl flex-shrink-0">
         <h3 className="text-[#121212] font-inter text-base font-bold">Upcoming Jobs</h3>
       </div>
       {upcoming.length === 0 ? (
@@ -141,27 +148,41 @@ function UpcomingJobsCard({ events }: { events: CalendarEvent[] }) {
           No upcoming jobs
         </div>
       ) : (
-        upcoming.map((event, idx) => (
-          <div
-            key={event.id}
-            className={`px-4 py-4 ${idx < upcoming.length - 1 ? "border-b border-[#F0F0F0]" : ""} bg-white`}
-          >
-            <div className="flex items-start gap-2">
-              <span
-                className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1"
-                style={{ backgroundColor: event.color }}
-              />
-              <div className="flex flex-col gap-1">
-                <span className="text-[#121212] font-inter text-sm font-semibold leading-snug">
-                  {event.title}
-                </span>
-                <span className="text-[#9A9A9A] font-inter text-xs font-medium">
-                  {format(event.start, "EEE MMM d, yyyy")}
-                </span>
+        <>
+          <div className="flex-1 overflow-y-auto">
+            {displayedEvents.map((event, idx) => (
+              <div
+                key={event.id}
+                className={`px-4 py-4 ${idx < displayedEvents.length - 1 ? "border-b border-[#F0F0F0]" : ""} bg-white`}
+              >
+                <div className="flex items-start gap-2">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1"
+                    style={{ backgroundColor: event.color }}
+                  />
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[#121212] font-inter text-sm font-semibold leading-snug">
+                      {event.title}
+                    </span>
+                    <span className="text-[#9A9A9A] font-inter text-xs font-medium">
+                      {format(event.start, "EEE MMM d, yyyy")}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
-        ))
+          {hasMore && (
+            <div className="border-t border-[#F0F0F0] px-4 py-3 bg-white flex-shrink-0">
+              <button
+                onClick={handleLoadMore}
+                className="w-full py-2 text-[#0171F9] font-inter text-sm font-semibold hover:bg-[#F3F4F5] rounded-lg transition-colors cursor-pointer"
+              >
+                Load More
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -238,6 +259,16 @@ function AddEventSidebar({
       newErrors.endDate = "End date is required";
     }
 
+    // Compare dates only if both are provided
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (start > end) {
+        newErrors.startDate = "Start date cannot be after end date";
+      }
+    }
+
     if (!startTime) {
       newErrors.startTime = "Start time is required";
     }
@@ -246,10 +277,15 @@ function AddEventSidebar({
       newErrors.endTime = "End time is required";
     }
 
-    const startDateTime = new Date(`${startDate}T${startTime}`);
-    const endDateTime = new Date(`${endDate}T${endTime}`);
+    const getMinutes = (time: string) => {
+      const [hours, minutes] = time.split(":").map(Number);
+      return hours * 60 + minutes;
+    };
 
-    if (endDateTime <= startDateTime) {
+    const startMinutes = getMinutes(startTime);
+    const endMinutes = getMinutes(endTime);
+
+    if (endMinutes <= startMinutes) {
       newErrors.endTime = "End time must be after start time";
     }
 
@@ -279,7 +315,6 @@ function AddEventSidebar({
     }
 
     setErrors(newErrors);
-    console.log("newErrors", newErrors)
     return Object.keys(newErrors).length === 0;
   };
 
@@ -494,7 +529,7 @@ function AddEventSidebar({
                   <input
                     type="date"
                     id="startDate"
-                    // max={endDate}
+                    min={new Date().toISOString().split("T")[0]}
                     ref={dateRef1}
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
@@ -513,7 +548,7 @@ function AddEventSidebar({
                     type="date"
                     ref={dateRef2}
                     id="endDate"
-                    // min={startDate}
+                    min={startDate}
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     className="bg-transparent outline-none w-full font-inter text-sm text-[#121212] appearance-none"
@@ -892,21 +927,24 @@ export default function CalendarPage() {
     }
 
     if (editFormData.start_date && editFormData.end_date) {
-      const startDate = new Date(editFormData.start_date);
-      const endDate = new Date(editFormData.end_date);
+  const start = new Date(editFormData.start_date);
+  const end = new Date(editFormData.end_date);
 
-      const startDateOnly = startDate.toISOString().split("T")[0];
-      const endDateOnly = endDate.toISOString().split("T")[0];
+  const startDate = start.toLocaleDateString("en-CA"); // YYYY-MM-DD
+  const endDate = end.toLocaleDateString("en-CA");
 
-      if (startDateOnly !== endDateOnly) {
-        newErrors.end_date = "Start date and end date must be the same";
-      } else {
-        // If dates are same, check if start time is greater than or equal to end time
-        if (startDate >= endDate) {
-          newErrors.end_date = "End time must be after start time";
-        }
-      }
-    }
+  const startTime = start.toLocaleTimeString("en-GB", { hour12: false });
+  const endTime = end.toLocaleTimeString("en-GB", { hour12: false });
+
+  console.log(startDate, startTime);
+  console.log(endDate, endTime);
+
+  if (startDate !== endDate) {
+    newErrors.end_date = "Start date and end date must be the same";
+  } else if (startTime >= endTime) {
+    newErrors.end_date = "End time must be after start time";
+  }
+}
     if (!editFormData.school_name.trim()) {
       newErrors.school_name = "School name is required";
     }
