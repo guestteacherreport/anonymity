@@ -892,14 +892,17 @@ export default function CalendarPage() {
     }
 
     if (editFormData.start_date && editFormData.end_date) {
-      const startDateOnly = editFormData.start_date.split("T")[0];
-      const endDateOnly = editFormData.end_date.split("T")[0];
+      const startDate = new Date(editFormData.start_date);
+      const endDate = new Date(editFormData.end_date);
+
+      const startDateOnly = startDate.toISOString().split("T")[0];
+      const endDateOnly = endDate.toISOString().split("T")[0];
 
       if (startDateOnly !== endDateOnly) {
         newErrors.end_date = "Start date and end date must be the same";
       } else {
-        // If dates are same, check if start time is greater than end time
-        if (editFormData.start_date >= editFormData.end_date) {
+        // If dates are same, check if start time is greater than or equal to end time
+        if (startDate >= endDate) {
           newErrors.end_date = "End time must be after start time";
         }
       }
