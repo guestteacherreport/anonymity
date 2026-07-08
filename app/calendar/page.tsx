@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import FullCalendar from "@fullcalendar/react";
@@ -123,109 +123,45 @@ function SelectedDayCard({ date, events }: { date: Date; events: CalendarEvent[]
   );
 }
 
-function UpcomingJobsCard() {
-  const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalEvents, setTotalEvents] = useState(0);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+function UpcomingJobsCard({ events }: { events: CalendarEvent[] }) {
+  const now = startOfDay(new Date());
 
-  const limit = 10;
-  const hasMore = upcomingEvents.length < totalEvents;
-
-  useEffect(() => {
-    const fetchUpcomingEvents = async () => {
-      try {
-        const response = await fetch(`/api/calendar-events/get?page=1&limit=${limit}&pageUpcoming=true`);
-        if (response.ok) {
-          const data = await response.json();
-          setUpcomingEvents(
-            data.events.map((event: any) => ({
-              ...event,
-              start: new Date(event.start),
-              end: new Date(event.end),
-            }))
-          );
-          setTotalEvents(data.total || 0);
-          setCurrentPage(1);
-        }
-      } catch (error) {
-        console.error("Error fetching upcoming events:", error);
-      }
-    };
-
-    fetchUpcomingEvents();
-  }, []);
-
-  const handleLoadMore = async () => {
-    setIsLoadingMore(true);
-    try {
-      const nextPage = currentPage + 1;
-      const response = await fetch(`/api/calendar-events/get?page=${nextPage}&limit=${limit}&pageUpcoming=true`);
-      if (response.ok) {
-        const data = await response.json();
-        setUpcomingEvents(prev => [
-          ...prev,
-          ...data.events.map((event: any) => ({
-            ...event,
-            start: new Date(event.start),
-            end: new Date(event.end),
-          }))
-        ]);
-        setCurrentPage(nextPage);
-      }
-    } catch (error) {
-      console.error("Error loading more events:", error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
+  const upcoming = events
+    .filter((e) => !isBefore(startOfDay(e.start), now))
+    .sort((a, b) => a.start.getTime() - b.start.getTime())
+    ;
 
   return (
-    <div className="rounded-2xl border border-[#F0F0F0] bg-white overflow-hidden flex flex-col">
-      <div className="border-b border-[#F0F0F0] bg-white px-4 py-4 rounded-t-2xl flex-shrink-0">
+    <div className="rounded-2xl border border-[#F0F0F0] bg-white overflow-hidden">
+      <div className="border-b border-[#F0F0F0] bg-white px-4 py-4 rounded-t-2xl">
         <h3 className="text-[#121212] font-inter text-base font-bold">Upcoming Jobs</h3>
       </div>
-      {upcomingEvents.length === 0 ? (
+      {upcoming.length === 0 ? (
         <div className="px-4 py-6 text-center text-[#9A9A9A] font-inter text-sm">
           No upcoming jobs
         </div>
       ) : (
-        <>
-          <div className="flex-1 overflow-y-auto">
-            {upcomingEvents.map((event, idx) => (
-              <div
-                key={event.id}
-                className={`px-4 py-4 ${idx < upcomingEvents.length - 1 ? "border-b border-[#F0F0F0]" : ""} bg-white`}
-              >
-                <div className="flex items-start gap-2">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1"
-                    style={{ backgroundColor: event.color }}
-                  />
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[#121212] font-inter text-sm font-semibold leading-snug">
-                      {event.title}
-                    </span>
-                    <span className="text-[#9A9A9A] font-inter text-xs font-medium">
-                      {format(event.start, "EEE MMM d, yyyy")}
-                    </span>
-                  </div>
-                </div>
+        upcoming.map((event, idx) => (
+          <div
+            key={event.id}
+            className={`px-4 py-4 ${idx < upcoming.length - 1 ? "border-b border-[#F0F0F0]" : ""} bg-white`}
+          >
+            <div className="flex items-start gap-2">
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1"
+                style={{ backgroundColor: event.color }}
+              />
+              <div className="flex flex-col gap-1">
+                <span className="text-[#121212] font-inter text-sm font-semibold leading-snug">
+                  {event.title}
+                </span>
+                <span className="text-[#9A9A9A] font-inter text-xs font-medium">
+                  {format(event.start, "EEE MMM d, yyyy")}
+                </span>
               </div>
-            ))}
-          </div>
-          {hasMore && (
-            <div className="border-t border-[#F0F0F0] px-4 py-3 bg-white flex-shrink-0">
-              <button
-                onClick={handleLoadMore}
-                disabled={isLoadingMore}
-                className="w-full py-2 text-[#0171F9] font-inter text-sm font-semibold hover:bg-[#F3F4F5] rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoadingMore ? "Loading..." : "Load More"}
-              </button>
             </div>
-          )}
-        </>
+          </div>
+        ))
       )}
     </div>
   );
@@ -856,7 +792,9 @@ export default function CalendarPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const calendarRef = useRef<any>(null);
-
+  const lastFetchedRef = useRef<string>("");
+const lastMonth = useRef("");
+const initialDate = useMemo(() => new Date(), []);
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
@@ -867,14 +805,19 @@ export default function CalendarPage() {
 
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role === "guest_teacher") {
-      fetchEvents();
+      const month = currentDate.getMonth() + 1;
+      const year = currentDate.getFullYear();
+      lastMonth.current = `${year}-${month}`;
+      fetchEvents(month, year);
     }
   }, [status]);
-
-  const fetchEvents = async () => {
+useEffect(() => {
+  console.log("Calendar component rendered");
+});
+  const fetchEvents = async (month: any, year: any) => {console.log("month",month, year)
     try {
       setIsLoadingEvents(true);
-      const response = await fetch("/api/calendar-events/get");
+      const response = await fetch(`/api/calendar-events/get?month=${month}&year=${year}`);
       if (response.ok) {
         const data = await response.json();
 
@@ -1132,6 +1075,7 @@ export default function CalendarPage() {
             <FullCalendar
               ref={calendarRef}
               displayEventTime={false}
+              
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
               headerToolbar={{
@@ -1139,6 +1083,19 @@ export default function CalendarPage() {
                 center: "title",
                 right: "dayGridMonth,timeGridWeek,timeGridDay",
               }}
+              datesSet={(info) => {
+              const month = info.view.currentStart.getMonth() + 1;
+              const year = info.view.currentStart.getFullYear();
+
+              const key = `${year}-${month}`;
+
+              if (lastMonth.current === key) return;
+
+              lastMonth.current = key;
+                            setCurrentDate(info.view.currentStart)
+              fetchEvents(month, year);
+            }}
+
               height="auto"
               contentHeight="auto"
               events={fullCalendarEvents}
@@ -1173,7 +1130,7 @@ export default function CalendarPage() {
 
           <div className="xl:w-[350px] flex-shrink-0 flex flex-col gap-4">
             <SelectedDayCard date={selectedDay} events={selectedDayEvents} />
-            <UpcomingJobsCard />
+            <UpcomingJobsCard events={events} />
           </div>
         </div> : ""}
       </main>
