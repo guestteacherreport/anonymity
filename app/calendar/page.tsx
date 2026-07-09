@@ -7,13 +7,23 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { format, startOfDay, isBefore } from "date-fns";
+import { format } from "date-fns";
 import Header from "@/app/components/Header";
 import Footer from "@/app/components/Footer";
 import PageLoader from "@/app/components/PageLoader";
 import "./calendar.css";
 import { CalendarIcon } from "@/lib/icons";
 import { formatDateTimeLocal, getRandomEventColors, scrollToFirstError } from "@/lib/function";
+import { ObjectType } from "@/lib/types";
+
+type UpcomingJobsCardProps = {
+  events: CalendarEvent[];
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
+  refershing: boolean;
+  eventId: (event: any) => void;
+};
 
 interface CalendarEvent {
   id: number;
@@ -123,45 +133,72 @@ function SelectedDayCard({ date, events }: { date: Date; events: CalendarEvent[]
   );
 }
 
-function UpcomingJobsCard({ events }: { events: CalendarEvent[] }) {
-  const now = startOfDay(new Date());
-
-  const upcoming = events
-    .filter((e) => !isBefore(startOfDay(e.start), now))
-    .sort((a, b) => a.start.getTime() - b.start.getTime())
-    ;
-
+function UpcomingJobsCard({
+  events,
+  hasMore,
+  loadingMore,
+  onLoadMore,
+  refershing,
+  eventId
+}: UpcomingJobsCardProps) {
   return (
     <div className="rounded-2xl border border-[#F0F0F0] bg-white overflow-hidden">
-      <div className="border-b border-[#F0F0F0] bg-white px-4 py-4 rounded-t-2xl">
-        <h3 className="text-[#121212] font-inter text-base font-bold">Upcoming Jobs</h3>
+      {/* Header */}
+      <div className="border-b border-[#F0F0F0] bg-white px-4 py-4 flex items-center justify-between">
+        <h3 className="text-[#121212] font-inter text-base font-bold">
+          Upcoming Jobs
+        </h3>
+        {refershing ? <span className="text-sm text-[#0171f9] leading-[inherit]">Updating...</span> : ""}
       </div>
-      {upcoming.length === 0 ? (
+
+      {events.length === 0 ? (
         <div className="px-4 py-6 text-center text-[#9A9A9A] font-inter text-sm">
           No upcoming jobs
         </div>
       ) : (
-        upcoming.map((event, idx) => (
-          <div
-            key={event.id}
-            className={`px-4 py-4 ${idx < upcoming.length - 1 ? "border-b border-[#F0F0F0]" : ""} bg-white`}
-          >
-            <div className="flex items-start gap-2">
-              <span
-                className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1"
-                style={{ backgroundColor: event.color }}
-              />
-              <div className="flex flex-col gap-1">
-                <span className="text-[#121212] font-inter text-sm font-semibold leading-snug">
-                  {event.title}
-                </span>
-                <span className="text-[#9A9A9A] font-inter text-xs font-medium">
-                  {format(event.start, "EEE MMM d, yyyy")}
-                </span>
+        <>
+          {/* Scrollable list */}
+          <div className="max-h-[400px] overflow-y-auto">
+            {events.map((event, idx) => (
+              <div
+                key={idx}
+                onClick={() => eventId({ event })}
+                className={`px-4 py-4 ${idx < events.length - 1
+                  ? "border-b border-[#F0F0F0]"
+                  : ""
+                  } bg-white`}
+              >
+                <div className="flex items-start gap-2">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1"
+                    style={{ backgroundColor: event.color }}
+                  />
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[#121212] font-inter text-sm font-semibold">
+                      {event.title}
+                    </span>
+                    <span className="text-[#9A9A9A] font-inter text-xs font-medium">
+                      {format(event.start, "EEE MMM d, yyyy")}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
-        ))
+
+          {/* Footer */}
+          {hasMore && (
+            <div className="border-t border-[#F0F0F0] p-4 bg-white">
+              <button
+                onClick={onLoadMore}
+                disabled={loadingMore}
+                className="w-full rounded-lg border border-[#E5E5E5] py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+              >
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -171,10 +208,12 @@ function AddEventSidebar({
   isOpen,
   onClose,
   onSave,
+  fetchUpcoming,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onSave: (event: CalendarEvent) => void
+  fetchUpcoming: () => void
 }) {
   const today = format(new Date(), "yyyy-MM-dd");
   const [startDate, setStartDate] = useState(today);
@@ -383,6 +422,7 @@ function AddEventSidebar({
       }
 
       reset();
+      fetchUpcoming();
       onClose();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save event";
@@ -482,6 +522,10 @@ function AddEventSidebar({
                 value={title}
                 id="title"
                 onChange={(value: string) => {
+                  setErrors((prev) => ({
+                    ...prev,
+                    title: "",
+                  }))
                   setTitle(value);
                 }}
                 error={errors.title}
@@ -588,6 +632,10 @@ function AddEventSidebar({
                   value={schoolName}
                   id="schoolName"
                   onChange={(value: string) => {
+                    setErrors((prev) => ({
+                      ...prev,
+                      schoolName: "",
+                    }))
                     setSchoolName(value);
                     fetchSchools(value);
                     setSchoolId("");
@@ -787,14 +835,27 @@ export default function CalendarPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [selectedDayEvent, setSelectedDayEvent] = useState<CalendarEvent[]>([]);
+  const [upcomingJobs, setUpcomingJobs] = useState<CalendarEvent[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const calendarRef = useRef<any>(null);
-  const lastFetchedRef = useRef<string>("");
-const lastMonth = useRef("");
-const initialDate = useMemo(() => new Date(), []);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [isEditingEvent, setIsEditingEvent] = useState(false);
+  const [editFormData, setEditFormData] = useState<any>(null);
+  const [isSavingEvent, setIsSavingEvent] = useState(false);
+  const [refreshUpcoming, setRefreshUpcoming] = useState(false);
+  const [selectedMonthYear, setSelectedMonthYear] = useState<ObjectType>({});
+  const [errors2, setErrors2] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const lastMonth = useRef("");
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
@@ -805,47 +866,99 @@ const initialDate = useMemo(() => new Date(), []);
 
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role === "guest_teacher") {
-      const month = currentDate.getMonth() + 1;
-      const year = currentDate.getFullYear();
-      lastMonth.current = `${year}-${month}`;
-      fetchEvents(month, year);
+      fetchEvents((currentDate.getMonth() + 1), currentDate.getFullYear());
+      setSelectedMonthYear({ month: (currentDate.getMonth() + 1), year: currentDate.getFullYear() });
     }
   }, [status]);
-useEffect(() => {
-  console.log("Calendar component rendered");
-});
-  const fetchEvents = async (month: any, year: any) => {console.log("month",month, year)
+
+  const fetchEvents = async (month: any, year: any, selectedDay?: any) => {
+
     try {
-      setIsLoadingEvents(true);
+      setEvents([]);
       const response = await fetch(`/api/calendar-events/get?month=${month}&year=${year}`);
       if (response.ok) {
         const data = await response.json();
 
-        setEvents(
-          data.events.map((event: any) => ({
-            ...event,
-            start: new Date(event.start),
-            end: new Date(event.end),
-          }))
-        );
+        const mappedEvents = data.events.map((event: any) => ({
+          ...event,
+          start: new Date(event.start),
+          end: new Date(event.end),
+        }));
+
+        setEvents(mappedEvents);
+
+        if (isLoadingEvents) {
+          setSelectedDay(new Date());
+        }
+        if (selectedDay) {
+          setSelectedDay(selectedDay);
+        }
       }
     } catch (error) {
       console.error("Error fetching events:", error);
     } finally {
       setIsLoadingEvents(false);
+
     }
   };
 
-  const selectedDayEvents = events.filter((e) => {
-    const eStart = new Date(e.start);
-    const eEnd = new Date(e.end);
-    const selected = new Date(selectedDay);
-    selected.setHours(0, 0, 0, 0);
-    eStart.setHours(0, 0, 0, 0);
-    eEnd.setHours(0, 0, 0, 0);
-    return (eStart <= selected && selected <= eEnd);
-  });
 
+  const fetchUpcomingJobs = async (currentOffset = 0) => {
+    try {
+      if (currentOffset != 0) {
+        setLoadingMore(true);
+      } else {
+        setRefreshUpcoming(true);
+      }
+
+
+      const response = await fetch(
+        `/api/calendar-events/upcoming?limit=5&offset=${currentOffset}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch upcoming jobs");
+      }
+
+      const data = await response.json();
+
+      const jobs = data.events.map((event: any) => ({
+        ...event,
+        start: new Date(event.start_date),
+        end: new Date(event.end_date),
+      }));
+
+      if (currentOffset === 0) {
+        setUpcomingJobs(jobs);
+      } else {
+        setUpcomingJobs((prev) => {
+          const existingIds = new Set(prev.map((job) => job.id));
+          const newJobs = jobs.filter((job: any) => !existingIds.has(job.id));
+
+          return [...prev, ...newJobs];
+        });
+      }
+
+      // Use values returned by the API
+      setHasMore(data.hasMore);
+      setOffset(data.nextOffset ?? currentOffset);
+    } catch (error) {
+      console.error("Error fetching upcoming jobs:", error);
+    } finally {
+      setLoadingMore(false);
+      setRefreshUpcoming(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUpcomingJobs(0);
+  }, []);
+
+  const handleLoadMore = () => {
+    if (!hasMore || loadingMore) return;
+
+    fetchUpcomingJobs(offset);
+  };
   const handleAddEvent = (eventData: CalendarEvent) => {
     const newEvent: CalendarEvent = {
       ...eventData,
@@ -856,15 +969,12 @@ useEffect(() => {
     setCurrentDate(newEvent.start);
   };
 
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  const [isEditingEvent, setIsEditingEvent] = useState(false);
-  const [editFormData, setEditFormData] = useState<any>(null);
-  const [isSavingEvent, setIsSavingEvent] = useState(false);
-  const [errors2, setErrors2] = useState<Record<string, string>>({});
-  const formRef = useRef<HTMLDivElement>(null);
+
 
   const handleSelectEvent = async (info: any) => {
-    setSelectedDay(new Date(info.event.start));
+    if (selectedDay != new Date(info.event.start)) {
+      setSelectedDay(new Date(info.event.start));
+    }
     setErrors2({});
     const eventId = info.event.id;
     try {
@@ -873,6 +983,8 @@ useEffect(() => {
         const data = await response.json();
         const event = data.event;
         setSelectedEvent(event);
+
+
         setEditFormData({
           title: event.title || "",
           start_date: event.start_date || "",
@@ -894,6 +1006,19 @@ useEffect(() => {
     }
   };
 
+  useEffect(() => {
+    setSelectedDayEvent(events.filter((e) => {
+      const eStart = new Date(e.start);
+      const eEnd = new Date(e.end);
+      const selected = new Date(selectedDay);
+      selected.setHours(0, 0, 0, 0);
+      eStart.setHours(0, 0, 0, 0);
+      eEnd.setHours(0, 0, 0, 0);
+      return (eStart <= selected && selected <= eEnd);
+    }));
+  }, [selectedDay]);
+
+
   const handleSelectDate = (info: any) => {
     setSelectedDay(new Date(info.dateStr));
   };
@@ -913,24 +1038,22 @@ useEffect(() => {
     }
 
     if (editFormData.start_date && editFormData.end_date) {
-  const start = new Date(editFormData.start_date);
-  const end = new Date(editFormData.end_date);
+      const start = new Date(editFormData.start_date);
+      const end = new Date(editFormData.end_date);
 
-  const startDate = start.toLocaleDateString("en-CA"); // YYYY-MM-DD
-  const endDate = end.toLocaleDateString("en-CA");
+      const startDate = start.toLocaleDateString("en-CA"); // YYYY-MM-DD
+      const endDate = end.toLocaleDateString("en-CA");
 
-  const startTime = start.toLocaleTimeString("en-GB", { hour12: false });
-  const endTime = end.toLocaleTimeString("en-GB", { hour12: false });
+      const startTime = start.toLocaleTimeString("en-GB", { hour12: false });
+      const endTime = end.toLocaleTimeString("en-GB", { hour12: false });
 
-  console.log(startDate, startTime);
-  console.log(endDate, endTime);
 
-  if (startDate !== endDate) {
-    newErrors.end_date = "Start date and end date must be the same";
-  } else if (startTime >= endTime) {
-    newErrors.end_date = "End time must be after start time";
-  }
-}
+      if (startDate !== endDate) {
+        newErrors.end_date = "Start date and end date must be the same";
+      } else if (startTime >= endTime) {
+        newErrors.end_date = "End time must be after start time";
+      }
+    }
     if (!editFormData.school_name.trim()) {
       newErrors.school_name = "School name is required";
     }
@@ -963,22 +1086,28 @@ useEffect(() => {
       const updatedEvent = await response.json();
       setErrors2({});
       setIsEditingEvent(false);
-      setEvents((prevEvents) =>
-        prevEvents.map((event) =>
-          event.id === updatedEvent.event.id
-            ? {
-              ...updatedEvent.event,
-              start: new Date(updatedEvent.event.start_date),
-              end: new Date(updatedEvent.event.end_date),
-              bgColor: updatedEvent.event.bg_color,
-              borderColor: updatedEvent.event.bg_color,
-              textColor: updatedEvent.event.color,
-              color: updatedEvent.event.color,
-            }
-            : event
-        )
-      );
-      setSelectedEvent(updatedEvent.event);
+      const updatedEventData = {
+        ...updatedEvent.event,
+        id: updatedEvent.event.id,
+        title: updatedEvent.event.title,
+        start: new Date(updatedEvent.event.start_date),
+        end: new Date(updatedEvent.event.end_date),
+        bgColor: updatedEvent.event.bg_color,
+        borderColor: updatedEvent.event.bg_color,
+        textColor: updatedEvent.event.color,
+        color: updatedEvent.event.color,
+      };
+
+      const updateEventList = (events: any[]) =>
+        events.map((event) =>
+          event.id === updatedEventData.id ? updatedEventData : event
+        );
+
+
+      setEvents(updateEventList);
+      setSelectedDay(updatedEventData.start);
+      fetchUpcomingJobs(0);
+      setSelectedEvent(updatedEventData);
     } catch (error) {
       console.error("Error saving event:", error);
     } finally {
@@ -1007,6 +1136,8 @@ useEffect(() => {
       setEvents((prevEvents) =>
         prevEvents.filter((event) => event.id !== selectedEvent.id)
       );
+      setUpcomingJobs((prevEvents) =>
+        prevEvents.filter((event) => event.id !== selectedEvent.id))
     } catch (error) {
       console.error("Error deleting event:", error);
       alert("Failed to delete event");
@@ -1055,7 +1186,7 @@ useEffect(() => {
               <path d="M4.66602 11.6665H23.3327V22.1665C23.3327 22.4759 23.2098 22.7727 22.991 22.9915C22.7722 23.2103 22.4754 23.3332 22.166 23.3332H5.83268C5.52326 23.3332 5.22652 23.2103 5.00772 22.9915C4.78893 22.7727 4.66602 22.4759 4.66602 22.1665V11.6665Z" stroke="#0171F9" strokeWidth="2.33333" strokeLinejoin="round" />
             </svg>
             <h1 className="text-[#121212] font-inter text-2xl sm:text-[28px] font-bold">My Calendar</h1>
-            {!isLoadingEvents ? <span className="px-2 py-1 rounded bg-[#DFEEFF] text-[#0171F9] font-inter text-xs font-semibold">
+            {(!isLoadingEvents && totalEvents > 0) ? <span className="px-2 py-1 rounded bg-[#DFEEFF] text-[#0171F9] font-inter text-xs font-semibold">
               {totalEvents} Events
             </span> : ""}
           </div>
@@ -1070,12 +1201,12 @@ useEffect(() => {
           </button>
         </div>
         {(isLoadingEvents) ? <PageLoader message="Loading Calendar..." className="min-h-[600px] flex items-center justify-center bg-[#F8FAFE]" /> : ""}
-        {!isLoadingEvents ? <div className="flex flex-col xl:flex-row gap-6">
+        {!isLoadingEvents && <div className="flex flex-col xl:flex-row gap-6">
           <div className="flex-1 min-w-0 rounded-2xl border border-[#E2E2E2] bg-white overflow-hidden">
             <FullCalendar
               ref={calendarRef}
               displayEventTime={false}
-              
+
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
               headerToolbar={{
@@ -1084,17 +1215,17 @@ useEffect(() => {
                 right: "dayGridMonth,timeGridWeek,timeGridDay",
               }}
               datesSet={(info) => {
-              const month = info.view.currentStart.getMonth() + 1;
-              const year = info.view.currentStart.getFullYear();
+                const month = info.view.currentStart.getMonth() + 1;
+                const year = info.view.currentStart.getFullYear();
 
-              const key = `${year}-${month}`;
+                const key = `${year}-${month}`;
 
-              if (lastMonth.current === key) return;
+                if (lastMonth.current === key) return;
 
-              lastMonth.current = key;
-                            setCurrentDate(info.view.currentStart)
-              fetchEvents(month, year);
-            }}
+                lastMonth.current = key;
+                setSelectedMonthYear({ month, year });
+                fetchEvents(month, year);
+              }}
 
               height="auto"
               contentHeight="auto"
@@ -1129,10 +1260,24 @@ useEffect(() => {
           </div>
 
           <div className="xl:w-[350px] flex-shrink-0 flex flex-col gap-4">
-            <SelectedDayCard date={selectedDay} events={selectedDayEvents} />
-            <UpcomingJobsCard events={events} />
+            <SelectedDayCard date={selectedDay} events={selectedDayEvent} />
+            <UpcomingJobsCard
+              events={upcomingJobs}
+              hasMore={hasMore}
+              loadingMore={loadingMore}
+              onLoadMore={handleLoadMore}
+              refershing={refreshUpcoming}
+              eventId={(event) => {
+                if (event.event.start.getMonth() + 1 != selectedMonthYear.month || event.event.start.getFullYear() != selectedMonthYear.year) {
+                  fetchEvents(event.event.start.getMonth() + 1, event.event.start.getFullYear(), event.event.start);
+                  // Change calendar to the event's month
+                  calendarRef.current?.getApi().gotoDate(event.event.start);
+                }
+                handleSelectEvent(event);
+              }}
+            />
           </div>
-        </div> : ""}
+        </div>}
       </main>
 
       <Footer />
@@ -1141,6 +1286,7 @@ useEffect(() => {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onSave={handleAddEvent}
+        fetchUpcoming={fetchUpcomingJobs}
       />
 
       {selectedEvent && (

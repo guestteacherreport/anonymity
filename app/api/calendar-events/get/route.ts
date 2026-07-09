@@ -27,8 +27,8 @@ export async function GET(req: NextRequest) {
       .from("calendar_event")
       .select("*")
       .eq("user_id", session.user.id)
+      .gte("start_date", startOfMonth.toISOString())
       .lte("start_date", endOfMonth.toISOString())
-      .gte("end_date", startOfMonth.toISOString())
       .order("start_date", { ascending: true });
 
     if (error) {
