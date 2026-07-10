@@ -163,7 +163,7 @@ function UpcomingJobsCard({
               <div
                 key={idx}
                 onClick={() => eventId({ event })}
-                className={`px-4 py-4 ${idx < events.length - 1
+                className={`cursor-pointer px-4 py-4 ${idx < events.length - 1
                   ? "border-b border-[#F0F0F0]"
                   : ""
                   } bg-white`}
@@ -192,7 +192,7 @@ function UpcomingJobsCard({
               <button
                 onClick={onLoadMore}
                 disabled={loadingMore}
-                className="w-full rounded-lg border border-[#E5E5E5] py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+                className={`${!loadingMore ? "cursor-pointer" : ""} w-full rounded-lg border border-[#E5E5E5] py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50`}
               >
                 {loadingMore ? "Loading..." : "Load More"}
               </button>
@@ -218,8 +218,8 @@ function AddEventSidebar({
   const today = format(new Date(), "yyyy-MM-dd");
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
-  const [startTime, setStartTime] = useState("08:00");
-  const [endTime, setEndTime] = useState("15:00");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [schoolName, setSchoolName] = useState("");
   const [schoolAddress, setSchoolAddress] = useState("");
   const [schoolId, setSchoolId] = useState<any>();
@@ -251,7 +251,7 @@ function AddEventSidebar({
 
   const reset = () => {
     setStartDate(today); setEndDate(today);
-    setStartTime("08:00"); setEndTime("15:00");
+    // setStartTime("08:00"); setEndTime("15:00");
     setSchoolName(""); setSchoolAddress("");
     setSchoolPhone(""); setSchoolEmail("");
     setTeacherName(""); setTeacherPhone(""); setTeacherEmail("");
