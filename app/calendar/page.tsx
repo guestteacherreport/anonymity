@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import FullCalendar from "@fullcalendar/react";
@@ -76,7 +76,7 @@ function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }
   );
 }
 
-function SelectedDayCard({ date, events }: { date: Date; events: CalendarEvent[] }) {
+function SelectedDayCard({ date, events, LoadingEventDetails }: { date: Date; events: CalendarEvent[], LoadingEventDetails: boolean }) {
   const dayLabel = format(date, "EEE, MMM d, yyyy");
 
   return (
@@ -84,7 +84,7 @@ function SelectedDayCard({ date, events }: { date: Date; events: CalendarEvent[]
       <div className="border-b border-[#F0F0F0] px-4 py-4">
         <h3 className="text-[#121212] font-inter text-base font-bold">{dayLabel}</h3>
       </div>
-      {events.length === 0 ? (
+      {!LoadingEventDetails ? (events.length === 0 ? (
         <div className="px-4 py-6 text-center text-[#9A9A9A] font-inter text-sm">
           No events for this day
         </div>
@@ -128,7 +128,9 @@ function SelectedDayCard({ date, events }: { date: Date; events: CalendarEvent[]
             </div>
           </div>
         ))
-      )}
+      )): <div className="px-4 py-6 text-center text-[#9A9A9A] font-inter text-sm">
+          Loading...
+        </div>}
     </div>
   );
 }
@@ -241,9 +243,39 @@ function AddEventSidebar({
   const [showTeacherSuggestions, setShowTeacherSuggestions] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [suggestionPlacement, setSuggestionPlacement] = useState<"up" | "down">("down");
   const formRef1 = useRef<HTMLDivElement>(null);
+  const suggestionScrollRef = useRef<HTMLDivElement>(null);
+  const schoolFieldRef = useRef<HTMLDivElement>(null);
+  const teacherFieldRef = useRef<HTMLDivElement>(null);
 
   const [title, setTitle] = useState("");
+
+  const updateSuggestionPlacement = useCallback(() => {
+    const fieldRef = showSchoolSuggestions ? schoolFieldRef : teacherFieldRef;
+    const fieldRect = fieldRef.current?.getBoundingClientRect();
+    const scrollRect = suggestionScrollRef.current?.getBoundingClientRect();
+
+    if (!fieldRect || !scrollRect) return;
+
+    const menuHeight = 192;
+    const spaceBelow = scrollRect.bottom - fieldRect.bottom;
+    const spaceAbove = fieldRect.top - scrollRect.top;
+    setSuggestionPlacement(spaceBelow < menuHeight && spaceAbove > spaceBelow ? "up" : "down");
+  }, [showSchoolSuggestions, showTeacherSuggestions]);
+
+  useEffect(() => {
+    if (!showSchoolSuggestions && !showTeacherSuggestions) return;
+
+    updateSuggestionPlacement();
+    window.addEventListener("resize", updateSuggestionPlacement);
+    suggestionScrollRef.current?.addEventListener("scroll", updateSuggestionPlacement);
+
+    return () => {
+      window.removeEventListener("resize", updateSuggestionPlacement);
+      suggestionScrollRef.current?.removeEventListener("scroll", updateSuggestionPlacement);
+    };
+  }, [showSchoolSuggestions, showTeacherSuggestions, updateSuggestionPlacement]);
 
   useEffect(() => {
     scrollToFirstError(errors, formRef1);
@@ -503,7 +535,7 @@ function AddEventSidebar({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 flex flex-col hide-scrollbar">
+        <div ref={suggestionScrollRef} className="flex-1 overflow-y-auto px-6 flex flex-col hide-scrollbar">
           {/* <div>
             <SectionHeader
               title="Job / Event Details"
@@ -626,7 +658,7 @@ function AddEventSidebar({
               }
             />
             <div className="flex flex-col gap-4">
-              <div className="relative">
+              <div className="relative" ref={schoolFieldRef}>
                 <FieldLabel required>School Name</FieldLabel>
                 <TextInput
                   value={schoolName}
@@ -645,7 +677,7 @@ function AddEventSidebar({
                   error={errors.schoolName}
                 />
                 {showSchoolSuggestions && (schoolSuggestions.length > 0) && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                  <div className={`${suggestionPlacement === "up" ? "absolute bottom-full mb-1" : "absolute top-full mt-1"} left-0 right-0 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto`}>
                     {schoolSearchLoading && (
                       <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
                     )}
@@ -719,7 +751,7 @@ function AddEventSidebar({
               }
             />
             <div className="flex flex-col gap-4">
-              <div className="relative">
+              <div className="relative" ref={teacherFieldRef}>
                 <FieldLabel>Teacher's Full Name</FieldLabel>
                 <TextInput
                   value={teacherName}
@@ -732,7 +764,7 @@ function AddEventSidebar({
                   placeholder="e.g. Maria Gonzalez"
                 />
                 {showTeacherSuggestions && (teacherSuggestions.length > 0) && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                  <div className={`${suggestionPlacement === "up" ? "absolute bottom-full mb-1" : "absolute top-full mt-1"} left-0 right-0 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto`}>
                     {teacherSearchLoading && (
                       <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
                     )}
@@ -846,11 +878,20 @@ export default function CalendarPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const calendarRef = useRef<any>(null);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [isLoadingEventDetails, setIsLoadingEventDetails] = useState(false);
+  const [eventNavigation, setEventNavigation] = useState({
+    previousEventExist: false,
+    previousEventId: null as number | null,
+    nextEventExist: false,
+    nextEventId: null as number | null,
+    event: {}
+  });
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [editFormData, setEditFormData] = useState<any>(null);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
   const [refreshUpcoming, setRefreshUpcoming] = useState(false);
   const [selectedMonthYear, setSelectedMonthYear] = useState<ObjectType>({});
+  const [eventLoader, setEventLoader] = useState<boolean>(false);
   const [errors2, setErrors2] = useState<Record<string, string>>({});
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -872,7 +913,7 @@ export default function CalendarPage() {
   }, [status]);
 
   const fetchEvents = async (month: any, year: any, selectedDay?: any) => {
-
+    setEventLoader(true);
     try {
       setEvents([]);
       const response = await fetch(`/api/calendar-events/get?month=${month}&year=${year}`);
@@ -898,6 +939,7 @@ export default function CalendarPage() {
       console.error("Error fetching events:", error);
     } finally {
       setIsLoadingEvents(false);
+      setEventLoader(false);
 
     }
   };
@@ -977,14 +1019,37 @@ export default function CalendarPage() {
     }
     setErrors2({});
     const eventId = info.event.id;
+    setIsLoadingEventDetails(true);
     try {
       const response = await fetch(`/api/calendar-events/${eventId}`);
       if (response.ok) {
         const data = await response.json();
         const event = data.event;
         setSelectedEvent(event);
+        setSelectedDay(event.start_date);
+        setEventNavigation({
+          previousEventExist: data.previousEventExist,
+          previousEventId: data.previousEventId,
+          nextEventExist: data.nextEventExist,
+          nextEventId: data.nextEventId,
+          event: data.event
+        });
 
+        const eventDate = new Date(event.start_date);
 
+        if (
+          eventDate.getMonth() + 1 !== selectedMonthYear.month ||
+          eventDate.getFullYear() !== selectedMonthYear.year
+        ) {
+          fetchEvents(
+            eventDate.getMonth() + 1,
+            eventDate.getFullYear(),
+            eventDate
+          );
+
+          // Change calendar to the event's month
+          calendarRef.current?.getApi().gotoDate(eventDate);
+        }
         setEditFormData({
           title: event.title || "",
           start_date: event.start_date || "",
@@ -1003,7 +1068,21 @@ export default function CalendarPage() {
       }
     } catch (error) {
       console.error("Error fetching event details:", error);
+    } finally {
+      setIsLoadingEventDetails(false);
     }
+  };
+
+  const navigateEvent = (direction: -1 | 1) => {
+    const eventId = direction === -1
+      ? eventNavigation.previousEventId
+      : eventNavigation.nextEventId;
+
+    if (!eventId || !selectedEvent) return;
+    setIsEditingEvent(false);
+
+
+    handleSelectEvent({ event: { id: eventId, start: selectedEvent.start_date } });
   };
 
   useEffect(() => {
@@ -1115,7 +1194,6 @@ export default function CalendarPage() {
     }
   };
 
-
   const handleDeleteEvent = async () => {
     if (!selectedEvent) return;
 
@@ -1133,6 +1211,10 @@ export default function CalendarPage() {
       }
 
       setSelectedEvent(null);
+
+      setSelectedDayEvent((prevEvents) =>
+        prevEvents.filter((event) => event.id !== selectedEvent.id));
+
       setEvents((prevEvents) =>
         prevEvents.filter((event) => event.id !== selectedEvent.id)
       );
@@ -1214,6 +1296,36 @@ export default function CalendarPage() {
                 center: "title",
                 right: "dayGridMonth,timeGridWeek,timeGridDay",
               }}
+              customButtons={{
+                prev: {
+                  click: () => {
+                    const api = calendarRef.current.getApi();
+                    api.prev();
+
+                    const date = api.getDate();
+                    fetchEvents(date.getMonth() + 1, date.getFullYear());
+                  },
+                },
+                next: {
+                  click: () => {
+                    const api = calendarRef.current.getApi();
+                    api.next();
+
+                    const date = api.getDate();
+                    fetchEvents(date.getMonth() + 1, date.getFullYear());
+                  },
+                },
+                today: {
+                  text: "today",
+                  click: () => {
+                    const api = calendarRef.current.getApi();
+                    api.today();
+
+                    const date = api.getDate();
+                    fetchEvents(date.getMonth() + 1, date.getFullYear());
+                  },
+                },
+              }}
               datesSet={(info) => {
                 const month = info.view.currentStart.getMonth() + 1;
                 const year = info.view.currentStart.getFullYear();
@@ -1224,7 +1336,7 @@ export default function CalendarPage() {
 
                 lastMonth.current = key;
                 setSelectedMonthYear({ month, year });
-                fetchEvents(month, year);
+                // fetchEvents(month, year);
               }}
 
               height="auto"
@@ -1260,7 +1372,7 @@ export default function CalendarPage() {
           </div>
 
           <div className="xl:w-[350px] flex-shrink-0 flex flex-col gap-4">
-            <SelectedDayCard date={selectedDay} events={selectedDayEvent} />
+            <SelectedDayCard date={selectedDay} events={selectedDayEvent} LoadingEventDetails={eventLoader}/>
             <UpcomingJobsCard
               events={upcomingJobs}
               hasMore={hasMore}
@@ -1298,15 +1410,40 @@ export default function CalendarPage() {
           <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl shadow-2xl w-full max-w-[600px] max-h-[90vh] hide-scrollbar overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-5 border-b border-[#E8E8E8] sticky top-0 bg-white">
               <h2 className="text-[#121212] font-inter text-lg font-bold">Event Details</h2>
-              <button
-                onClick={() => setSelectedEvent(null)}
-                className="text-[#6B727F] hover:text-[#121212] transition-colors cursor-pointer p-1"
-                aria-label="Close"
-              >
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-[5px]">
+                  <button
+                    onClick={() => navigateEvent(-1)}
+                    disabled={isEditingEvent || isLoadingEventDetails || !eventNavigation.previousEventExist}
+                    className="bg-[#0171F9] rounded-lg border border-[#E2E2E2] p-2 text-[#121212] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="Previous event"
+                    title="Previous"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <path d="M11 4L7 9L11 14" stroke="#fff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => navigateEvent(1)}
+                    disabled={isEditingEvent || isLoadingEventDetails || !eventNavigation.nextEventExist}
+                    className="bg-[#0171F9] rounded-lg border border-[#E2E2E2] p-2 text-[#121212] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="Next event"
+                    title="Next"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <path d="M7 4L11 9L7 14" stroke="#fff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button></div>
+                <button
+                  onClick={() => setSelectedEvent(null)}
+                  className="text-[#6B727F] hover:text-[#121212] transition-colors cursor-pointer p-1"
+                  aria-label="Close"
+                >
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className="p-6 space-y-6" ref={formRef}>
@@ -1389,6 +1526,7 @@ export default function CalendarPage() {
                       </div>
                     </>
                   )}
+
 
                   <div className="flex gap-3 pt-4">
                     <button

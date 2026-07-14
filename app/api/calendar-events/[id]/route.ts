@@ -30,9 +30,32 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       );
     }
 
+    const { data: adjacentEvents, error: adjacentEventsError } = await supabase
+      .from("calendar_event")
+      .select("id, start_date")
+      .eq("user_id", session.user.id)
+      .order("start_date", { ascending: true })
+      .order("id", { ascending: true });
+
+    if (adjacentEventsError) {
+      console.error("Supabase Error:", adjacentEventsError);
+      return NextResponse.json(
+        { success: false, message: adjacentEventsError.message },
+        { status: 500 }
+      );
+    }
+
+    const selectedEventIndex = adjacentEvents.findIndex((event) => event.id === eventId);
+    const previousEvent = adjacentEvents[selectedEventIndex - 1];
+    const nextEvent = adjacentEvents[selectedEventIndex + 1];
+
     return NextResponse.json({
       success: true,
       event: data,
+      previousEventExist: Boolean(previousEvent),
+      previousEventId: previousEvent?.id ?? null,
+      nextEventExist: Boolean(nextEvent),
+      nextEventId: nextEvent?.id ?? null,
     });
   } catch (error) {
     console.error("Error fetching event:", error);
