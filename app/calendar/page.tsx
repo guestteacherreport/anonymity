@@ -913,7 +913,7 @@ export default function CalendarPage() {
   }, [status]);
 
   const fetchEvents = async (month: any, year: any, selectedDay?: any) => {
-    setEventLoader(true);
+  
     try {
       setEvents([]);
       const response = await fetch(`/api/calendar-events/get?month=${month}&year=${year}`);
@@ -1081,7 +1081,7 @@ export default function CalendarPage() {
     if (!eventId || !selectedEvent) return;
     setIsEditingEvent(false);
 
-
+    setEventLoader(true);
     handleSelectEvent({ event: { id: eventId, start: selectedEvent.start_date } });
   };
 
