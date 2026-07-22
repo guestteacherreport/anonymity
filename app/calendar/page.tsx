@@ -128,9 +128,9 @@ function SelectedDayCard({ date, events, LoadingEventDetails }: { date: Date; ev
             </div>
           </div>
         ))
-      )): <div className="px-4 py-6 text-center text-[#9A9A9A] font-inter text-sm">
-          Loading...
-        </div>}
+      )) : <div className="px-4 py-6 text-center text-[#9A9A9A] font-inter text-sm">
+        Loading...
+      </div>}
     </div>
   );
 }
@@ -400,13 +400,13 @@ function AddEventSidebar({
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      // Create an event for each day
-      for (const date of dates) {
+
+      const events = dates?.map((date) => {
         const year = date.getFullYear();
         const month = date.getMonth();
         const day = date.getDate();
 
-        const eventData = {
+        return {
           title: title,
           start: new Date(year, month, day, sh, smin).toISOString(),
           end: new Date(year, month, day, eh, emin).toISOString(),
@@ -424,34 +424,40 @@ function AddEventSidebar({
           reminders: 0,
           user_id: session?.user?.id
         };
+      });
 
-        const response = await fetch("/api/calendar-events", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(eventData),
-        });
 
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || "Failed to save event");
-        }
+      const response = await fetch("/api/calendar-events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ events }),
+      });
 
+      if (!response.ok) {
         const data = await response.json();
-        const startDateForEvent = new Date(eventData.start);
-        const endDateForEvent = new Date(eventData.end);
+        throw new Error(data.message || "Failed to save events");
+      }
+
+      const data = await response.json();
+
+      data?.events?.forEach((event: any) => {
 
         onSave({
-          id: data.event.id,
-          title: eventData.title,
-          start: startDateForEvent,
-          end: endDateForEvent,
-          school: schoolName,
-          school_name: schoolName,
-          ...eventColors,
-          reminders: 0,
-          user_id: session?.user?.id
+          id: event.id,
+          title: event.title,
+          start: new Date(event.start_date),
+          end: new Date(event.end_date),
+          school: event.school,
+          school_name: event.school,
+          color: event.color,
+          borderColor: event.color,
+          bgColor: event.bg_color,
+          reminders: event.reminders,
+          user_id: event.user_id,
         });
-      }
+      });
 
       reset();
       fetchUpcoming();
@@ -913,7 +919,7 @@ export default function CalendarPage() {
   }, [status]);
 
   const fetchEvents = async (month: any, year: any, selectedDay?: any) => {
-  
+
     try {
       setEvents([]);
       const response = await fetch(`/api/calendar-events/get?month=${month}&year=${year}`);
@@ -1069,6 +1075,7 @@ export default function CalendarPage() {
     } catch (error) {
       console.error("Error fetching event details:", error);
     } finally {
+      setEventLoader(false);
       setIsLoadingEventDetails(false);
     }
   };
@@ -1082,6 +1089,7 @@ export default function CalendarPage() {
     setIsEditingEvent(false);
 
     setEventLoader(true);
+   
     handleSelectEvent({ event: { id: eventId, start: selectedEvent.start_date } });
   };
 
@@ -1096,7 +1104,6 @@ export default function CalendarPage() {
       return (eStart <= selected && selected <= eEnd);
     }));
   }, [selectedDay]);
-
 
   const handleSelectDate = (info: any) => {
     setSelectedDay(new Date(info.dateStr));
@@ -1372,7 +1379,7 @@ export default function CalendarPage() {
           </div>
 
           <div className="xl:w-[350px] flex-shrink-0 flex flex-col gap-4">
-            <SelectedDayCard date={selectedDay} events={selectedDayEvent} LoadingEventDetails={eventLoader}/>
+            <SelectedDayCard date={selectedDay} events={selectedDayEvent} LoadingEventDetails={eventLoader} />
             <UpcomingJobsCard
               events={upcomingJobs}
               hasMore={hasMore}

@@ -108,6 +108,7 @@ export async function PUT(req: NextRequest, { params }:  { params: Promise<{ id:
         teacher_name: teacher_name || null,
         teacher_phone: teacher_phone || null,
         teacher_email: teacher_email || null,
+        user_timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,
         notes: notes || null,
       })
       .eq("id", eventId)
