@@ -25,7 +25,7 @@ export async function GET() {
     // Event time in event timezone
     const eventLocal = toZonedTime(
       new Date(event.start_date),
-      timezone
+      timezone 
     );
 
     // Current hour in user's timezone
