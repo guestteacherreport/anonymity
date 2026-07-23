@@ -37,9 +37,9 @@ export async function GET() {
 
     // Cron runs every hour.
     // Only continue if local hour is 00.
-    if (currentHour !== "0") {
-      continue;
-    }
+    // if (currentHour !== "0") {
+    //   continue;
+    // }
 
     const diff = differenceInCalendarDays(
       eventLocal,
