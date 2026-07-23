@@ -113,7 +113,7 @@ export default async function Home() {
               <div className="inline-flex px-[15px] py-1.5 rounded-lg bg-slate-900 text-blue-50 font-inter text-xs font-semibold leading-4">
                 Real Teacher Insights
               </div>
-              <h1 className="text-gray-950 font-inter text-[clamp(25px,5vw,62px)] font-bold leading-[1.13]">
+              <h1 className="text-gray-950 font-inter text-[clamp(25px,5vw,50px)] font-bold leading-[1.13]">
                 DISCOVER THE REALITY OF WHAT TO EXPECT FROM A SCHOOL SITE BEFORE SAYING YES TO AN UNFAMILIAR GUEST-TEACHING OPPORTUNITY
               </h1>
               <div className="flex items-center gap-[15px] flex-wrap justify-center">
