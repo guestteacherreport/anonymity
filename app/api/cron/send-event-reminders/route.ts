@@ -6,40 +6,50 @@ import { sendReminderEmail } from "@/lib/sendReminderEmail";
 
 export async function GET() {
   const from: any = process.env.EMAIL_FROM;
+const startOfToday = new Date();
+startOfToday.setUTCHours(0, 0, 0, 0);
   const { data: events, error } = await supabase
     .from("calendar_event")
     .select("*")
-    .gte("start_date", new Date().toISOString());
-
+    .gte("start_date", startOfToday.toISOString());
+    
   if (error) {
     return NextResponse.json(error, { status: 500 });
   }
 
-  for (const event of events) {
+  const reminders: Record<
+    string,
+    {
+      user: any;
+      tomorrow: any[];
+      today: any[];
+    }
+  > = {};
 
+  for (const event of events) {
     const timezone = event.user_timezone;
 
-    // Current time in event timezone
+    if (!timezone) continue;
+
+    // Current time in user's timezone
     const nowLocal = toZonedTime(new Date(), timezone);
 
-    // Event time in event timezone
+    // Event time in user's timezone
     const eventLocal = toZonedTime(
       new Date(event.start_date),
-      timezone 
+      timezone
     );
 
-    // Current hour in user's timezone
+    // Only run at 12 AM user local time
     const currentHour = formatInTimeZone(
       new Date(),
       timezone,
       "H"
     );
 
-    // Cron runs every hour.
-    // Only continue if local hour is 00.
-    // if (currentHour !== "0") {
-    //   continue;
-    // }
+    if (currentHour !== "0") {
+      continue;
+    }
 
     const diff = differenceInCalendarDays(
       eventLocal,
@@ -48,7 +58,7 @@ export async function GET() {
 
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("email, name")
+      .select("email, full_name")
       .eq("id", event.user_id)
       .single();
 
@@ -57,18 +67,39 @@ export async function GET() {
       continue;
     }
 
-    // Tomorrow Reminder
+    if (!reminders[event.user_id]) {
+      reminders[event.user_id] = {
+        user,
+        tomorrow: [],
+        today: [],
+      };
+    }
+
     if (
       diff === 1 &&
       !event.next_day_reminder_sent
     ) {
+      reminders[event.user_id].tomorrow.push(event);
+    }
 
-      // Send email here
-      console.log("Tomorrow Reminder", event.id);
+    if (
+      diff === 0 &&
+      !event.same_day_reminder_sent
+    ) {
+      
+      reminders[event.user_id].today.push(event);
+    }
+  }
+
+  // Send one email per user
+  for (const reminder of Object.values(reminders)) {
+
+    // Tomorrow Reminder
+    if (reminder.tomorrow.length > 0) {
       try {
         await sendReminderEmail({
-          event,
-          user,
+          events: reminder.tomorrow,
+          user: reminder.user,
           from,
           reminderType: "tomorrow",
         });
@@ -78,7 +109,14 @@ export async function GET() {
           .update({
             next_day_reminder_sent: true,
           })
-          .eq("id", event.id);
+          .in(
+            "id",
+            reminder.tomorrow.map((e) => e.id)
+          );
+
+        console.log(
+          `Tomorrow reminder sent to ${reminder.user.email}`
+        );
 
       } catch (err) {
         console.error(err);
@@ -86,28 +124,31 @@ export async function GET() {
     }
 
     // Same Day Reminder
-    if (
-      diff === 0 &&
-      !event.same_day_reminder_sent
-    ) {
-
-      // Send email here
+    if (reminder.today.length > 0) {
+      
       try {
+
         await sendReminderEmail({
-          event,
-          user,
+          events: reminder.today,
+          user: reminder.user,
           from,
           reminderType: "today",
         });
-
-        console.log("Same Day Reminder", event.id);
 
         await supabase
           .from("calendar_event")
           .update({
             same_day_reminder_sent: true,
           })
-          .eq("id", event.id);
+          .in(
+            "id",
+            reminder.today.map((e) => e.id)
+          );
+
+        console.log(
+          `Same day reminder sent to ${reminder.user.email}`
+        );
+
       } catch (err) {
         console.error(err);
       }
