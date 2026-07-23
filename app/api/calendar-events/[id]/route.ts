@@ -93,6 +93,7 @@ export async function PUT(req: NextRequest, { params }:  { params: Promise<{ id:
       teacher_phone,
       teacher_email,
       notes,
+      user_timezone
     } = body;
 
     const { data, error } = await supabase
@@ -108,7 +109,7 @@ export async function PUT(req: NextRequest, { params }:  { params: Promise<{ id:
         teacher_name: teacher_name || null,
         teacher_phone: teacher_phone || null,
         teacher_email: teacher_email || null,
-        user_timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,
+        user_timezone,
         notes: notes || null,
       })
       .eq("id", eventId)

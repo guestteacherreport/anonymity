@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       color: event.color,
       bg_color: event.bgColor,
       reminders: event.reminders ?? 0,
-      user_timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,
+      user_timezone:event.user_timezone,
       user_id: event.user_id,
       created_at: new Date().toISOString(),
     }));

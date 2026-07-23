@@ -422,6 +422,7 @@ function AddEventSidebar({
           notes: notes.trim() || null,
           ...eventColors,
           reminders: 0,
+          user_timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,
           user_id: session?.user?.id
         };
       });
@@ -441,16 +442,15 @@ function AddEventSidebar({
       }
 
       const data = await response.json();
-
+     
       data?.events?.forEach((event: any) => {
-
         onSave({
           id: event.id,
           title: event.title,
           start: new Date(event.start_date),
           end: new Date(event.end_date),
-          school: event.school,
-          school_name: event.school,
+          school: event.school_name,
+          school_name: event.school_name,
           color: event.color,
           borderColor: event.color,
           bgColor: event.bg_color,
@@ -1068,6 +1068,7 @@ export default function CalendarPage() {
           teacher_phone: event.teacher_phone || "",
           teacher_email: event.teacher_email || "",
           notes: event.notes || "",
+          user_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
         });
       } else {
         console.error("Failed to fetch event:", response.status);
