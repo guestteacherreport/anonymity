@@ -17,7 +17,7 @@ export async function GET() {
 
   for (const event of events) {
 
-    const timezone = event.timezone;
+    const timezone = event.user_timezone;
 
     // Current time in event timezone
     const nowLocal = toZonedTime(new Date(), timezone);
