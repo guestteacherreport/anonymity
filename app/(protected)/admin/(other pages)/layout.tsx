@@ -57,7 +57,7 @@ export default function AdminLayout({
             </div>
             <div className="relative w-8 sm:w-10 h-8 sm:h-10 sm:block hidden">
               <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-[10px] bg-[#EDF5FF]" />
-              <span className="absolute inset-0 flex items-center justify-center font-outfit font-medium text-sm sm:text-lg text-[#0171F9]">M</span>
+              <span className="absolute inset-0 flex items-center justify-center font-outfit font-medium text-sm sm:text-lg text-[#0171F9]"> {session?.user?.name?.charAt(0).toUpperCase()}</span>
             </div>
           </div>
 
