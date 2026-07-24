@@ -66,6 +66,11 @@ export default function Sidebar() {
       icon: UsersIcon,
     },
     {
+      name: "Contact Inquiries",
+      href: "/admin/contact-inquiries",
+      icon: ReportsIcon,
+    },
+    {
       name: "Data Export",
       href: "/admin/data-export",
       icon: DataExportIcon,

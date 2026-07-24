@@ -16,6 +16,7 @@
     "@fullcalendar/interaction": "^6.1.14",
     "@fullcalendar/react": "^6.1.14",
     "@fullcalendar/timegrid": "^6.1.14",
+    "@marsidev/react-turnstile": "^1.5.3",
     "@supabase/supabase-js": "^2.105.4",
     "bcryptjs": "^3.0.3",
     "chart.js": "^4.5.1",

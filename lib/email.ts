@@ -84,3 +84,26 @@ Guest Teacher Reports Team`,
   )
 );
 }
+
+export async function sendContactInquiryNotification(
+  recipients: string[],
+  inquiry: { fullName: string; email: string; subject: string; message: string }
+): Promise<void> {
+  const from = process.env.EMAIL_FROM;
+  if (!from) {
+    throw new Error("Email sender is not configured. Set EMAIL_FROM.");
+  }
+
+  const resend = getResendClient();
+  await Promise.all(
+    recipients.map((recipient) =>
+      resend.emails.send({
+        from,
+        to: [recipient],
+        subject: `Contact Us: ${inquiry.subject}`,
+        text: `A new contact inquiry was submitted.\n\nFrom: ${inquiry.fullName} <${inquiry.email}>\nSubject: ${inquiry.subject}\n\n${inquiry.message}`,
+        html: `<h2>New Contact Us inquiry</h2><p><strong>From:</strong> ${inquiry.fullName} &lt;${inquiry.email}&gt;</p><p><strong>Subject:</strong> ${inquiry.subject}</p><p>${inquiry.message}</p>`,
+      })
+    )
+  );
+}
