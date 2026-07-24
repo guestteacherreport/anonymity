@@ -93,7 +93,7 @@ export default function ContactPage() {
               {!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && <p className="mt-2 font-inter text-sm text-red-600">CAPTCHA is not configured yet.</p>}
             </div>
 
-            <button type="submit" disabled={submitting || !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} className="mt-8 rounded-xl bg-[#0171F9] px-7 py-3.5 font-inter text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+            <button type="submit" disabled={submitting || !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} className="mt-8 rounded-xl bg-[#0171F9] px-7 py-3.5 font-inter text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed cursor-pointer disabled:opacity-60">
               {submitting ? "Sending..." : "Send Message"}
             </button>
           </form>
