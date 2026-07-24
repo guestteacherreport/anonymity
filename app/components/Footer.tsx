@@ -24,9 +24,7 @@ export default function Footer() {
             <div className="w-44 ">
               <Link href="/submit-report" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Submit Report</Link>
             </div>
-            {!session  ? <div className="w-44 ">
-              <Link href="/contact" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Contact Us</Link>
-            </div>:""}
+           
             <div className="w-44">
               <Link href="/browse-school" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors"> Schools</Link>
               
@@ -35,6 +33,9 @@ export default function Footer() {
               <Link href="/browse-teacher" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Teachers</Link>
               
             </div>
+             {(!session || (session && session?.user?.role == "guest_teacher")) ? <div className="w-44 ">
+              <Link href="/contact" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Contact Us</Link>
+            </div>:""}
             <div className="w-44">
               {!session?
               <Link href="/login" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Login/Signup</Link>

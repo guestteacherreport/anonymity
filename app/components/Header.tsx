@@ -40,6 +40,9 @@ export default function Header() {
             <Link href="/browse-teacher" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Teachers</Link>
             <Link href="/my-reports" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer">My Reports</Link>
             {session && session?.user?.role == "guest_teacher" ? <Link href="/calendar" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer">Calendar</Link> : ""}
+            {(!session || (session && session?.user?.role == "guest_teacher")) ? <div className="w-44 ">
+              <Link href="/contact" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Contact Us</Link>
+            </div>:""}
           </nav>
 
           <div className="flex items-center gap-4 flex-shrink-0">
@@ -117,6 +120,7 @@ export default function Header() {
             >
               Teachers
             </Link>
+            
             <button
               onClick={() => {
                 router.push("/my-reports");
@@ -125,6 +129,7 @@ export default function Header() {
             >
               My Reports
             </button>
+            {session && session?.user?.role == "guest_teacher" ? 
             <button
               onClick={() => {
                 router.push("/calendar");
@@ -132,7 +137,15 @@ export default function Header() {
               className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer"
             >
               Calendar
-            </button>
+            </button> : ""}
+             {(!session || (session && session?.user?.role == "guest_teacher")) ?  <button
+              onClick={() => {
+                router.push("/contact");
+              }}
+              className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer"
+            >
+              Contact Us
+            </button>:""}
             <div className="border-t border-black/6 pt-3 mt-2">
               {session && session.user ? <div className="flex flex-row w-full gap-[10px]">
                 <button
