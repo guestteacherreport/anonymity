@@ -130,7 +130,7 @@ export async function POST(
     if (upsertError) {
       throw upsertError;
     }
-
+console.log("incrementSchoolAnalytics",report);
     // Update analytics
     await incrementSchoolAnalytics(
       report

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { analyzeReport } from "@/lib/analyze-report";
+import { sendGuestTeacherReportNotification } from "@/lib/email";
+import { getAppUrl } from "@/lib/app-url";
 
 export async function POST(req: Request) {
   try {
@@ -145,6 +147,40 @@ export async function POST(req: Request) {
       );
     }
   
+    const { data: submittingUser, error: submittingUserError } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user_id)
+      .single();
+
+    if (submittingUserError) {
+      console.error("Unable to look up report submitter:", submittingUserError);
+    } else if (submittingUser?.role === "guest_teacher") {
+      const { data: admins, error: adminsError } = await supabase
+        .from("users")
+        .select("email")
+        .eq("role", "admin");
+
+      if (adminsError) {
+        console.error("Unable to look up super admins:", adminsError);
+      } else {
+        const recipients = admins
+          .map((admin) => admin.email)
+          .filter((email): email is string => Boolean(email));
+
+        if (recipients.length > 0) {
+          try {
+            await sendGuestTeacherReportNotification(
+              recipients,
+              `${getAppUrl(req)}/admin/reports`
+            );
+          } catch (notificationError) {
+            console.error("Unable to send report notification:", notificationError);
+          }
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data,

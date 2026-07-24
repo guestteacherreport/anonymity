@@ -33,3 +33,54 @@ export async function sendPasswordResetEmail(
     `,
   });
 }
+
+export async function sendGuestTeacherReportNotification(
+  recipients: string[],
+  loginUrl: string
+): Promise<void> {
+  const from = process.env.EMAIL_FROM;
+  if (!from) {
+    throw new Error("Email sender is not configured. Set EMAIL_FROM.");
+  }
+
+  const resend = getResendClient();
+
+  await Promise.all(
+  recipients.map((recipient) =>
+    resend.emails.send({
+      from,
+      to: [recipient],
+      subject: "Action Required: New Guest Teacher Report Submitted",
+      text: `Hello,
+
+A new guest teacher report has been submitted and is awaiting your review.
+
+Please log in to your account to review the report and take the appropriate action (Approve or Reject).
+
+Login: ${loginUrl}
+
+Thank you,
+Guest Teacher Reports Team`,
+      html: `
+        <p>Hello,</p>
+
+        <p>A new <strong>Guest Teacher Report</strong> has been submitted and is awaiting your review.</p>
+
+        <p>Please log in to your account to review the report and take the appropriate action.</p>
+
+        <p>
+          <a href="${loginUrl}" style="display:inline-block;padding:10px 18px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:4px;">
+            Review Report
+          </a>
+        </p>
+
+        <p>If the button above does not work, copy and paste the following URL into your browser:</p>
+
+        <p><a href="${loginUrl}">${loginUrl}</a></p>
+
+        <p>Thank you,<br><strong>Guest Teacher Reports Team</strong></p>
+      `,
+    })
+  )
+);
+}
