@@ -56,7 +56,7 @@ export default function ContactPage() {
   return (
     <>
       <Header />
-      <main className="bg-[#F8F9FD] px-6 pt-8 sm:pt-12 lg:pt-[72px] pb-6 sm:pb-8 sm:px-10">
+      <main className="flex-1 bg-[#F8F9FD] px-6 pt-8 sm:pt-12 lg:pt-[72px] pb-6 sm:pb-8 sm:px-10">
         <section className="mx-auto max-w-[1100px]">
           <div className="mb-10">
             <span className="mb-3 inline-flex rounded-lg bg-[#001B3B] px-[23px] py-1.5 font-inter text-sm leading-4 text-[#F8FAFF]">Contact Us</span>

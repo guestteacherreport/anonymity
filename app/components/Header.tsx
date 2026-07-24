@@ -8,8 +8,7 @@ import { useState } from "react";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
-  const [identityCode, setIdentityCode] = useState("");
+
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -21,29 +20,6 @@ export default function Header() {
   const closeMenu = () => {
     setIsMenuOpen(false);
   };
-
-  // const openReportsModal = () => {
-  //   setIsReportsModalOpen(true);
-  // };
-
-  // const closeReportsModal = () => {
-  //   setIsReportsModalOpen(false);
-  //   setIdentityCode("");
-  // };
-
-  // const handleSubmitIdentity = (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (identityCode.trim()) {
-  //     localStorage.setItem("identityCode", identityCode);
-  //     if (pathname != "/my-reports") {
-  //      router.push(`/my-reports?identityCode=${identityCode}`);
-  //     }else{
-  //       setIsReportsModalOpen(false);
-  //       setIdentityCode("");
-  //       router.push(`/my-reports?identityCode=${identityCode}`);
-  //     }
-  //   }
-  // };
 
   return (
     <>
@@ -63,7 +39,7 @@ export default function Header() {
             <Link href="/browse-school" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Schools</Link>
             <Link href="/browse-teacher" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Teachers</Link>
             <Link href="/my-reports" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer">My Reports</Link>
-            <Link href="/calendar" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer">Calendar</Link>
+            {session && session?.user?.role == "guest_teacher" ? <Link href="/calendar" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer">Calendar</Link> : ""}
           </nav>
 
           <div className="flex items-center gap-4 flex-shrink-0">
