@@ -32,6 +32,9 @@ export interface Report {
   teacher_name: string;
   post_as: number;
   created_at: string;
+  date_of_assignment?: string | null;
+  approval_date?: string | null;
+  rejection_date?: string | null;
   sentiment: Sentiment;
   status: number;
   school_association: string;

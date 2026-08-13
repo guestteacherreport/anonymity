@@ -1,7 +1,11 @@
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import RichContent from "../components/RichContent";
+import { getPublishedContentPage } from "@/lib/content-pages";
 import Link from "next/link";
 import Image from "next/image";
+
+export const dynamic = "force-dynamic";
 
 // ── Reusable sub-components ──────────────────────────────────────────────────
 
@@ -43,7 +47,9 @@ function CheckCircleIcon({ id }: { id: string }) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const content = await getPublishedContentPage("about");
+
   return (
     <>
       <Header />
@@ -51,30 +57,30 @@ export default function AboutPage() {
 
         {/* ── HERO ─────────────────────────────────────────────────────── */}
         <section className="bg-[#F8F9FD] px-6 py-16 md:py-20 lg:py-28 text-center">
-          <SectionBadge label="About Us" />
+          <SectionBadge label={content.heroEyebrow} />
           <div className="flex flex-col items-center gap-6 md:gap-8">
             <h1 className="font-inter md:text-[clamp(36px,5vw,64px)] text-[clamp(30px,5vw,64px)] font-bold leading-[normal] text-[#121212]">
-              Built for Guest Teachers,
+              {content.heroHeading}
               <br />
               <span className="bg-gradient-to-r from-[#29ABE2] to-[#0171F9] leading-[normal] bg-clip-text text-transparent">
-                By Guest Teachers
+                {content.heroHeadingAccent}
               </span>
             </h1>
-            <p className="mb-2 max-w-[615px] font-inter text-sm md:text-base text-[#212121] leading-[26px] opacity-[0.96]">
-              Guest Teacher Report exists to give substitute educators the knowledge, community, and confidence they deserve before they ever step through a classroom door.
-            </p>
+            <div className="mb-2 max-w-[615px] font-inter text-sm md:text-base text-[#212121] leading-[26px] opacity-[0.96]">
+              <RichContent content={content.heroDescription} />
+            </div>
             <div className="flex items-center gap-3 md:gap-4 flex-wrap justify-center w-full">
               <Link
-                href="/browse-school"
+                href={content.primaryButtonHref}
                 className="flex items-center justify-center px-6 md:px-8 py-3 md:py-4 rounded-xl bg-[#0171F9] text-white font-inter text-sm md:text-base font-bold leading-6 hover:bg-blue-700 transition-colors shadow-[0_10px_15px_-3px_rgba(1,113,249,0.06),0_4px_6px_-4px_rgba(1,113,249,0.12)]"
               >
-                Browse Schools
+                {content.primaryButtonLabel}
               </Link>
               <Link
-                href="/submit-report"
+                href={content.secondaryButtonHref}
                 className="flex items-center justify-center px-6 md:px-8 py-3 md:py-4 rounded-xl border border-black/20 bg-white text-[#2C3031] font-inter text-sm md:text-base font-bold leading-6 hover:border-black/40 transition-colors"
               >
-                Submit a Report
+                {content.secondaryButtonLabel}
               </Link>
             </div>
           </div>
@@ -82,14 +88,14 @@ export default function AboutPage() {
 
         {/* ── HOW IT WORKS ─────────────────────────────────────────────── */}
         <section className="pt-12 md:pt-[112px] bg-white px-6 pb-12 md:pb-[112px] text-center">
-          <SectionBadge label="How its Work" />
+          <SectionBadge label={content.howItWorksEyebrow} />
           <div className="flex flex-col items-center gap-8 md:gap-10">
             <div className="flex flex-col items-center gap-3 text-center">
               <h2 className="font-[Outfit] md:text-[clamp(28px,4vw,44px)] text-[clamp(22px,4vw,44px)] font-semibold text-[#121212] leading-[1.32]">
-                How Guest Teacher Report Works
+                {content.howItWorksHeading}
               </h2>
               <p className="font-inter text-base text-[#212121] leading-[26px] opacity-[0.96] max-w-[600px]">
-                A simple three-step loop that keeps the community informed, honest, and growing.
+                {content.howItWorksDescription}
               </p>
             </div>
 
@@ -109,10 +115,10 @@ export default function AboutPage() {
                   <span className="font-[Outfit] text-[60px] font-semibold text-[#2C3031]/[0.02] leading-8 select-none">01</span>
 
                 </div>
-                <h3 className="font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8">Submit a Report</h3>
-                <p className="font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
-                  After a school day, submit an anonymous review covering lesson plans, student behavior, staff support, and your overall experience. Takes under 3 minutes.
-                </p>
+                <h3 className="font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8">{content.howItWorksOneHeading}</h3>
+                <div className="font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
+                  <RichContent content={content.howItWorksOneDescription} />
+                </div>
               </div>
 
               {/* Card 2 */}
@@ -128,10 +134,10 @@ export default function AboutPage() {
                   <span className="font-[Outfit] text-[60px] font-semibold text-[#2C3031]/[0.02] leading-8 select-none">02</span>
 
                 </div>
-                <h3 className="mt-[10px] font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8">Data Gets Analyzed</h3>
-                <p className="font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
-                  Every report feeds our insight engine. We surface sentiment trends, recurring issues, and what&apos;s working well turning raw feedback into useful signals.
-                </p>
+                <h3 className="mt-[10px] font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8">{content.howItWorksTwoHeading}</h3>
+                <div className="font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
+                  <RichContent content={content.howItWorksTwoDescription} />
+                </div>
               </div>
 
               {/* Card 3 */}
@@ -156,10 +162,10 @@ export default function AboutPage() {
 
 
                 </div>
-                <h3 className="mt-[10px] font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8">Community Benefits</h3>
-                <p className="font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
-                  Guest teachers browse real ratings before accepting assignments. Schools gain honest feedback to improve working conditions. Everyone wins.
-                </p>
+                <h3 className="mt-[10px] font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8">{content.howItWorksThreeHeading}</h3>
+                <div className="font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
+                  <RichContent content={content.howItWorksThreeDescription} />
+                </div>
               </div>
             </div>
           </div>
@@ -170,31 +176,23 @@ export default function AboutPage() {
           <div className="rounded-[28px] bg-[#F8F9FD] px-10 md:px-30 py-[112px]">
             {/* Left: text */}
 
-            <SectionBadge label="The Problem" />
+            <SectionBadge label={content.problemEyebrow} />
             <div className="flex flex-col lg:flex-row gap-8 md:gap-12">
               <div className="flex flex-col gap-6 flex-1">
                 <h2 className="font-[Outfit] md:text-[clamp(28px,3.8vw,50px)] text-[clamp(22px,3.8vw,50px)] font-semibold text-[#121212] leading-[1.32]">
-                  The Hesitant Substitute
+                  {content.problemHeading}
                 </h2>
                 <div className="flex flex-col gap-5 font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96] w-full lg:w-[70%]">
-                  <p>
-                    Every guest teacher knows the feeling: the phone rings with a school assignment you&apos;ve never heard of, and you have no way to know what to expect. Are the lesson plans ready? Will the staff support you? Are the students manageable?
-                  </p>
-                  <p>
-                    Without information, you&apos;re forced to guess. Some accept assignments at shady schools repeatedly, burning out fast. Others turn down perfectly good placements out of an abundance of caution.
-                  </p>
-                  <p>
-                    GTR was created to resolve this uncertainty, giving you the peer-sourced intelligence to make confident choices about where you spend your professional time.
-                  </p>
+                  <RichContent content={content.problemContent} />
                 </div>
               </div>
 
               {/* Right: 2×2 stat cards */}
               <div className="grid grid-cols-2 gap-4 md:gap-5 w-full lg:w-auto lg:flex-shrink-0">
-                <StatCard number="2,400+" label="Schools Reviewed" />
-                <StatCard number="18,000+" label="Reports Submitted" />
-                <StatCard number="6,500+" label="Guest Teachers" />
-                <StatCard number="34" label="States Covered" />
+                <StatCard number={content.schoolsReviewedNumber} label={content.schoolsReviewedLabel} />
+                <StatCard number={content.reportsSubmittedNumber} label={content.reportsSubmittedLabel} />
+                <StatCard number={content.guestTeachersNumber} label={content.guestTeachersLabel} />
+                <StatCard number={content.statesCoveredNumber} label={content.statesCoveredLabel} />
               </div>
             </div>
           </div>
@@ -202,15 +200,15 @@ export default function AboutPage() {
 
         {/* ── WHY GUEST TEACHER REPORT ──────────────────────────────────── */}
         <section className="bg-white px-6 py-[112px] text-center">
-          <SectionBadge label="Our Why" />
+          <SectionBadge label={content.whyEyebrow} />
           <div className="flex flex-col items-center gap-10 md:gap-14">
             <div className="flex flex-col items-center gap-3 text-center">
               <h2 className="font-[Outfit] md:text-[clamp(28px,4vw,44px)] text-[clamp(22px,4vw,44px)] font-semibold text-[#121212] leading-[1.32]">
-                Why Guest Teacher Report?
+                {content.whyHeading}
               </h2>
-              <p className="font-inter text-sm md:text-base text-[#212121] leading-[26px] opacity-[0.96] max-w-[650px]">
-                Because substitute teachers are the unsung backbone of the education system and they deserve the same transparency that any professional community expects.
-              </p>
+              <div className="font-inter text-sm md:text-base text-[#212121] leading-[26px] opacity-[0.96] max-w-[650px]">
+                <RichContent content={content.whyDescription} />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 w-full max-w-[1100px] px-6 md:px-0">
@@ -225,10 +223,10 @@ export default function AboutPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="sm:text-left text-center font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8 mb-3">Anonymous &amp; Safe</h3>
-                  <p className="sm:text-left text-center font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
-                    No names, no retaliation, no school politics. You choose what to share and how much to identify yourself.
-                  </p>
+                  <h3 className="sm:text-left text-center font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8 mb-3">{content.whyAnonymousHeading}</h3>
+                  <div className="sm:text-left text-center font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
+                    <RichContent content={content.whyAnonymousDescription} />
+                  </div>
                 </div>
               </div>
 
@@ -243,10 +241,10 @@ export default function AboutPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="sm:text-left text-center font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8 mb-3">Peer-Sourced Truth</h3>
-                  <p className="sm:text-left text-center font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
-                    Ratings from real guest teachers who sat in that exact classroom — not marketing copy from a district office.
-                  </p>
+                  <h3 className="sm:text-left text-center font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8 mb-3">{content.whyPeerSourcedHeading}</h3>
+                  <div className="sm:text-left text-center font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
+                    <RichContent content={content.whyPeerSourcedDescription} />
+                  </div>
                 </div>
               </div>
 
@@ -261,10 +259,10 @@ export default function AboutPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="sm:text-left text-center font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8 mb-3">Community Power</h3>
-                  <p className="sm:text-left text-center font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
-                    The more teachers share, the more accurate and useful the platform becomes for everyone.
-                  </p>
+                  <h3 className="sm:text-left text-center font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8 mb-3">{content.whyCommunityHeading}</h3>
+                  <div className="sm:text-left text-center font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
+                    <RichContent content={content.whyCommunityDescription} />
+                  </div>
                 </div>
               </div>
 
@@ -279,10 +277,10 @@ export default function AboutPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="sm:text-left text-center font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8 mb-3">Actionable Insights</h3>
-                  <p className="sm:text-left text-center font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
-                    Not just stars — detailed breakdowns of lesson preparedness, behavior, admin support, and more.
-                  </p>
+                  <h3 className="sm:text-left text-center font-[Outfit] text-xl sm:text-2xl font-semibold text-[#2C3031] leading-8 mb-3">{content.whyInsightsHeading}</h3>
+                  <div className="sm:text-left text-center font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
+                    <RichContent content={content.whyInsightsDescription} />
+                  </div>
                 </div>
               </div></div>
           </div>
@@ -291,49 +289,31 @@ export default function AboutPage() {
         {/* ── COMMUNITY GUIDELINES ─────────────────────────────────────── */}
         <section className="">
           <div className="rounded-[28px] bg-[#F8F9FD] px-6 md:px-10 lg:px-16 py-12 md:py-[112px] text-center mx-6 md:mx-0">
-            <SectionBadge label="Community Standards" />
+            <SectionBadge label={content.guidelinesEyebrow} />
             <div className="flex flex-col items-center gap-14">
               <div className="flex flex-col items-center gap-3 text-center">
                 <h2 className="font-[Outfit] md:text-[clamp(28px,4vw,44px)] text-[clamp(22px,4vw,44px)] font-semibold text-[#121212] leading-[1.32]">
-                  Guest Teachers&apos; Community Guidelines
+                  {content.guidelinesHeading}
                 </h2>
-                <p className="font-inter text-sm md:text-base text-[#212121] leading-[26px] opacity-[0.96] max-w-[600px]">
-                  GTR is only as trustworthy as its contributors. These guidelines keep our community fair, useful, and respectful.
-                </p>
+                <div className="font-inter text-sm md:text-base text-[#212121] leading-[26px] opacity-[0.96] max-w-[600px]">
+                  <RichContent content={content.guidelinesDescription} />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 w-full max-w-[1100px] px-0">
                 {[
-                  {
-                    id: "g1", title: "Be honest, not hateful",
-                    desc: "Critique working conditions and professional circumstances. Do not target individual students, staff members, or protected characteristics.",
-                  },
-                  {
-                    id: "g2", title: "Write from personal experience",
-                    desc: "Only submit reports for assignments you personally completed. Secondhand or fabricated reviews undermine the whole community.",
-                  },
-                  {
-                    id: "g3", title: "Be specific and constructive",
-                    desc: "Vague ratings help no one. Mention what lesson materials were like, how behavior was managed, whether admin was accessible.",
-                  },
-                  {
-                    id: "g4", title: "Respect anonymity — yours and others'",
-                    desc: "Don't include identifying information about specific students or staff. Protect the privacy of the classroom.",
-                  },
-                  {
-                    id: "g5", title: "One report per assignment",
-                    desc: "Submitting multiple reviews of the same placement inflates data and distorts ratings for others in the community.",
-                  },
-                  {
-                    id: "g6", title: "No promotional content",
-                    desc: "GTR is not a place for staffing agency ads, tutoring promos, or unrelated solicitation of any kind.",
-                  },
+                  { id: "g1", title: content.guidelinesOneHeading, desc: content.guidelinesOneDescription },
+                  { id: "g2", title: content.guidelinesTwoHeading, desc: content.guidelinesTwoDescription },
+                  { id: "g3", title: content.guidelinesThreeHeading, desc: content.guidelinesThreeDescription },
+                  { id: "g4", title: content.guidelinesFourHeading, desc: content.guidelinesFourDescription },
+                  { id: "g5", title: content.guidelinesFiveHeading, desc: content.guidelinesFiveDescription },
+                  { id: "g6", title: content.guidelinesSixHeading, desc: content.guidelinesSixDescription },
                 ].map((g) => (
                   <div key={g.id} className="flex sm:flex-row flex-col items-center sm:items-start gap-4 sm:gap-5 p-6 sm:p-7 rounded-2xl border border-[rgba(1,113,249,0.10)] bg-white shadow-[0_2px_9.9px_0_rgba(0,0,0,0.06)]">
                     <CheckCircleIcon id={g.id} />
                     <div>
                       <h3 className="sm:text-left text-center font-[Outfit] text-lg sm:text-2xl font-semibold text-[#2C3031] leading-8 mb-2">{g.title}</h3>
-                      <p className="font-inter sm:text-left text-center text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">{g.desc}</p>
+                      <div className="font-inter sm:text-left text-center text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]"><RichContent content={g.desc} /></div>
                     </div>
                   </div>
                 ))}
@@ -363,34 +343,26 @@ export default function AboutPage() {
               </div>
 
               {/* Quote */}
-              <p className="font-inter text-lg sm:text-xl font-normal text-white leading-[30px] sm:leading-[34px] opacity-[0.96] relative z-10">
-                "We believe substitute teachers are professionals who deserve professional-grade information about their workplace."
-              </p>
+              <div className="font-inter text-lg sm:text-xl font-normal text-white leading-[30px] sm:leading-[34px] opacity-[0.96] relative z-10">
+                <RichContent content={content.overviewQuote} />
+              </div>
 
               {/* Attribution */}
               <div className="flex items-center gap-3 relative z-10">
                 <div className="w-10 h-px bg-white" />
-                <span className="font-inter text-sm font-normal text-white/90">GTR Founding Team</span>
+                <span className="font-inter text-sm font-normal text-white/90">{content.overviewAttribution}</span>
               </div>
             </div>
 
             {/* Right: text content */}
             <div className="w-full">
-              <SectionBadge label="Who We Are" />
+              <SectionBadge label={content.overviewEyebrow} />
               <div className="flex flex-col gap-6 flex-1">
                 <h2 className="font-[Outfit] sm:text-[clamp(28px,3.8vw,50px)] text-[clamp(22px,3.8vw,50px)] font-semibold text-[#121212] leading-[1.32]">
-                  About Guest Teacher Report
+                  {content.overviewHeading}
                 </h2>
                 <div className="flex flex-col gap-4 sm:gap-5 font-inter text-sm sm:text-base text-[#212121] leading-[26px] opacity-[0.96]">
-                  <p>
-                    Guest Teacher Report is an independent platform founded by former substitute teachers and educators who experienced firsthand the challenges of walking into an unfamiliar school. We&apos;re not affiliated with any school district, staffing agency, or government body.
-                  </p>
-                  <p>
-                    Our team spans educators, technologists, and community builders who are committed to a simple belief: better information creates better outcomes — for teachers, for students, and for schools.
-                  </p>
-                  <p>
-                    Every feature we build and every improvement we make is guided by one goal: to remain a free, trusted resource for all guest teachers across the United States and beyond.
-                  </p>
+                  <RichContent content={content.overviewContent} />
                 </div></div>
             </div>
           </div>
@@ -400,34 +372,22 @@ export default function AboutPage() {
         <section className="">
 
           <div className="rounded-[28px] bg-[#F8F9FD] px-6 md:px-10 lg:px-16 py-12 md:py-[112px] text-center mx-6 md:mx-0">
-            <SectionBadge label="For Schools" />
+            <SectionBadge label={content.schoolsEyebrow} />
             <div className="flex flex-col items-center gap-14">
               <div className="flex flex-col items-center gap-3 text-center">
                 <h2 className="font-[Outfit] md:text-[clamp(28px,4vw,44px)] text-[clamp(22px,4vw,44px)] font-semibold text-[#121212] leading-[1.32]">
-                  How Schools &amp; Districts Benefit
+                  {content.schoolsHeading}
                 </h2>
-                <p className="font-inter text-sm md:text-base text-[#212121] leading-[26px] opacity-[0.96] max-w-[645px]">
-                  GTR isn&apos;t just for guest teachers. Forward-thinking schools use the platform to attract better subs and continuously improve.
-                </p>
+                <div className="font-inter text-sm md:text-base text-[#212121] leading-[26px] opacity-[0.96] max-w-[645px]">
+                  <RichContent content={content.schoolsDescription} />
+                </div>
               </div>
 
               <div className="flex flex-col md:flex-row items-start justify-center gap-6 md:gap-0 w-full max-w-[1100px] px-0">
                 {[
-                  {
-                    img: "/one.svg",
-                    title: "Attract Quality Subs",
-                    desc: "Schools with high ratings become first-choice destinations. Great reviews mean guest teachers actively seek out your assignments.",
-                  },
-                  {
-                    img: "/two.svg",
-                    title: "Honest Feedback Loop",
-                    desc: "Aggregate reports surface systemic issues — from missing lesson plans to administration gaps that formal channels often miss.",
-                  },
-                  {
-                    img: "/three.svg",
-                    title: "Improve Retention",
-                    desc: "When guest teachers feel supported, schools experience lower hiring costs and maintain a consistent, stable classroom environment.",
-                  },
+                  { img: "/one.svg", title: content.schoolsOneHeading, desc: content.schoolsOneDescription },
+                  { img: "/two.svg", title: content.schoolsTwoHeading, desc: content.schoolsTwoDescription },
+                  { img: "/three.svg", title: content.schoolsThreeHeading, desc: content.schoolsThreeDescription },
                 ].map((step, i) => (
                   <div key={i} className="flex flex-col md:flex-row items-stretch flex-1 min-w-0">
                     <div className="flex flex-col items-center gap-4 md:gap-5 flex-1 px-6 py-6 md:py-0">
@@ -442,7 +402,7 @@ export default function AboutPage() {
                       )}
                       <div className="flex flex-col items-center gap-4 md:gap-5">
                         <h3 className="font-[Outfit] text-lg sm:text-[22px] font-semibold text-[#121212] text-center leading-[normal]">{step.title}</h3>
-                        <p className="font-inter text-sm sm:text-base font-normal text-center text-gray-700 leading-[26px]">{step.desc}</p>
+                        <div className="font-inter text-sm sm:text-base font-normal text-center text-gray-700 leading-[26px]"><RichContent content={step.desc} /></div>
                       </div>
                     </div>
                     {i < 2 && (
@@ -456,10 +416,10 @@ export default function AboutPage() {
 
         {/* ── MISSION, VISION & GOAL ────────────────────────────────────── */}
         <section className="bg-white px-6 py-12 md:py-[112px] text-center">
-          <SectionBadge label="Our Direction" />
+          <SectionBadge label={content.directionEyebrow} />
           <div className="flex flex-col items-center gap-8 md:gap-10">
             <h2 className="font-[Outfit] sm:text-[clamp(28px,4vw,44px)] text-[clamp(22px,4vw,44px)] font-semibold text-[#121212] text-center leading-[1.32]">
-              Mission, Vision &amp; Goal Statement
+              {content.directionHeading}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[1100px] px-6 md:px-0">
@@ -477,12 +437,12 @@ export default function AboutPage() {
                     </defs>
                   </svg>
 
-                  <span className="font-[Outfit] sm:text-2xl text-xl font-medium text-[#121212] leading-8">Mission</span>
+                  <span className="font-[Outfit] sm:text-2xl text-xl font-medium text-[#121212] leading-8">{content.missionLabel}</span>
                 </div>
                 <div className="px-6 sm:px-7 py-6 sm:py-8">
-                  <p className="font-inter text-sm sm:text-base text-[#212121] text-center leading-[26px] opacity-[0.96]">
-                    To empower substitute teachers with transparent, peer-sourced school insights that support informed, confident, and dignified professional decisions.
-                  </p>
+                  <div className="font-inter text-sm sm:text-base text-[#212121] text-center leading-[26px] opacity-[0.96]">
+                    <RichContent content={content.missionDescription} />
+                  </div>
                 </div>
               </div>
 
@@ -497,12 +457,12 @@ export default function AboutPage() {
                       <linearGradient id="vision_icon_g2" x1="9.36" y1="5.48" x2="18.64" y2="10.13" gradientUnits="userSpaceOnUse"><stop offset="0.184" stopColor="#29ABE2" /><stop offset="0.821" stopColor="#0171F9" /></linearGradient>
                     </defs>
                   </svg>
-                  <span className="font-[Outfit] sm:text-2xl text-xl font-medium text-[#121212] leading-8">Vision</span>
+                  <span className="font-[Outfit] sm:text-2xl text-xl font-medium text-[#121212] leading-8">{content.visionLabel}</span>
                 </div>
                 <div className="px-6 sm:px-7 py-6 sm:py-8">
-                  <p className="font-inter text-sm sm:text-base text-[#212121] text-center leading-[26px] opacity-[0.96]">
-                    A world where every guest teacher walks into every classroom fully prepared — and every school competes to be a place subs genuinely want to work.
-                  </p>
+                  <div className="font-inter text-sm sm:text-base text-[#212121] text-center leading-[26px] opacity-[0.96]">
+                    <RichContent content={content.visionDescription} />
+                  </div>
                 </div>
               </div>
 
@@ -519,12 +479,12 @@ export default function AboutPage() {
                       <linearGradient id="goal_icon_g3" x1="8.87" y1="6.18" x2="25.08" y2="16.34" gradientUnits="userSpaceOnUse"><stop offset="0.184" stopColor="#29ABE2" /><stop offset="0.821" stopColor="#0171F9" /></linearGradient>
                     </defs>
                   </svg>
-                  <span className="font-[Outfit] sm:text-2xl text-xl font-medium text-[#121212] leading-8">Goal</span>
+                  <span className="font-[Outfit] sm:text-2xl text-xl font-medium text-[#121212] leading-8">{content.goalLabel}</span>
                 </div>
                 <div className="px-6 sm:px-7 py-6 sm:py-8">
-                  <p className="font-inter text-sm sm:text-base text-[#212121] text-center leading-[26px] opacity-[0.96]">
-                    To become the most trusted, comprehensive, and widely-used school review platform for substitute teachers across the United States and beyond.
-                  </p>
+                  <div className="font-inter text-sm sm:text-base text-[#212121] text-center leading-[26px] opacity-[0.96]">
+                    <RichContent content={content.goalDescription} />
+                  </div>
                 </div>
               </div>
             </div></div>

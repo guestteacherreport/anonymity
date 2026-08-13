@@ -27,8 +27,18 @@ export async function POST(req: Request) {
       yourName,
       schoolAssociation,
       sentiments,
-      city
+      city,
+      publishImmediately,
+      publishDelayDays,
     } = body;
+
+
+    const shouldDelayPublishing = (publishImmediately == 0);
+    const delayDays = shouldDelayPublishing ? Number(publishDelayDays) : 0;
+
+    if (shouldDelayPublishing && (!Number.isInteger(delayDays) || delayDays < 1)) {
+      return NextResponse.json({ error: "A valid publishing delay is required" }, { status: 400 });
+    }
 
     const aiReportAnalysis = await analyzeReport({
       ratings,
@@ -39,6 +49,13 @@ export async function POST(req: Request) {
       schoolComment,
       teacherComment
     });
+
+    const createdDate = new Date().toISOString();
+
+    const scheduledPublishAt = new Date(createdDate);
+    scheduledPublishAt.setUTCDate(
+      scheduledPublishAt.getUTCDate() + delayDays
+    );
 
     // Insert into Supabase
     const { data, error } = await supabase
@@ -130,6 +147,10 @@ export async function POST(req: Request) {
 
           AI_schoolIssues:
             aiReportAnalysis.school_issues,
+          publish: publishImmediately,
+          publish_delay_days: delayDays,
+          created_at: createdDate,
+          scheduled_publish_at: scheduledPublishAt.toISOString(),
         },
       ])
       .select();
@@ -147,15 +168,7 @@ export async function POST(req: Request) {
       );
     }
   
-    const { data: submittingUser, error: submittingUserError } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", user_id)
-      .single();
 
-    if (submittingUserError) {
-      console.error("Unable to look up report submitter:", submittingUserError);
-    } else if (submittingUser?.role === "guest_teacher") {
       const { data: admins, error: adminsError } = await supabase
         .from("users")
         .select("email")
@@ -179,7 +192,7 @@ export async function POST(req: Request) {
           }
         }
       }
-    }
+   
 
     return NextResponse.json({
       success: true,

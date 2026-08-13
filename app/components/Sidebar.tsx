@@ -71,6 +71,11 @@ export default function Sidebar() {
       icon: ReportsIcon,
     },
     {
+      name: "Content Management",
+      href: "/admin/content-management",
+      icon: ReportsIcon,
+    },
+    {
       name: "Data Export",
       href: "/admin/data-export",
       icon: DataExportIcon,

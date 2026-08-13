@@ -25,12 +25,14 @@ export async function GET(
       );
     }
 
+    const now = new Date().toISOString();
     const { data: reportsData, count: totalReports, error: reportsError } =
       await supabase
         .from("reports")
         .select("*", { count: "exact" })
         .eq("teacher_id", id)
         .eq("status", 2)
+        .or(`published_at.is.null,published_at.lte.${now}`)
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -56,6 +58,7 @@ export async function GET(
         .select("*", { count: "exact", head: true })
         .eq("teacher_id", id)
         .eq("status", 2)
+        .or(`published_at.is.null,published_at.lte.${now}`)
         .eq("return_to_teacher", 1),
 
       supabase
@@ -63,6 +66,7 @@ export async function GET(
         .select("*", { count: "exact", head: true })
         .eq("teacher_id", id)
         .eq("status", 2)
+        .or(`published_at.is.null,published_at.lte.${now}`)
         .eq("return_to_teacher", 2),
 
       supabase
@@ -70,6 +74,7 @@ export async function GET(
         .select("*", { count: "exact", head: true })
         .eq("teacher_id", id)
         .eq("status", 2)
+        .or(`published_at.is.null,published_at.lte.${now}`)
         .eq("return_to_teacher", 3),
     ]);
 

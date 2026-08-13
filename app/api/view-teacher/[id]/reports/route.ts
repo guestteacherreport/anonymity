@@ -15,11 +15,13 @@ export async function GET(
       req.nextUrl.searchParams.get("status") || "All";
 
     const offset = (page - 1) * limit;
+    const now = new Date().toISOString();
 
     let reportsQuery = supabase
       .from("reports")
       .select("*", { count: "exact" })
       .eq("status", 2)
+      .or(`published_at.is.null,published_at.lte.${now}`)
       .eq("teacher_id", id);
 
     if (

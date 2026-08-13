@@ -13,6 +13,7 @@ export async function POST(
       .from("reports")
       .update({
         status: 3,
+        rejection_date: new Date().toISOString(),
       })
       .eq("id", id);
 

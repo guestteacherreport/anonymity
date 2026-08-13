@@ -37,6 +37,8 @@ type FormState = {
   returnToSchool: ReturnChoice;
   returnToTeacher: ReturnChoice;
   postAs: "anonymous" | "show";
+  publishImmediately: number;
+  publishDelayDays: string;
   feedback: string;
   schoolComment: string;
   teacherComment: string;
@@ -80,6 +82,8 @@ const initialState: FormState = {
   returnToSchool: null,
   returnToTeacher: null,
   postAs: "anonymous",
+  publishImmediately: 1,
+  publishDelayDays: "",
   feedback: "",
   schoolComment: "",
   teacherComment: "",
@@ -157,6 +161,10 @@ function validateForm(state: FormState): FormErrors {
 
   if (!state.returnToTeacher) {
     errors.returnToTeacher = "Required";
+  }
+
+  if (!state.publishImmediately && (!/^\d+$/.test(state.publishDelayDays) || Number(state.publishDelayDays) < 1)) {
+    errors.publishDelayDays = "Enter at least 1 day";
   }
   // if (!state.newIdentity && !state.existingIdentity) {
   //   errors.yourIdentity = "Please create a new code or enter an existing code";
@@ -346,6 +354,7 @@ export default function SubmitReportPage() {
   const [state, dispatch] = useReducer(formReducer, initialState);
   const [errors, setErrors] = useState<FormErrors>({});
   const dateRef = useRef<HTMLInputElement>(null);
+  const publishDelayRef = useRef<HTMLInputElement>(null);
   const { data: session, status } = useSession();
   // Schools search state
   const [schoolSuggestions, setSchoolSuggestions] = useState<string[]>([]);
@@ -359,6 +368,7 @@ export default function SubmitReportPage() {
 
   // Form submission loading state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isGuestTeacher = session?.user?.role === "guest_teacher";
 
   const updateField = useCallback(
     (field: keyof FormState, value: any) => {
@@ -425,6 +435,12 @@ export default function SubmitReportPage() {
       router.push("/login");
     }
   }, [status, session, router]);
+
+  useEffect(() => {
+    if (isGuestTeacher && !state.publishImmediately) {
+      publishDelayRef.current?.focus();
+    }
+  }, [isGuestTeacher, state.publishImmediately]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -538,7 +554,7 @@ export default function SubmitReportPage() {
                         type="text"
                         id="schoolName"
                         placeholder="Search for institution..."
-                        value={state.schoolName}
+                        value={state.schoolName || ""}
                         onChange={(e) => {
                           if (e.target.value) {
                             setErrors({ ...errors, ["teacherName"]: "" });
@@ -609,8 +625,8 @@ export default function SubmitReportPage() {
                 </div>
 
                 {/* Teacher + Date row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="flex flex-col gap-2 relative">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-[1.25fr_1fr] sm:items-start">
+                  <div className="flex min-w-0 flex-col gap-2 relative">
                     <label className={fieldLabel}>Teacher Name</label>
                     <div className="relative">
                       <div className={`${inputBase} py-[14px]`}>
@@ -619,7 +635,7 @@ export default function SubmitReportPage() {
                           type="text"
                           id="teacherName"
                           placeholder="Search for Teacher..."
-                          value={state.teacherName}
+                          value={state.teacherName || ""}
                           // disabled={!state.schoolId || !state.schoolName}
                           onChange={(e) => {
                             if (!state.schoolId || !state.schoolName) {
@@ -679,14 +695,14 @@ export default function SubmitReportPage() {
                       <p className="text-red-500 text-xs">{errors.teacherName}</p>
                     )}
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex min-w-0 flex-col gap-2">
                     <label className={fieldLabel}>Date of Assignment</label>
                     <div onClick={() => dateRef.current?.showPicker()} className={`${inputBase} justify-between py-[14px]`}>
                       <input
                         ref={dateRef}
                         type="date"
                         id="date"
-                        value={state.date}
+                        value={state.date || ""}
                         onChange={(e) => {
                           updateField("date", e.target.value)
                           setErrors((prev) => ({
@@ -790,7 +806,7 @@ export default function SubmitReportPage() {
                     id="feedback"
                     className="h-[102px] px-4 pt-[13px] pb-[14px] rounded-lg bg-[#F3F4F5] font-inter text-sm text-[#6B7280] placeholder-[#6B7280] resize-none outline-none"
                     placeholder="Enter your feedback here"
-                    value={state.feedback}
+                    value={state.feedback || ""}
                     onChange={(e) => {
                       updateField("feedback", e.target.value)
                       setErrors((prev) => ({
@@ -867,7 +883,7 @@ export default function SubmitReportPage() {
                       type="text"
                       className={`${inputBase} w-full py-[10px]`}
                       placeholder="Any Comments...."
-                      value={state.schoolComment}
+                      value={state.schoolComment || ""}
                       onChange={(e) => updateField("schoolComment", e.target.value)}
                     />
                     {errors.returnToSchool && (
@@ -889,7 +905,7 @@ export default function SubmitReportPage() {
                       type="text"
                       className={`${inputBase} w-full py-[10px]`}
                       placeholder="Any Comments...."
-                      value={state.teacherComment}
+                      value={state.teacherComment || ""}
                       onChange={(e) => updateField("teacherComment", e.target.value)}
                     />
                     {errors.returnToTeacher && (
@@ -898,6 +914,46 @@ export default function SubmitReportPage() {
 
                   </div>
                 </div>
+
+                {isGuestTeacher && (
+                  <div className="flex flex-col gap-2" id="publishingPreference">
+                    <label className={fieldLabel}>Publishing Preference</label>
+                    <label className="flex items-center gap-3 rounded-lg bg-[#F3F4F5] px-4 py-3 font-inter text-sm text-[#121212] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={state.publishImmediately === 1 ? true : false}
+                        onChange={(e) => {
+                          updateField("publishImmediately", e.target.checked ? 1 : 0);
+                          setErrors((prev) => ({ ...prev, publishDelayDays: "" }));
+                        }}
+                        className="h-4 w-4 accent-[#0171F9]"
+                      />
+                      Publish immediately after approval
+                    </label>
+                    {!state.publishImmediately && (
+                      <div className="flex flex-col gap-2">
+                        <label htmlFor="publishDelayDays" className="font-outfit text-sm font-medium text-[#121212]">
+                          Delay publishing for <span className="font-normal text-[#121212]/60">(45 days preferred)</span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            id="publishDelayDays"
+                            ref={publishDelayRef}
+                            type="number"
+                            min="1"
+                            step="1"
+                            inputMode="numeric"
+                            className={`${inputBase} w-28 py-[10px]`}
+                            value={state.publishDelayDays || ""}
+                            onChange={(e) => updateField("publishDelayDays", e.target.value)}
+                          />
+                          <span className="font-inter text-sm text-[#121212]/70">days after approval</span>
+                        </div>
+                        {errors.publishDelayDays && <p className="text-red-500 text-xs">{errors.publishDelayDays}</p>}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* postAs */}
                 <div className="flex flex-col gap-2" id="postAs">
@@ -953,7 +1009,7 @@ export default function SubmitReportPage() {
                     type="text"
                     className={`${inputBase} w-full py-[10px]`}
                     placeholder="Your Name"
-                    value={state.postAs == "show" ? state.yourName : ""}
+                    value={state.postAs === "show" ? state.yourName || "" : ""}
                     onChange={(e) => updateField("yourName", state.postAs != "anonymous" ? e.target.value : "")}
                   />}
                 </div>

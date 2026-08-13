@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
@@ -19,6 +18,7 @@ export async function GET(
       req.nextUrl.searchParams.get("status") || "All";
 
     const offset = (page - 1) * limit;
+    const now = new Date().toISOString();
 
     // =========================
     // BASE QUERY
@@ -27,6 +27,7 @@ export async function GET(
       .from("reports")
       .select("*", { count: "exact" })
       .eq("status", 2)
+      .or(`published_at.is.null,published_at.lte.${now}`)
       .eq("school_id", id);
       
     // =========================

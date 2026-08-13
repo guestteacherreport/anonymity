@@ -224,11 +224,11 @@ function ReviewCard({ review }: { review: Review }) {
           }))} />
 
           <span className="text-[#121212] font-inter text-base sm:text-lg font-bold leading-5 capitalize">{review.your_name}</span>
-          <span className="w-[3px] h-[3px] rounded-full bg-[#676767]" />
+          {/* <span className="w-[3px] h-[3px] rounded-full bg-[#676767]" />
           <div className="flex items-center gap-1 sm:gap-1.5">
             <CalendarIcon />
             <span className="text-[#121212] font-inter text-xs sm:text-sm font-normal leading-5">{formatDate(review.created_at)}</span>
-          </div>
+          </div> */}
         </div>
         {/* <span className={`px-2 sm:px-2.5 py-1 w-fit h-fit rounded-md font-inter text-xs capitalize font-semibold leading-[15px] flex-shrink-0 ${getSentimentBadgeStyle(review?.return_to_teacher == 1 ? "Positive" : review?.return_to_teacher == 2 ? "Negative" : "Neutral")}`}>
           {review?.return_to_teacher == 1 ? "Positive" : review?.return_to_teacher == 2 ? "Negative" : "Neutral"}

@@ -1,4 +1,4 @@
-import { getSentiment } from "@/lib/function";
+import { formatDate, getSentiment } from "@/lib/function";
 import { ApproveIcon, RejectIcon } from "@/lib/icons";
 import { Report } from "@/lib/types";
 
@@ -144,6 +144,12 @@ function ReturnCard({
     
                       <span className="font-inter font-medium text-[13px] text-[#030711] opacity-80">{selectedReport?.school_association}</span>
                     </div>
+                    {selectedReport.date_of_assignment && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-inter font-medium text-[13px] text-[#030711] opacity-80">Assignment date</span>
+                        <span className="font-inter font-medium text-xs text-[#121212] opacity-64">{formatDate(selectedReport.date_of_assignment)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
     
@@ -232,6 +238,16 @@ function ReturnCard({
                       </span>
                     </button>
                   </div>}
+                {((selectedReport.status === 2 && selectedReport.approval_date) || (selectedReport.status === 3 && selectedReport.rejection_date)) && (
+                  <div className="px-5 py-[17px] border-t border-[#F0F0F0] bg-white flex items-center gap-2">
+                    <span className="font-inter font-medium text-sm text-[#121212]">
+                      {selectedReport.status === 2 ? "Approval date" : "Rejection date"}
+                    </span>
+                    <span className="font-inter font-normal text-sm text-[#6B7280]">
+                      {formatDate(selectedReport.status === 2 ? selectedReport.approval_date! : selectedReport.rejection_date!)}
+                    </span>
+                  </div>
+                )}
               </div>
 }
 

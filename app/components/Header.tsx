@@ -12,6 +12,7 @@ export default function Header() {
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const isActiveRoute = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -34,15 +35,25 @@ export default function Header() {
           </Link>
 
           <nav className="hidden sm:flex items-center gap-10">
-            <Link href="/" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Home</Link>
-            <Link href="/submit-report" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Submit Report</Link>
-            <Link href="/browse-school" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Schools</Link>
-            <Link href="/browse-teacher" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors">Teachers</Link>
-            <Link href="/my-reports" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer">My Reports</Link>
-            {session && session?.user?.role == "guest_teacher" ? <Link href="/calendar" className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer">Calendar</Link> : ""}
+            <Link href="/" aria-current={isActiveRoute("/") ? "page" : undefined} className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors ${isActiveRoute("/") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>Home</Link>
+            <Link href="/about" aria-current={isActiveRoute("/about") ? "page" : undefined} className={`font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors ${isActiveRoute("/about") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>About Us</Link>
+
+            <Link href="/submit-report" aria-current={isActiveRoute("/submit-report") ? "page" : undefined} className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors ${isActiveRoute("/submit-report") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>Submit Report</Link>
+            <Link href="/browse-school" aria-current={isActiveRoute("/browse-school") ? "page" : undefined} className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors ${(isActiveRoute("/browse-school") || isActiveRoute("/school/")) ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>Schools</Link>
+            <Link href="/browse-teacher" aria-current={isActiveRoute("/browse-teacher") ? "page" : undefined} className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors ${(isActiveRoute("/browse-teacher") || isActiveRoute("/teacher/")) ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>Teachers</Link>
+
+            {session && session?.user?.role == "guest_teacher" ?
+              <>
+                <Link href="/my-reports" aria-current={isActiveRoute("/my-reports") ? "page" : undefined} className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer ${isActiveRoute("/my-reports") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>My Reports</Link>
+                <Link href="/calendar" aria-current={isActiveRoute("/calendar") ? "page" : undefined} className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer ${isActiveRoute("/calendar") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>Calendar</Link>
+
+              </>
+              : ""}
+
             {(!session || (session && session?.user?.role == "guest_teacher")) ? <div className="w-44 ">
-              <Link href="/contact" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Contact Us</Link>
-            </div>:""}
+              <Link href="/contact" aria-current={isActiveRoute("/contact") ? "page" : undefined} className={`font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors ${isActiveRoute("/contact") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>Contact Us</Link>
+            </div> : ""}
+
           </nav>
 
           <div className="flex items-center gap-4 flex-shrink-0">
@@ -72,7 +83,7 @@ export default function Header() {
                   </svg>
                   Dashboard
                 </Link>}
-                
+
               </>
 
               :
@@ -88,64 +99,82 @@ export default function Header() {
 
         {/* Mobile Menu Overlay */}
         <nav className={`sm:hidden fixed top-[92px] left-0 right-0 bg-white border-b border-black/6 z-40 origin-top transition-all duration-300 ${isMenuOpen
-            ? "opacity-100 scale-y-100 pointer-events-auto"
-            : "opacity-0 scale-y-95 pointer-events-none"
+          ? "opacity-100 scale-y-100 pointer-events-auto"
+          : "opacity-0 scale-y-95 pointer-events-none"
           }`}>
           <div className="shadow-lg max-w-[1440px] mx-auto px-6 py-4 flex flex-col gap-3">
             <Link
               href="/"
               onClick={closeMenu}
-              className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2"
+              aria-current={isActiveRoute("/") ? "page" : undefined}
+              className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 ${isActiveRoute("/") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}
             >
               Home
             </Link>
+            <button
+              onClick={() => {
+                router.push("/about");
+              }}
+              aria-current={isActiveRoute("/about") ? "page" : undefined}
+              className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer ${isActiveRoute("/about") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}
+            >
+              About Us
+            </button>
             <Link
               href="/submit-report"
               onClick={closeMenu}
-              className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2"
+              aria-current={isActiveRoute("/submit-report") ? "page" : undefined}
+              className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 ${isActiveRoute("/submit-report") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}
             >
               Submit Report
             </Link>
             <Link
               href="/browse-school"
               onClick={closeMenu}
-              className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2"
+              aria-current={isActiveRoute("/browse-school") ? "page" : undefined}
+              className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 ${isActiveRoute("/browse-school") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}
             >
               Schools
             </Link>
-             <Link
+            <Link
               href="/browse-teacher"
               onClick={closeMenu}
-              className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2"
+              aria-current={isActiveRoute("/browse-teacher") ? "page" : undefined}
+              className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 ${isActiveRoute("/browse-teacher") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}
             >
               Teachers
             </Link>
-            
-            <button
-              onClick={() => {
-                router.push("/my-reports");
-              }}
-              className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer"
-            >
-              My Reports
-            </button>
-            {session && session?.user?.role == "guest_teacher" ? 
-            <button
-              onClick={() => {
-                router.push("/calendar");
-              }}
-              className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer"
-            >
-              Calendar
-            </button> : ""}
-             {(!session || (session && session?.user?.role == "guest_teacher")) ?  <button
+
+
+            {session && session?.user?.role == "guest_teacher" ?
+              <>
+                <button
+                  onClick={() => {
+                    router.push("/my-reports");
+                  }}
+                  aria-current={isActiveRoute("/my-reports") ? "page" : undefined}
+                  className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer ${isActiveRoute("/my-reports") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}
+                >
+                  My Reports
+                </button>
+                <button
+                  onClick={() => {
+                    router.push("/calendar");
+                  }}
+                  aria-current={isActiveRoute("/calendar") ? "page" : undefined}
+                  className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer ${isActiveRoute("/calendar") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}
+                >
+                  Calendar
+                </button></> : ""}
+            {(!session || (session && session?.user?.role == "guest_teacher")) ? <button
               onClick={() => {
                 router.push("/contact");
               }}
-              className="font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer"
+              aria-current={isActiveRoute("/contact") ? "page" : undefined}
+              className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer ${isActiveRoute("/contact") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}
             >
               Contact Us
-            </button>:""}
+            </button> : ""}
             <div className="border-t border-black/6 pt-3 mt-2">
               {session && session.user ? <div className="flex flex-row w-full gap-[10px]">
                 <button
@@ -186,7 +215,7 @@ export default function Header() {
         </nav>
       </header>
 
-     
+
     </>
   );
 }
