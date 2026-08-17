@@ -114,8 +114,13 @@ function ReturnCard({
                             : "bg-[#FFF3DC] text-[#D97706]"}`}>
                           {getSentiment(selectedReport).label}
                         </span>
-                        <span className="px-2.5 py-1 rounded-md font-inter font-semibold text-xs text-[#F8A202] bg-[#FFEECE] ">
+                        <span className="px-2.5 py-1 rounded-md font-inter font-semibold text-xs text-[#F8A202] bg-[#FFEECE]">
                           {selectedReport.status == 1 ? "Pending" : selectedReport.status == 2 ? "Approved" : "Rejected"}
+                        </span>
+                        <span className={`px-2.5 py-1 rounded-md font-inter font-semibold text-xs ${selectedReport.published_at
+                          ? "bg-[rgba(16,185,129,0.10)] text-[#10B981]"
+                          : "bg-[#F2F2F2] text-[#6B7280]"}`}>
+                          {selectedReport.published_at ? "Published" : "Not published"}
                         </span>
                       </div>
                     </div>
