@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { incrementSchoolAnalytics } from "@/lib/incrementSchoolAnalytics";
-import { updateTeacherAnalytics } from "@/lib/updateTeacherAnalytics";
 import { publishReport } from "@/lib/publishReport";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
     try {

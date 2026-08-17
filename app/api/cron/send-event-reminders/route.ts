@@ -4,6 +4,8 @@ import { differenceInCalendarDays } from "date-fns";
 import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { sendReminderEmail } from "@/lib/sendReminderEmail";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   try {
     // --------------------------------------------------
@@ -104,32 +106,32 @@ export async function GET(request: Request) {
     // --------------------------------------------------
     for (const event of events) {
       const timezone = event.user_timezone;
-console.log("========== EVENT DEBUG ==========");
-console.log("Event ID:", event.id);
-console.log("Event Start:", event.start_date);
-console.log("User Timezone:", timezone);
-console.log("Current UTC:", now.toISOString());
-console.log(
-  "Current Local:",
-  formatInTimeZone(now, timezone, "yyyy-MM-dd HH:mm:ss zzz")
-);
-console.log(
-  "Event Local:",
-  formatInTimeZone(
-    new Date(event.start_date),
-    timezone,
-    "yyyy-MM-dd HH:mm:ss zzz"
-  )
-);
-console.log(
-  "Next Day Sent:",
-  event.next_day_reminder_sent
-);
-console.log(
-  "Same Day Sent:",
-  event.same_day_reminder_sent
-);
-console.log("================================");
+      console.log("========== EVENT DEBUG ==========");
+      console.log("Event ID:", event.id);
+      console.log("Event Start:", event.start_date);
+      console.log("User Timezone:", timezone);
+      console.log("Current UTC:", now.toISOString());
+      console.log(
+        "Current Local:",
+        formatInTimeZone(now, timezone, "yyyy-MM-dd HH:mm:ss zzz")
+      );
+      console.log(
+        "Event Local:",
+        formatInTimeZone(
+          new Date(event.start_date),
+          timezone,
+          "yyyy-MM-dd HH:mm:ss zzz"
+        )
+      );
+      console.log(
+        "Next Day Sent:",
+        event.next_day_reminder_sent
+      );
+      console.log(
+        "Same Day Sent:",
+        event.same_day_reminder_sent
+      );
+      console.log("================================");
       if (!timezone) {
         console.warn(
           `No timezone found for event ${event.id}`
