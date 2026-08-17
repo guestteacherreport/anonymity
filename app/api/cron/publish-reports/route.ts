@@ -43,8 +43,8 @@ export async function GET(request: Request) {
             .select("*")
             .eq("status", 2)
             .is("published_at", null)
-            .not("scheduled_publish_at", "is", null)
-            .lte("scheduled_publish_at", now);
+            .not("scheduled_publish_at", "is", null);
+            // .lte("scheduled_publish_at", now);
 
         if (reportsError) {
             console.error(
