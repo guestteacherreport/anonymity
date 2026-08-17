@@ -8,10 +8,6 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const page = parseInt(req.nextUrl.searchParams.get("page") || "1");
-    const limit = parseInt(req.nextUrl.searchParams.get("limit") || "10");
-    const offset = (page - 1) * limit;
-
     const { data: teacher, error: teacherError } = await supabase
       .from("teachers")
       .select("*, schools(school_name)")
@@ -25,16 +21,15 @@ export async function GET(
       );
     }
 
-    const now = new Date().toISOString();
-    const { data: reportsData, count: totalReports, error: reportsError } =
-      await supabase
-        .from("reports")
-        .select("*", { count: "exact" })
-        .eq("teacher_id", id)
-        .eq("status", 2)
-        .not("published_at", "is", null)
-        .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1);
+    // General info only - counts, not report content. Detailed report
+    // content is only served (and access-controlled) via the separate
+    // /reports endpoint, mirroring the school detail page.
+    const { count: totalReports, error: reportsError } = await supabase
+      .from("reports")
+      .select("*", { count: "exact", head: true })
+      .eq("teacher_id", id)
+      .eq("status", 2)
+      .not("published_at", "is", null);
 
     if (reportsError) {
       return NextResponse.json(
@@ -42,11 +37,6 @@ export async function GET(
         { status: 500 }
       );
     }
-
-    const reports = (reportsData || []).map((row: any) => ({
-      ...row,
-      tags: row.tags || [],
-    }));
 
     const [
       { count: yesCount },
@@ -122,13 +112,6 @@ export async function GET(
         positive_reports: yesCount || 0,
         negative_reports: noCount || 0,
         neutral_reports: maybeCount || 0,
-      },
-      reports,
-      pagination: {
-        page,
-        limit,
-        total: totalReports || 0,
-        totalPages: Math.ceil((totalReports || 0) / limit),
       },
     });
   } catch (error) {

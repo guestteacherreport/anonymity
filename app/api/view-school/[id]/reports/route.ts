@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { getCurrentSession, hasSchoolReportAccess } from "@/lib/schoolAccess";
 
 export async function GET(
   req: NextRequest,
@@ -7,6 +8,28 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+
+    // =========================
+    // ACCESS CONTROL
+    // =========================
+    const session = await getCurrentSession();
+    const role = session?.user?.role;
+    const userId = session?.user?.id;
+
+    const allowed = await hasSchoolReportAccess(role, userId, id);
+
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "ACCESS_REQUIRED",
+          message: session
+            ? "You do not have approved access to this school's detailed reports."
+            : "You must be logged in with approved access to view detailed reports.",
+        },
+        { status: 403 }
+      );
+    }
 
     // =========================
     // QUERY PARAMS

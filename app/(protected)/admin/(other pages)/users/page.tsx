@@ -4,6 +4,7 @@ import { ChevronLeftIcon, ChevronRightIcon, DeleteWarningIcon } from "@/lib/icon
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useDebounce } from "@/lib/useDebounce";
+import { useRouter } from "next/navigation";
 
 type UserRole = "admin" | "guest_teacher" | "";
 
@@ -49,6 +50,7 @@ const CloseIcon = () => (
 );
 
 export default function UsersRolesPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -385,6 +387,7 @@ const [currentPage, setCurrentPage] = useState(1);
                     </td>
                     <td className="px-2 sm:px-3 py-3 sm:py-[17.5px] align-middle">
                       <div className="flex items-center gap-1 sm:gap-2">
+                       
                         <button
                           onClick={() => openEditSidebar(user)}
                           role="button"
@@ -399,6 +402,15 @@ const [currentPage, setCurrentPage] = useState(1);
                         >
                           Delete
                         </button>
+                         {user.role === "guest_teacher" && (
+                          <button
+                            onClick={() => router.push(`/admin/users/${user.id}/school-access`)}
+                            role="button"
+                            className="cursor-pointer px-2 sm:px-4 py-1 sm:py-1.5 rounded border border-[#0171F9] bg-white font-inter font-normal text-xs sm:text-[14px] text-[#0171F9] hover:bg-[#EFF6FF] transition-colors whitespace-nowrap"
+                          >
+                            Manage School Access
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

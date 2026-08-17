@@ -10,6 +10,7 @@ import { ChatIcon, ChevronLeftIcon, ChevronRightIcon, LocationIcon, SchoolIcon }
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 // --- Icon Components ---
 
@@ -43,6 +44,13 @@ const UserIcon = () => (
 const ChevronDownIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M5 7.08331L10 12.0833L15 7.08331H5Z" fill="#0171F9" stroke="#0171F9" strokeWidth="1.66667" strokeLinejoin="round" />
+  </svg>
+);
+
+const LockIcon = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0B77F9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="10" width="16" height="10" rx="2" />
+    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
   </svg>
 );
 
@@ -495,9 +503,12 @@ function ReviewCard({ review }: { review: Review }) {
 }
 
 
+type AccessStatus = "none" | "pending" | "approved" | "rejected" | "revoked";
+
 export default function SchoolDetailPage() {
   const params = useParams();
   const schoolId = params?.id as string;
+  const { data: session, status: sessionStatus } = useSession();
 
   const [schoolData, setSchoolData] = useState<SchoolData | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -507,11 +518,66 @@ export default function SchoolDetailPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(0);
   const [loadingReports, setLoadingReports] = useState<boolean>(false);
+  const [accessStatus, setAccessStatus] = useState<AccessStatus>("none");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loadingAccess, setLoadingAccess] = useState(true);
+  const [requestingAccess, setRequestingAccess] = useState(false);
   const itemsPerPage = 10;
 
   const router = useRouter();
 
+  const hasReportAccess = isAdmin || accessStatus === "approved";
+
   useEffect(() => {
+    if (!schoolId || sessionStatus === "loading") return;
+
+    const fetchAccessStatus = async () => {
+      try {
+        setLoadingAccess(true);
+        const response = await fetch(`/api/school-access/status?schoolId=${schoolId}`);
+        const data = await response.json();
+
+        if (data?.success) {
+          setIsAdmin(!!data.isAdmin);
+          setAccessStatus(data.status || "none");
+        }
+      } catch (err) {
+        // Fail closed - keep default "none" access
+      } finally {
+        setLoadingAccess(false);
+      }
+    };
+
+    fetchAccessStatus();
+  }, [schoolId, sessionStatus, session?.user?.id]);
+
+  const handleRequestAccess = async () => {
+    try {
+      setRequestingAccess(true);
+      const response = await fetch("/api/school-access/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schoolId }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.message || "Failed to submit access request");
+        return;
+      }
+
+      toast.success("Access request submitted");
+      setAccessStatus("pending");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setRequestingAccess(false);
+    }
+  };
+
+  useEffect(() => {
+
+    if (!hasReportAccess) return;
 
     const fetchReports = async () => {
       try {
@@ -546,7 +612,7 @@ export default function SchoolDetailPage() {
 
     if (currentPage > 0) fetchReports();
 
-  }, [activeFilter, currentPage])
+  }, [activeFilter, currentPage, hasReportAccess])
 
   useEffect(() => {
     if (!schoolId) return;
@@ -775,7 +841,60 @@ export default function SchoolDetailPage() {
 
           {/* Review cards */}
           <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8">
-            {!loadingReports ?
+            {loadingAccess ? (
+              <div className="w-full bg-white border border-[#E5E7EB] rounded-2xl p-8 sm:p-12 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-[#E5E7EB] border-t-[#0171F9] rounded-full animate-spin" />
+              </div>
+            ) : !hasReportAccess ? (
+              <div className="w-full bg-white border border-[#E5E7EB] rounded-2xl p-8 sm:p-12 flex flex-col items-center justify-center text-center">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#F3F8FF] flex items-center justify-center mb-4">
+                  <LockIcon />
+                </div>
+
+                <h3 className="text-[#121212] text-lg sm:text-xl font-semibold mb-2">
+                  Detailed Reports Are Restricted
+                </h3>
+
+                {sessionStatus !== "authenticated" ? (
+                  <>
+                    <p className="text-[#6B7280] text-sm sm:text-base max-w-md leading-relaxed mb-4">
+                      Detailed school reports are only available to approved Guest Teachers. Please log in to request access.
+                    </p>
+                    <Link
+                      href="/login"
+                      className="px-5 py-2.5 rounded-lg bg-[#0171F9] text-white font-inter font-semibold text-sm hover:bg-[#0562d8] transition-colors"
+                    >
+                      Log In
+                    </Link>
+                  </>
+                ) : session?.user?.role !== "guest_teacher" ? (
+                  <p className="text-[#6B7280] text-sm sm:text-base max-w-md leading-relaxed">
+                    Detailed school reports are only available to approved Guest Teachers.
+                  </p>
+                ) : accessStatus === "pending" ? (
+                  <p className="text-[#E8A411] text-sm sm:text-base max-w-md leading-relaxed font-medium">
+                    Your access request for this school is pending Super Admin approval.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-[#6B7280] text-sm sm:text-base max-w-md leading-relaxed mb-4">
+                      {accessStatus === "rejected"
+                        ? "Your previous access request for this school was rejected. You can request access again."
+                        : accessStatus === "revoked"
+                        ? "Your access to this school's detailed reports has been revoked. You can request access again."
+                        : "Request access from the Super Admin to view detailed reports for this school."}
+                    </p>
+                    <button
+                      onClick={handleRequestAccess}
+                      disabled={requestingAccess}
+                      className="px-5 py-2.5 rounded-lg bg-[#0171F9] text-white font-inter font-semibold text-sm hover:bg-[#0562d8] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {requestingAccess ? "Submitting..." : "Request Access"}
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : !loadingReports ?
               <>
                 {reviews?.length > 0 ?
                   <>{reviews?.map((review, idx) => (

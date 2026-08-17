@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { getCurrentSession, hasSchoolReportAccess } from "@/lib/schoolAccess";
 
 export async function GET(
   req: NextRequest,
@@ -7,6 +8,43 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+
+    // =========================
+    // ACCESS CONTROL
+    // =========================
+    // Teacher reports are a subset of their school's reports, so access is
+    // governed by the same school-level grant used on the school detail page.
+    const { data: teacher, error: teacherError } = await supabase
+      .from("teachers")
+      .select("school_id")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (teacherError || !teacher) {
+      return NextResponse.json(
+        { success: false, message: "Teacher not found" },
+        { status: 404 }
+      );
+    }
+
+    const session = await getCurrentSession();
+    const role = session?.user?.role;
+    const userId = session?.user?.id;
+
+    const allowed = await hasSchoolReportAccess(role, userId, String(teacher.school_id));
+
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "ACCESS_REQUIRED",
+          message: session
+            ? "You do not have approved access to this teacher's school reports."
+            : "You must be logged in with approved access to view detailed reports.",
+        },
+        { status: 403 }
+      );
+    }
 
     const page = parseInt(req.nextUrl.searchParams.get("page") || "1");
     const limit = parseInt(req.nextUrl.searchParams.get("limit") || "10");
