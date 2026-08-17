@@ -43,8 +43,8 @@ export async function GET(request: Request) {
             .select("*")
             .eq("status", 2)
             .is("published_at", null)
-            .not("scheduled_publish_at", "is", null);
-            // .lte("scheduled_publish_at", now);
+            .not("scheduled_publish_at", "is", null)
+            .lte("scheduled_publish_at", now.toISOString());
 
         if (reportsError) {
             console.error(
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
         // --------------------------------------------------
         for (const report of reports) {
             try {
-                const publishedAt = new Date().toISOString();
+                const publishedAt = now.toISOString();
 
                 // ----------------------------------------------
                 // Month from report published date
