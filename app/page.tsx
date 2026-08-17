@@ -12,7 +12,6 @@ export const dynamic = "force-dynamic";
 
 async function getHomePageData() {
   try {
-    const now = new Date().toISOString();
     const [
       recentReportsResult,
       reportsCountResult,
@@ -32,7 +31,7 @@ async function getHomePageData() {
           )
         `)
         .eq("status", 2)
-        .or(`published_at.is.null,published_at.lte.${now}`)
+        .not("published_at", "is", null)
         .order("created_at", {
           ascending: false,
         })
@@ -45,7 +44,7 @@ async function getHomePageData() {
           head: true,
         })
         .eq("status", 2)
-        .or(`published_at.is.null,published_at.lte.${now}`),
+        .not("published_at", "is", null),
 
       supabase
         .from("schools")

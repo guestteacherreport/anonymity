@@ -33,6 +33,7 @@ export interface Report {
   post_as: number;
   created_at: string;
   date_of_assignment?: string | null;
+  scheduled_publish_at?: string | null;
   approval_date?: string | null;
   rejection_date?: string | null;
   sentiment: Sentiment;

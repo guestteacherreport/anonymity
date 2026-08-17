@@ -27,7 +27,7 @@ export async function GET(
       .from("reports")
       .select("*", { count: "exact" })
       .eq("status", 2)
-      .or(`published_at.is.null,published_at.lte.${now}`)
+      .not("published_at", "is", null)
       .eq("school_id", id);
       
     // =========================

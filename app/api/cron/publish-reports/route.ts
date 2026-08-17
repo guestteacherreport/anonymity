@@ -30,7 +30,7 @@ export async function GET(request: Request) {
             );
             }
 
-        const now = new Date().toISOString();
+        const now = new Date("2026-10-01T00:00:00Z");
 
         // --------------------------------------------------
         // Find approved reports that are ready to publish

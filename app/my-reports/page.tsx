@@ -37,6 +37,7 @@ interface Report {
   support_level: number;
   schools: ObjectType;
   status: number;
+  published_at: string | null;
   sentiments: "Positive" | "Negative" | "Neutral";
   body: string;
   tags: string[];
@@ -197,6 +198,22 @@ function StatusBadge({ status }: { status: "Pending" | "Approved" | "Rejected" }
   return (
     <span className="px-2 py-1 rounded text-xs font-semibold font-inter bg-[rgba(16,185,129,0.10)] text-[#10B981]">
       Approved
+    </span>
+  );
+}
+
+function PublicationBadge({ publishedAt }: { publishedAt: string | null }) {
+  if (publishedAt) {
+    return (
+      <span className="px-2 py-1 rounded text-xs font-semibold font-inter bg-[rgba(16,185,129,0.10)] text-[#10B981]">
+        Published
+      </span>
+    );
+  }
+
+  return (
+    <span className="px-2 py-1 rounded text-xs font-semibold font-inter bg-[#F2F2F2] text-[#6B7280]">
+      Not published
     </span>
   );
 }
@@ -362,15 +379,17 @@ function ReportCard({ report, defaultExpanded = false }: { report: Report; defau
             support_level: report.support_level,
           })} />
           <div className="flex items-center gap-2.5">
-<StatusBadge
-  status={
-    report.status == 1
-      ? "Pending"
-      : report.status == 2
-      ? "Approved"
-      : "Rejected"
-  }
-/>            <SentimentBadge sentiment={report.sentiments} />
+            <StatusBadge
+              status={
+                report.status == 1
+                  ? "Pending"
+                  : report.status == 2
+                    ? "Approved"
+                    : "Rejected"
+              }
+            />
+            <PublicationBadge publishedAt={report.published_at} />
+            <SentimentBadge sentiment={report.sentiments} />
           </div>
         </div>
       </div>

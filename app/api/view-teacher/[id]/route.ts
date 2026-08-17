@@ -32,7 +32,7 @@ export async function GET(
         .select("*", { count: "exact" })
         .eq("teacher_id", id)
         .eq("status", 2)
-        .or(`published_at.is.null,published_at.lte.${now}`)
+        .not("published_at", "is", null)
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -58,7 +58,7 @@ export async function GET(
         .select("*", { count: "exact", head: true })
         .eq("teacher_id", id)
         .eq("status", 2)
-        .or(`published_at.is.null,published_at.lte.${now}`)
+        .not("published_at", "is", null)
         .eq("return_to_teacher", 1),
 
       supabase
@@ -66,7 +66,7 @@ export async function GET(
         .select("*", { count: "exact", head: true })
         .eq("teacher_id", id)
         .eq("status", 2)
-        .or(`published_at.is.null,published_at.lte.${now}`)
+        .not("published_at", "is", null)
         .eq("return_to_teacher", 2),
 
       supabase
@@ -74,7 +74,7 @@ export async function GET(
         .select("*", { count: "exact", head: true })
         .eq("teacher_id", id)
         .eq("status", 2)
-        .or(`published_at.is.null,published_at.lte.${now}`)
+        .not("published_at", "is", null)
         .eq("return_to_teacher", 3),
     ]);
 

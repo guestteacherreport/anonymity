@@ -702,6 +702,7 @@ export default function SubmitReportPage() {
                         ref={dateRef}
                         type="date"
                         id="date"
+                        max={new Date().toISOString().split("T")[0]}
                         value={state.date || ""}
                         onChange={(e) => {
                           updateField("date", e.target.value)
