@@ -139,9 +139,9 @@ export async function GET(request: Request) {
           "H"
         );
 
-        if (currentHour !== "0") {
-          continue;
-        }
+        // if (currentHour !== "0") {
+        //   continue;
+        // }
 
         // ------------------------------------------------
         // Determine whether event is today or tomorrow
