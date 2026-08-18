@@ -131,16 +131,16 @@ function formReducer(state: FormState, action: Action): FormState {
 function validateForm(state: FormState): FormErrors {
   const errors: FormErrors = {};
 
-  if (!state.schoolName.trim()) {
-    errors.schoolName = "School Name is required";
+  if (!state.schoolId) {
+    errors.schoolName = "Please select a school from the list";
   }
 
   if (!state.jobId.trim()) {
     errors.jobId = "Job ID is required";
   }
 
-  if (!state.teacherName.trim()) {
-    errors.teacherName = "Teacher Name is required";
+  if (!state.teacherId) {
+    errors.teacherName = "Please select a teacher from the list";
   }
 
   if (!state.date) {
@@ -570,7 +570,14 @@ export default function SubmitReportPage() {
                           if (e.target.value) {
                             setErrors({ ...errors, ["teacherName"]: "" });
                           }
+                          // Typing invalidates any previously selected school
+                          // (and the teacher selection, which depends on it) -
+                          // a real selection must be made again from the list.
+                          updateField("schoolId", 0);
+                          updateField("schoolAssociation", "");
+                          updateField("city", "");
                           updateField("teacherName", "");
+                          updateField("teacherId", 0);
                           setTeacherSuggestions([]);
                           updateField("schoolGrades", []);
                           updateField("schoolName", e.target.value);
@@ -582,7 +589,15 @@ export default function SubmitReportPage() {
                           }));
                         }}
                         onFocus={() => setShowSchoolSuggestions(true)}
-                        onBlur={() => setTimeout(() => setShowSchoolSuggestions(false), 200)}
+                        onBlur={() => setTimeout(() => {
+                          setShowSchoolSuggestions(false);
+                          // No matching school was selected from the list -
+                          // clear the typed text instead of leaving a custom
+                          // value that was never actually chosen.
+                          if (!state.schoolId) {
+                            updateField("schoolName", "");
+                          }
+                        }, 200)}
                         className="bg-transparent outline-none w-full font-inter text-sm text-[#121212] placeholder-[#6B7280]"
                         autoComplete="off"
                       />
@@ -603,6 +618,7 @@ export default function SubmitReportPage() {
                               onMouseDown={(e) => {
                                 e.preventDefault();
                                 updateField("teacherName", "");
+                                updateField("teacherId", 0);
                                 setTeacherSuggestions([]);
                                 updateField("schoolGrades", []);
                                 updateField("schoolName", school.school_name);
@@ -679,6 +695,9 @@ export default function SubmitReportPage() {
                             } else {
                               setErrors({ ...errors, ["teacherName"]: "" });
                             }
+                            // Typing invalidates any previously selected
+                            // teacher - a real selection must be made again.
+                            updateField("teacherId", 0);
                             updateField("teacherName", e.target.value);
 
                             fetchTeachers(e.target.value, state.schoolId);
@@ -689,7 +708,15 @@ export default function SubmitReportPage() {
                             }));
                           }}
                           onFocus={() => setShowTeacherSuggestions(true)}
-                          onBlur={() => setTimeout(() => setShowTeacherSuggestions(false), 200)}
+                          onBlur={() => setTimeout(() => {
+                            setShowTeacherSuggestions(false);
+                            // No matching teacher was selected from the list -
+                            // clear the typed text instead of leaving a custom
+                            // value that was never actually chosen.
+                            if (!state.teacherId) {
+                              updateField("teacherName", "");
+                            }
+                          }, 200)}
                           className="bg-transparent outline-none w-full font-inter text-sm text-[#121212] placeholder-[#6B7280]"
                           autoComplete="off"
                         />
@@ -707,7 +734,8 @@ export default function SubmitReportPage() {
                               <button
                                 key={idx1}
                                 type="button"
-                                onMouseDown={() => {
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
                                   updateField("teacherName", teacher.name);
                                   updateField("teacherId", teacher.id);
                                   setShowTeacherSuggestions(false);
