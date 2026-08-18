@@ -153,7 +153,7 @@ Time   : ${startTime} - ${endTime}
     })
     .join("");
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from,
     to: user.email,
     subject,
@@ -231,4 +231,14 @@ Thank you!
       </html>
     `,
   });
+
+  // The Resend SDK resolves normally (does not throw) on API-level
+  // failures such as an invalid recipient - it returns { data: null,
+  // error }. This must throw so the cron's "mark as sent" step is skipped
+  // on a real delivery failure instead of recording a false success.
+  if (result.error) {
+    throw new Error(
+      `Failed to send reminder email: ${result.error.message || JSON.stringify(result.error)}`
+    );
+  }
 }

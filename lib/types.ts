@@ -27,6 +27,7 @@ export type Sentiment = "Positive" | "Negative" | "Neutral";
 
 export interface Report {
   id: string;
+  job_id?: string | null;
   school_name: string;
   grade_level: string;
   teacher_name: string;

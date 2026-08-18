@@ -26,6 +26,7 @@ type FormState = {
   existingIdentity: string,
   schoolName: string,
   schoolId: number,
+  jobId: string,
   teacherId: number,
   teacherName: string,
   schoolAssociation: string,
@@ -65,6 +66,7 @@ const initialState: FormState = {
   newIdentity: "",
   existingIdentity: "",
   schoolId: 0,
+  jobId: "",
   teacherId: 0,
   schoolGrades: [],
   schoolAssociation: "",
@@ -131,6 +133,10 @@ function validateForm(state: FormState): FormErrors {
 
   if (!state.schoolName.trim()) {
     errors.schoolName = "School Name is required";
+  }
+
+  if (!state.jobId.trim()) {
+    errors.jobId = "Job ID is required";
   }
 
   if (!state.teacherName.trim()) {
@@ -494,7 +500,12 @@ export default function SubmitReportPage() {
       const data = await response.json();
       if (!response.ok) {
         setIsSubmitting(false);
-        setErrors({["yourIdentity"]: data.message})
+        if (data.field === "jobId") {
+          setErrors((prev) => ({ ...prev, jobId: data.message }));
+          scrollToError({ jobId: data.message });
+        } else {
+          setErrors({["yourIdentity"]: data.message})
+        }
         toast.error(data.message || "Failed to submit report", {
             duration: 6000,
           });
@@ -621,6 +632,29 @@ export default function SubmitReportPage() {
                   </div>
                   {errors.schoolName && (
                     <p className="text-red-500 text-xs">{errors.schoolName}</p>
+                  )}
+                </div>
+
+                {/* Job ID */}
+                <div className="flex flex-col gap-2">
+                  <label className={fieldLabel}>Job ID</label>
+                  <input
+                    type="text"
+                    id="jobId"
+                    placeholder="Enter the Job ID for this assignment"
+                    value={state.jobId || ""}
+                    onChange={(e) => {
+                      updateField("jobId", e.target.value);
+                      setErrors((prev) => ({
+                        ...prev,
+                        jobId: "",
+                      }));
+                    }}
+                    className={`${inputBase} w-full py-[14px]`}
+                    autoComplete="off"
+                  />
+                  {errors.jobId && (
+                    <p className="text-red-500 text-xs">{errors.jobId}</p>
                   )}
                 </div>
 

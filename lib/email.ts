@@ -23,11 +23,25 @@ function getResendClient() {
   return new Resend(apiKey);
 }
 
+// The Resend SDK resolves normally (does not throw) on API-level failures
+// such as an invalid recipient - it returns { data: null, error }. Callers
+// that don't check `error` will treat a failed send as successful, which is
+// especially dangerous anywhere a "sent" flag gets persisted afterwards.
+function assertSent(
+  result: { data: unknown; error: { message?: string } | null },
+  context: string
+) {
+  if (result.error) {
+    throw new Error(
+      `Failed to send email (${context}): ${result.error.message || JSON.stringify(result.error)}`
+    );
+  }
+}
+
 export async function sendPasswordResetEmail(
   to: string,
   resetUrl: string
 ): Promise<void> {
-  console.log(process.env,"process.env");
   const from = process.env.EMAIL_FROM;
   if (!from) {
     throw new Error("Email sender is not configured. Set EMAIL_FROM.");
@@ -35,7 +49,7 @@ export async function sendPasswordResetEmail(
 
   const resend = getResendClient();
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from,
     to: [to],
     subject: "Reset your password",
@@ -46,6 +60,8 @@ export async function sendPasswordResetEmail(
       <p>This link expires in 1 hour. If you did not request a reset, you can ignore this email.</p>
     `,
   });
+
+  assertSent(result, "password reset");
 }
 
 export async function sendGuestTeacherReportNotification(
@@ -59,7 +75,7 @@ export async function sendGuestTeacherReportNotification(
 
   const resend = getResendClient();
 
-  await Promise.all(
+  const results = await Promise.all(
   recipients.map((recipient) =>
     resend.emails.send({
       from,
@@ -97,6 +113,8 @@ Guest Teacher Reports Team`,
     })
   )
 );
+
+  results.forEach((result) => assertSent(result, "guest teacher report notification"));
 }
 
 export async function sendSchoolAccessRequestNotification(
@@ -111,7 +129,7 @@ export async function sendSchoolAccessRequestNotification(
   const { guestTeacherName, guestTeacherEmail, schoolName, reviewUrl } = details;
   const resend = getResendClient();
 
-  await Promise.all(
+  const results = await Promise.all(
     recipients.map((recipient) =>
       resend.emails.send({
         from,
@@ -143,6 +161,8 @@ Guest Teacher Reports Team`,
       })
     )
   );
+
+  results.forEach((result) => assertSent(result, "school access request notification"));
 }
 
 export async function sendSchoolAccessStatusEmail(
@@ -188,7 +208,7 @@ export async function sendSchoolAccessStatusEmail(
 
   const { subject, message, buttonLabel, color } = copyByStatus[status];
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from,
     to: [to],
     subject,
@@ -213,6 +233,8 @@ Guest Teacher Reports Team`,
       <p>Thank you,<br><strong>Guest Teacher Reports Team</strong></p>
     `,
   });
+
+  assertSent(result, "school access status email");
 }
 
 export async function sendContactInquiryNotification(
@@ -225,7 +247,7 @@ export async function sendContactInquiryNotification(
   }
 
   const resend = getResendClient();
-  await Promise.all(
+  const results = await Promise.all(
     recipients.map((recipient) =>
       resend.emails.send({
         from,
@@ -236,4 +258,6 @@ export async function sendContactInquiryNotification(
       })
     )
   );
+
+  results.forEach((result) => assertSent(result, "contact inquiry notification"));
 }

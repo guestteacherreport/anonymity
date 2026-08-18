@@ -96,6 +96,26 @@ export async function PUT(req: NextRequest, { params }:  { params: Promise<{ id:
       user_timezone
     } = body;
 
+    // Reminder emails are keyed off start_date, so a reschedule must reset
+    // the "sent" flags - otherwise a reminder already sent for the old date
+    // silently blocks the reminder for the new date forever.
+    const { data: existingEvent, error: existingEventError } = await supabase
+      .from("calendar_event")
+      .select("start_date")
+      .eq("id", eventId)
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    if (existingEventError || !existingEvent) {
+      return NextResponse.json(
+        { success: false, message: "Event not found" },
+        { status: 404 }
+      );
+    }
+
+    const startDateChanged =
+      new Date(existingEvent.start_date).getTime() !== new Date(start_date).getTime();
+
     const { data, error } = await supabase
       .from("calendar_event")
       .update({
@@ -111,6 +131,10 @@ export async function PUT(req: NextRequest, { params }:  { params: Promise<{ id:
         teacher_email: teacher_email || null,
         user_timezone,
         notes: notes || null,
+        ...(startDateChanged && {
+          next_day_reminder_sent: false,
+          same_day_reminder_sent: false,
+        }),
       })
       .eq("id", eventId)
       .eq("user_id", session.user.id)

@@ -30,8 +30,45 @@ export async function POST(req: Request) {
       city,
       publishImmediately,
       publishDelayDays,
+      jobId,
     } = body;
 
+    const trimmedJobId = typeof jobId === "string" ? jobId.trim() : "";
+
+    if (!trimmedJobId) {
+      return NextResponse.json(
+        { error: "Job ID is required", message: "Job ID is required", field: "jobId" },
+        { status: 400 }
+      );
+    }
+
+    // Fast-path duplicate check. The unique index on reports.job_id is the
+    // authoritative guard against a race between two concurrent requests
+    // for the same Job ID - this check just gives a clean error for the
+    // common case without waiting on that race.
+    const { data: existingReport, error: existingReportError } = await supabase
+      .from("reports")
+      .select("id")
+      .eq("job_id", trimmedJobId)
+      .maybeSingle();
+
+    if (existingReportError) {
+      return NextResponse.json(
+        { error: existingReportError.message },
+        { status: 500 }
+      );
+    }
+
+    if (existingReport) {
+      return NextResponse.json(
+        {
+          error: "Job ID already used",
+          message: "A report has already been submitted for this Job ID.",
+          field: "jobId",
+        },
+        { status: 409 }
+      );
+    }
 
     const shouldDelayPublishing = (publishImmediately == 0);
     const delayDays = shouldDelayPublishing ? Number(publishDelayDays) : 0;
@@ -63,6 +100,7 @@ export async function POST(req: Request) {
       .insert([
         {
           user_id: user_id,
+          job_id: trimmedJobId,
           city,
           school_name: schoolName,
 
@@ -157,6 +195,20 @@ export async function POST(req: Request) {
 
     if (error) {
       console.error("Supabase Error:", error);
+
+      // 23505 = unique_violation. Catches the race where two requests for
+      // the same Job ID pass the pre-check above at the same time - the
+      // database's unique index on reports.job_id is the final guard.
+      if (error.code === "23505") {
+        return NextResponse.json(
+          {
+            error: "Job ID already used",
+            message: "A report has already been submitted for this Job ID.",
+            field: "jobId",
+          },
+          { status: 409 }
+        );
+      }
 
       return NextResponse.json(
         {

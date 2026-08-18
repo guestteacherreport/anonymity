@@ -156,9 +156,17 @@ function ReturnCard({
                       </div>
                     )}
                      {selectedReport.scheduled_publish_at && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-inter font-medium text-[13px] text-[#030711] opacity-80">Scheduled Publish date</span>
-                        <span className="font-inter font-medium text-xs text-[#121212] opacity-64">{formatDate(selectedReport.scheduled_publish_at)}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-inter font-medium text-[13px] text-[#030711] opacity-80">Scheduled Publish date</span>
+                          <span className="font-inter font-medium text-xs text-[#121212] opacity-64">{formatDate(selectedReport.scheduled_publish_at)}</span>
+                        </div>
+                        {selectedReport.job_id && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-inter font-medium text-[13px] text-[#030711] opacity-80">Job ID</span>
+                            <span className="font-inter font-medium text-xs text-[#121212] opacity-64">{selectedReport.job_id}</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

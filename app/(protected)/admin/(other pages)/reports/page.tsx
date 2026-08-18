@@ -282,6 +282,7 @@ export default function ReportsPage() {
             <thead>
               <tr className="border-y border-[#E5E7EB] bg-white">
                 <th className="text-left px-2 sm:px-4 lg:px-5 py-2.5 sm:py-3.5 font-inter font-medium text-[12px] sm:text-xs text-[#6F6C70] uppercase whitespace-nowrap">ID</th>
+                <th className="text-left px-2 sm:px-4 lg:px-5 py-2.5 sm:py-3.5 font-inter font-medium text-[12px] sm:text-xs text-[#6F6C70] uppercase whitespace-nowrap">Job ID</th>
                 <th className="text-left px-2 sm:px-4 lg:px-5 py-2.5 sm:py-3.5 font-inter font-medium text-[12px] sm:text-xs text-[#6F6C70] uppercase whitespace-nowrap">School</th>
                 <th className="text-left px-2 sm:px-4 lg:px-5 py-2.5 sm:py-3.5 font-inter font-medium text-[12px] sm:text-xs text-[#6F6C70] uppercase whitespace-nowrap">Teacher</th>
                 <th className="text-left px-2 sm:px-4 lg:px-5 py-2.5 sm:py-3.5 font-inter font-medium text-[12px] sm:text-xs text-[#6F6C70] uppercase whitespace-nowrap">Sentiment Analysis</th>
@@ -294,7 +295,7 @@ export default function ReportsPage() {
             <tbody>
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 sm:px-6 lg:px-8 py-8 text-center font-inter text-sm text-[#6F6C70]">No reports found.</td>
+                  <td colSpan={9} className="px-4 sm:px-6 lg:px-8 py-8 text-center font-inter text-sm text-[#6F6C70]">No reports found.</td>
                 </tr>
               ) : (
                 paginated.map((report: any) => {
@@ -308,6 +309,9 @@ export default function ReportsPage() {
                     >
                       <td className="px-2 sm:px-4 lg:px-5 py-2.5 sm:py-[17.5px] whitespace-nowrap">
                         <span className="font-inter font-medium text-[12px] sm:text-[13px] lg:text-sm text-[#0B77F9] opacity-80">{`RPT-${report.id}`}</span>
+                      </td>
+                      <td className="px-2 sm:px-4 lg:px-5 py-2.5 sm:py-[17.5px] whitespace-nowrap">
+                        <span className="font-inter font-normal text-[12px] sm:text-[13px] lg:text-sm text-[#030711]">{report?.job_id || "—"}</span>
                       </td>
                       <td className="px-2 sm:px-4 lg:px-5 py-2.5 sm:py-[17.5px] whitespace-nowrap">
                         <span className="font-inter font-normal text-[12px] sm:text-[13px] lg:text-sm text-[#030711]">{report?.school_name}</span>
