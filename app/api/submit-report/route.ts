@@ -77,6 +77,44 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "A valid publishing delay is required" }, { status: 400 });
     }
 
+    // Resolve the teacher: use the selected teacherId if one came from the
+    // dropdown, otherwise treat teacherName as a custom entry - reuse a
+    // matching teacher at this school if one already exists (case-insensitive),
+    // or create a new teacher record for it.
+    let resolvedTeacherId = teacherId || null;
+    const trimmedTeacherName = typeof teacherName === "string" ? teacherName.trim() : "";
+
+    if (!resolvedTeacherId && trimmedTeacherName && schoolId) {
+      const escapedTeacherName = trimmedTeacherName.replace(/[%_\\]/g, (match) => `\\${match}`);
+
+      const { data: existingTeacher, error: existingTeacherError } = await supabase
+        .from("teachers")
+        .select("id")
+        .eq("school_id", schoolId)
+        .ilike("name", escapedTeacherName)
+        .maybeSingle();
+
+      if (existingTeacherError) {
+        return NextResponse.json({ error: existingTeacherError.message }, { status: 500 });
+      }
+
+      if (existingTeacher) {
+        resolvedTeacherId = existingTeacher.id;
+      } else {
+        const { data: newTeacher, error: newTeacherError } = await supabase
+          .from("teachers")
+          .insert({ name: trimmedTeacherName, school_id: schoolId, status: 1 })
+          .select("id")
+          .single();
+
+        if (newTeacherError) {
+          return NextResponse.json({ error: newTeacherError.message }, { status: 500 });
+        }
+
+        resolvedTeacherId = newTeacher.id;
+      }
+    }
+
     const aiReportAnalysis = await analyzeReport({
       ratings,
       feedback,
@@ -106,7 +144,7 @@ export async function POST(req: Request) {
 
           school_id: schoolId || null,
 
-          teacher_id: teacherId || null,
+          teacher_id: resolvedTeacherId,
 
           teacher_name: teacherName,
 

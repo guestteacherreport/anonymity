@@ -139,8 +139,8 @@ function validateForm(state: FormState): FormErrors {
     errors.jobId = "Job ID is required";
   }
 
-  if (!state.teacherId) {
-    errors.teacherName = "Please select a teacher from the list";
+  if (!state.teacherName.trim()) {
+    errors.teacherName = "Teacher Name is required";
   }
 
   if (!state.date) {
@@ -710,12 +710,10 @@ export default function SubmitReportPage() {
                           onFocus={() => setShowTeacherSuggestions(true)}
                           onBlur={() => setTimeout(() => {
                             setShowTeacherSuggestions(false);
-                            // No matching teacher was selected from the list -
-                            // clear the typed text instead of leaving a custom
-                            // value that was never actually chosen.
-                            if (!state.teacherId) {
-                              updateField("teacherName", "");
-                            }
+                            // Unlike School Name, a Teacher Name that doesn't
+                            // match anything in the dropdown is kept - it's
+                            // submitted as a custom name and the backend
+                            // creates a new teacher record for it if needed.
                           }, 200)}
                           className="bg-transparent outline-none w-full font-inter text-sm text-[#121212] placeholder-[#6B7280]"
                           autoComplete="off"
@@ -747,7 +745,7 @@ export default function SubmitReportPage() {
                             ))
                           )}
                           {!teacherSearchLoading && teacherSuggestions.length === 0 && state.teacherName.trim() && (
-                            <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No teachers found</div>
+                            <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No matching teacher found - you can submit this as a new teacher name</div>
                           )}
                         </div>
                       )}

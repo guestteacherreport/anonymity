@@ -133,14 +133,14 @@ export default function SchoolsPage() {
       <div className="flex flex-row items-center justify-between gap-4 sm:gap-6 mb-4 sm:mb-6 lg:mb-8">
         <h1 className="font-outfit font-semibold text-2xl sm:text-3xl text-[#121212] leading-5">Schools</h1>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Link
+          {/* <Link
             href="/admin/schools/import"
             className="flex items-center gap-1.5 px-3 sm:px-[17px] py-2 sm:py-3 rounded-lg border border-[#0171F9] bg-white shadow-sm hover:bg-[#EFF6FF] transition-colors cursor-pointer"
           >
             <span className="font-inter font-semibold text-sm sm:text-base text-[#0171F9] leading-6">
               Import
             </span>
-          </Link>
+          </Link> */}
           <Link
             href="/admin/schools/create"
             className="flex items-center gap-1.5 px-3 sm:px-[17px] py-2 sm:py-3 rounded-lg bg-[#0171F9] shadow-sm hover:bg-[#0161d9] transition-colors cursor-pointer"
