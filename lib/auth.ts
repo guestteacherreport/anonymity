@@ -164,15 +164,28 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (token.email) {
-        const { data: dbUser } = await supabase
-          .from("users")
-          .select("id, role")
-          .eq("email", token.email)
-          .single();
+        // This runs on every session check (e.g. useSession()'s
+        // refetchOnWindowFocus), not just at sign-in. A transient
+        // Supabase/network failure here must not invalidate an otherwise
+        // valid session - that would flip useSession() to
+        // "unauthenticated" for a still-logged-in user and bounce them
+        // back to /login. Keep the existing token on any failure instead
+        // of throwing.
+        try {
+          const { data: dbUser, error } = await supabase
+            .from("users")
+            .select("id, role")
+            .eq("email", token.email)
+            .maybeSingle();
 
-        if (dbUser) {
-          token.id = dbUser.id.toString();
-          token.role = dbUser.role ?? null;
+          if (error) {
+            console.error("jwt callback: failed to refresh user, keeping existing token", error);
+          } else if (dbUser) {
+            token.id = dbUser.id.toString();
+            token.role = dbUser.role ?? null;
+          }
+        } catch (err) {
+          console.error("jwt callback: unexpected error refreshing user, keeping existing token", err);
         }
       }
 
