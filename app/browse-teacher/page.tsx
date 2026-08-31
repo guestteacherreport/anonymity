@@ -342,7 +342,7 @@ export default function BrowseTeacherPage() {
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-14">
           <div className="pt-8 sm:pt-12 lg:pt-[72px] pb-6 sm:pb-8">
             <h1 className="text-[#121212] font-[Inter] text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold leading-[1.2]">
-              Browse Teacher
+              Browse By Teacher Name
             </h1>
             <p className="text-[#121212] font-[Inter] text-sm sm:text-base lg:text-lg font-normal leading-[1.5] sm:leading-[26px] tracking-[0.2px] opacity-[0.88] mt-2">
               Share your experience to help other guest teachers.
@@ -361,7 +361,7 @@ export default function BrowseTeacherPage() {
                   className="flex-1 bg-transparent text-[#737685] font-[Inter] text-xs sm:text-base font-normal outline-none placeholder:text-[#737685] min-w-0"
                 />
               </div>
-              <div className="flex items-center gap-2 flex-1 px-3 py-3.5 sm:px-4 bg-white rounded-lg border border-[rgba(195,198,214,0.20)]">
+              {/* <div className="flex items-center gap-2 flex-1 px-3 py-3.5 sm:px-4 bg-white rounded-lg border border-[rgba(195,198,214,0.20)]">
                 <SearchIcon />
                 <input
                   type="text"
@@ -370,7 +370,7 @@ export default function BrowseTeacherPage() {
                   placeholder="Search Teachers by School Name..."
                   className="flex-1 bg-transparent text-[#737685] font-[Inter] text-xs sm:text-base font-normal outline-none placeholder:text-[#737685] min-w-0"
                 />
-              </div>
+              </div> */}
               <button disabled={searchingLoad} onClick={() => {
                 setSearchingLoad(true);
                 setCurrentPage(1);

@@ -282,13 +282,12 @@ const RATING_CATEGORIES: { label: string; key: RatingKeys }[] = [
 const ALL_TAGS = [
   "Friendly Teachers", "Unfriendly Teachers", "Unwelcoming Environment",
   "Friendly Students", "Unfriendly Students", "Great Leadership", "Poor Leadership",
-  "Job As Described", "Job NOT As Described", "Positive Impact Student(s)",
-  "Negative Impact Student(s)", "Helpful Aides/Proctors", "Unhelpful Aides/Proctors",
+  "Job As Described", "Job NOT As Described", "None/Few Student Behaviors", "Many Student Behaviors", "Helpful Aides/Proctors", "Unhelpful Aides/Proctors","Detailed Lesson Plans","Insufficient Lesson Plans","No Lesson Plans","Welcoming Environment"
 ];
 
 const NEGATIVE_TAGS = new Set([
   "Unfriendly Teachers", "Unwelcoming Environment", "Unfriendly Students",
-  "Poor Leadership", "Job NOT As Described", "Negative Impact Student(s)", "Unhelpful Aides/Proctors",
+  "Poor Leadership", "Job NOT As Described", "Negative Impact Student(s)","None/Few Student Behaviors","Insufficient Lesson Plans", "Unhelpful Aides/Proctors","No Lesson Plans"
 ]);
 
 type ReturnChoice = "yes" | "no" | "maybe" | null;
@@ -666,7 +665,7 @@ export default function SubmitReportPage() {
                         jobId: "",
                       }));
                     }}
-                    className={`${inputBase} w-full py-[14px]`}
+                    className={`${inputBase} w-full py-[14px] text-[#171717]`}
                     autoComplete="off"
                   />
                   {errors.jobId && (
