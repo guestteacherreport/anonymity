@@ -48,8 +48,26 @@ function formatInlineText(value: string): ReactNode[] {
   return parts;
 }
 
-export default function RichContent({ content }: { content: string }) {
+export default function RichContent({ content, inline = false }: { content: string; inline?: boolean }) {
   const blocks = content.split(/\n\s*\n/).filter(Boolean);
+
+  // Headings (e.g. an <h1>) can't contain block elements like <p>/<ul>, so
+  // inline mode flattens every block/line into plain text joined by <br>.
+  if (inline) {
+    return (
+      <>
+        {blocks.map((block, blockIndex) => {
+          const lines = block.split("\n");
+          return lines.map((line, lineIndex) => (
+            <Fragment key={`${blockIndex}-${lineIndex}`}>
+              {(blockIndex > 0 || lineIndex > 0) && <br />}
+              {formatInlineText(line.startsWith("- ") ? line.slice(2) : line)}
+            </Fragment>
+          ));
+        })}
+      </>
+    );
+  }
 
   return (
     <>

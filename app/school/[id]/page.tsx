@@ -737,14 +737,22 @@ export default function SchoolDetailPage() {
       <Header />
 
       <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-14 py-6 sm:py-10 pb-12 sm:pb-[80px]">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-[#0171F9] hover:text-blue-700 transition-colors mb-4 cursor-pointer"
-          aria-label="Go back"
-        >
-          <ChevronLeftIcon fill="#0171F9" />
-          <span className="font-[Inter] text-sm font-medium">Back</span>
-        </button>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-[#0171F9] hover:text-blue-700 transition-colors cursor-pointer"
+            aria-label="Go back"
+          >
+            <ChevronLeftIcon fill="#0171F9" />
+            <span className="font-[Inter] text-sm font-medium">Back</span>
+          </button>
+          <Link
+            href={`/submit-report?schoolId=${params.id}`}
+            className="flex items-center justify-center gap-2 py-2 sm:py-2.5 px-4 sm:px-6 rounded-md bg-[#0171F9] text-white font-[Inter] text-xs sm:text-sm font-medium leading-6 hover:bg-blue-700 transition-colors cursor-pointer whitespace-nowrap"
+          >
+            Submit a Report
+          </Link>
+        </div>
 
         {/* School Info Card */}
         <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.10)] p-4 sm:p-6 lg:p-10 mb-6 sm:mb-10">

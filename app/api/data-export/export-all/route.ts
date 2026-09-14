@@ -5,13 +5,15 @@ export async function GET(req: NextRequest) {
   try {
     const city = req.nextUrl.searchParams.get("city");
 
-    let query = supabase.from("reports").select("*");
+    // Embed the school record so city/state in the export always reflect the
+    // current schools table (the source of truth), not a denormalized copy.
+    let query = supabase.from("reports").select("*, schools(city, state)");
 
     if (city) {
       query = query.eq("city", city);
     }
 
-    const { data: reports, error } = await query;
+    const { data: reportsData, error } = await query;
 
     if (error) {
       console.error("Supabase Error:", error);
@@ -23,6 +25,8 @@ export async function GET(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    const reports = flattenSchoolInfo(reportsData);
 
     const csvContent = convertToCSV(reports || []);
 
@@ -43,6 +47,21 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+type ReportRowWithSchool = Record<string, unknown> & {
+  schools?: { city: string | null; state: string | null } | null;
+};
+
+// Pulls the embedded schools(city, state) out of each row into flat
+// school_city / school_state columns, and drops the nested object (it would
+// otherwise serialize as "[object Object]" in the CSV).
+function flattenSchoolInfo(rows: ReportRowWithSchool[] | null) {
+  return (rows || []).map(({ schools, ...report }) => ({
+    ...report,
+    school_city: schools?.city ?? null,
+    school_state: schools?.state ?? null,
+  }));
 }
 
 function convertValue(columnName: string, value: any): string {

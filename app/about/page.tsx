@@ -95,7 +95,7 @@ export default async function AboutPage() {
                 {content.howItWorksHeading}
               </h2>
               <p className="font-inter text-base text-[#212121] leading-[26px] opacity-[0.96] max-w-[600px]">
-                {content.howItWorksDescription}
+                <RichContent content={content.howItWorksDescription} inline />
               </p>
             </div>
 

@@ -2,7 +2,7 @@
 
 import { ChevronLeftIcon, ChevronRightIcon } from "@/lib/icons";
 import { useDebounce } from "@/lib/useDebounce";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
@@ -33,6 +33,106 @@ const ExportRowIcon = () => (
 
 
 // ─── Form Field Components ─────────────────────────────────────────────────────
+
+type SchoolOption = {
+  id: string;
+  name: string;
+  city?: string | null;
+  state?: string | null;
+};
+
+function schoolSubtitle(s: SchoolOption): string {
+  return [s.city, s.state].filter(Boolean).join(", ");
+}
+
+// Same search-and-select pattern as SearchField, but options carry
+// city/state (needed to tell same-named schools apart) and selection
+// resolves directly to a school id/object instead of a re-lookup by name.
+function SchoolSearchField({
+  label,
+  value,
+  onChange,
+  onSelect,
+  options,
+  placeholder = "Search",
+  isLoading = false,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  onSelect: (school: SchoolOption) => void;
+  options: SchoolOption[];
+  placeholder?: string;
+  isLoading?: boolean;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-1.5 flex-1 relative">
+      <label className="font-[Outfit] font-medium text-md text-[#121212]">{label}</label>
+      <div className="relative rounded-lg bg-[#F3F4F5]">
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setShowDropdown(true);
+          }}
+          onFocus={() => setShowDropdown(true)}
+          onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+          placeholder={placeholder}
+          className="w-full px-4 py-3 bg-transparent outline-none font-[Inter] text-sm font-normal text-[#121212] placeholder:text-[#737685]"
+        />
+        {isLoading && (
+          <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[#737685] text-sm">
+            Loading...
+          </span>
+        )}
+      </div>
+
+      {showDropdown && options.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E5E7EB] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+          {options.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onSelect(opt);
+                setShowDropdown(false);
+              }}
+              className="w-full flex flex-col text-left px-4 py-2.5 hover:bg-[#F3F4F5] transition-colors"
+            >
+              <span className="font-[Inter] text-sm text-[#121212]">{opt.name}</span>
+              {schoolSubtitle(opt) && (
+                <span className="font-[Inter] text-xs text-[#737685]">{schoolSubtitle(opt)}</span>
+              )}
+            </button>
+          ))}
+          {hasMore && onLoadMore && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onLoadMore}
+              disabled={loadingMore}
+              className="w-full px-4 py-2.5 text-center font-[Inter] text-sm text-[#0171F9] hover:bg-[#F3F4F5] disabled:opacity-60 transition-colors"
+            >
+              {loadingMore ? "Loading more..." : "Load more results"}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SearchField({
   label,
@@ -258,13 +358,18 @@ export default function DataExportPage() {
   const itemsPerPage = 10;
 
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
-  const [schoolSuggestions, setSchoolSuggestions] = useState<string[]>([]);
+  const [filterCitySuggestions, setFilterCitySuggestions] = useState<string[]>([]);
+  const [schoolSuggestions, setSchoolSuggestions] = useState<SchoolOption[]>([]);
   const [teacherSuggestions, setTeacherSuggestions] = useState<string[]>([]);
   const [exportedCities, setExportedCities] = useState<string[]>([]);
 
   const [loadingCities, setLoadingCities] = useState(false);
   const [loadingSchools, setLoadingSchools] = useState(false);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
+
+  const [schoolPage, setSchoolPage] = useState(1);
+  const [schoolHasMore, setSchoolHasMore] = useState(false);
+  const [schoolLoadingMore, setSchoolLoadingMore] = useState(false);
 
   // const tableContainerRef = useRef<HTMLDivElement>(null);
 
@@ -273,12 +378,14 @@ export default function DataExportPage() {
   const debouncedTeacherInput = useDebounce(teacherInput, 1000);
   const debouncedCityFilter = useDebounce(filterCity, 1000);
 
+  // City (Export Data form) and Filter by City (Recent Data Export table)
+  // are separate fields with their own suggestion lists - each gets its own
+  // effect so typing in one never shows/overwrites the other's dropdown.
   useEffect(() => {
     const fetchCities = async () => {
       setLoadingCities(true);
-      const city = debouncedCityInput ? debouncedCityInput : debouncedCityFilter
       try {
-        const res = await fetch(`/api/data-export/cities?search=${encodeURIComponent(city)}`);
+        const res = await fetch(`/api/data-export/cities?search=${encodeURIComponent(debouncedCityInput)}`);
         const data = await res.json();
         if (data.success) {
           setCitySuggestions(data.cities);
@@ -291,36 +398,75 @@ export default function DataExportPage() {
       }
     };
 
-    if (debouncedCityInput || debouncedCityFilter) fetchCities();
-  }, [debouncedCityInput, debouncedCityFilter]);
-
+    if (debouncedCityInput) fetchCities();
+  }, [debouncedCityInput]);
 
   useEffect(() => {
-    const fetchSchools = async () => {
-      setLoadingSchools(true);
+    const fetchFilterCities = async () => {
+      setLoadingCitiesFilter(true);
       try {
-        const params = new URLSearchParams();
-        if (debouncedSchoolInput) params.append("search", debouncedSchoolInput);
-
-        const res = await fetch(
-          `/api/data-export/schools?${params}`
-        );
+        const res = await fetch(`/api/data-export/cities?search=${encodeURIComponent(debouncedCityFilter)}`);
         const data = await res.json();
         if (data.success) {
-          setSchoolSuggestions(data.schools.map((s: any) => s.name));
+          setFilterCitySuggestions(data.cities);
         }
       } catch (error) {
-        console.error("Error fetching schools:", error);
-        toast.error("Failed to load schools");
+        console.error("Error fetching cities:", error);
+        toast.error("Failed to load cities");
       } finally {
-        setLoadingSchools(false);
+        setLoadingCitiesFilter(false);
       }
     };
 
-    if (debouncedSchoolInput) {
-      fetchSchools();
+    if (debouncedCityFilter) fetchFilterCities();
+  }, [debouncedCityFilter]);
+
+
+  // Fetch schools, scoped to the selected City (if any) and/or the typed
+  // search text, with pagination so "Load more" can reach every match
+  // instead of the whole schools table being fetched at once.
+  const fetchSchools = useCallback(async (searchTerm: string, cityFilter: string, page = 1, append = false) => {
+    if (!searchTerm.trim() && !cityFilter) {
+      setSchoolSuggestions([]);
+      setSchoolHasMore(false);
+      return;
     }
-  }, [debouncedSchoolInput]);
+
+    try {
+      if (append) {
+        setSchoolLoadingMore(true);
+      } else {
+        setLoadingSchools(true);
+      }
+
+      const params = new URLSearchParams({ page: String(page) });
+      if (searchTerm.trim()) params.append("search", searchTerm.trim());
+      if (cityFilter) params.append("city", cityFilter);
+
+      const res = await fetch(`/api/data-export/schools?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        const results = data.schools.map((s: any) => ({ id: s.id, name: s.name, city: s.city, state: s.state }));
+        setSchoolSuggestions((prev) => (append ? [...prev, ...results] : results));
+        setSchoolHasMore(Boolean(data.hasMore));
+        setSchoolPage(page);
+      }
+    } catch (error) {
+      console.error("Error fetching schools:", error);
+      toast.error("Failed to load schools");
+      if (!append) {
+        setSchoolSuggestions([]);
+        setSchoolHasMore(false);
+      }
+    } finally {
+      setLoadingSchools(false);
+      setSchoolLoadingMore(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSchools(debouncedSchoolInput, city, 1, false);
+  }, [debouncedSchoolInput, city, fetchSchools]);
 
   useEffect(() => {
     const fetchTeachers = async () => {
@@ -359,21 +505,15 @@ export default function DataExportPage() {
     setfilterByCity(true);
     setCurrentPage(1);
   };
-  const handleSchoolSelect = async (selectedSchool: string) => {
-    setSchool(selectedSchool);
-    setSchoolInput(selectedSchool);
-
-    const params = new URLSearchParams();
-    params.append("search", selectedSchool);
-
-    const res = await fetch(`/api/data-export/schools?${params}`);
-    const data = await res.json();
-    if (data.success) {
-      const foundSchool = data.schools.find((s: any) => s.name === selectedSchool);
-      if (foundSchool) {
-        setSchoolId(foundSchool.id);
-      }
-    }
+  const handleSchoolSelect = (selectedSchool: SchoolOption) => {
+    // Select directly from the clicked option (which already carries its own
+    // id) instead of re-searching by name afterward - a name-only re-lookup
+    // can't tell apart two schools that share the same name in different
+    // cities/states, which is exactly the ambiguity City/State is meant to
+    // resolve.
+    setSchool(selectedSchool.name);
+    setSchoolInput(selectedSchool.name);
+    setSchoolId(selectedSchool.id);
   };
 
   const handleTeacherSelect = async (selectedTeacher: string) => {
@@ -633,14 +773,24 @@ export default function DataExportPage() {
               placeholder="Search city"
             />
 
-            <SearchField
+            <SchoolSearchField
               label="School"
               value={schoolInput}
-              onChange={setSchoolInput}
+              onChange={(val) => {
+                setSchoolInput(val);
+                // Editing the text after a selection invalidates it - the
+                // previous schoolId must not silently keep pointing at a
+                // school that no longer matches what's displayed.
+                setSchool("");
+                setSchoolId("");
+              }}
               onSelect={handleSchoolSelect}
               options={schoolSuggestions}
               isLoading={loadingSchools}
-              placeholder="Search school"
+              placeholder={city ? `Search school in ${city}` : "Search school"}
+              hasMore={schoolHasMore}
+              loadingMore={schoolLoadingMore}
+              onLoadMore={() => fetchSchools(debouncedSchoolInput, city, schoolPage + 1, true)}
             />
 
             <MultiSelectTeacherField
@@ -705,14 +855,14 @@ export default function DataExportPage() {
                       className="w-full px-4 py-3 bg-transparent outline-none font-[Inter] text-sm text-[#121212] placeholder:text-[#737685]"
                     />
 
-                    {loadingCities && (
+                    {loadingCitiesFilter && (
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#737685] text-sm">
                         Loading...
                       </span>
                     )}
-                    {showDropdown && citySuggestions?.length > 0 && (
+                    {showDropdown && filterCitySuggestions?.length > 0 && (
                       <div className="absolute top-full left-0 mt-1 w-full bg-white border border-[#E5E7EB] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-                        {citySuggestions.map((opt) => (
+                        {filterCitySuggestions.map((opt) => (
                           <button
                             key={opt}
                             type="button"
@@ -733,7 +883,7 @@ export default function DataExportPage() {
                   {filterCity && <button
                     type="button"
                     onClick={() => {
-                      setCitySuggestions([]);
+                      setFilterCitySuggestions([]);
                       setfilterByCity(true);
                       setFilterCity("");
                     }}

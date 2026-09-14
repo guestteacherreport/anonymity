@@ -247,13 +247,21 @@ function SchoolCard({ school }: { school: School }) {
           </div>}
         </div>
 
-        {/* View Details button */}
-        <Link
-          href={`/school/${school.id}`}
-          className="flex items-center justify-center gap-2 w-full py-2 sm:py-2.5 px-6 sm:px-8 rounded-md bg-[#0171F9] text-white font-[Inter] text-xs sm:text-sm font-medium leading-6 hover:bg-blue-700 transition-colors cursor-pointer mt-auto"
-        >
-          View Details
-        </Link>
+        {/* View Details + Submit a Report buttons */}
+        <div className="flex items-center gap-2 mt-auto">
+          <Link
+            href={`/school/${school.id}`}
+            className="flex flex-1 items-center justify-center gap-2 py-2 sm:py-2.5 px-4 sm:px-6 rounded-md bg-[#0171F9] text-white font-[Inter] text-xs sm:text-sm font-medium leading-6 hover:bg-blue-700 transition-colors cursor-pointer"
+          >
+            View Details
+          </Link>
+          <Link
+            href={`/submit-report?schoolId=${school.id}`}
+            className="flex flex-1 items-center justify-center gap-2 py-2 sm:py-2.5 px-4 sm:px-6 rounded-md border border-[#0171F9] text-[#0171F9] font-[Inter] text-xs sm:text-sm font-medium leading-6 hover:bg-[#EFF6FF] transition-colors cursor-pointer"
+          >
+            Submit a Report
+          </Link>
+        </div>
       </div>
     </div>
   );

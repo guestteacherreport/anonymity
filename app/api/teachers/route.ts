@@ -77,12 +77,20 @@ export async function GET(req: NextRequest) {
     const school_id =
       req.nextUrl.searchParams.get("school_id");
 
-    const page = parseInt(
+    const page = Math.max(1, parseInt(
       req.nextUrl.searchParams.get("page") || "1"
-    );
+    ) || 1);
 
-    const limit = parseInt(
-      req.nextUrl.searchParams.get("limit") || "10"
+    // A search within one school can still match many teachers, so give an
+    // active search a larger page than a plain (unsearched) browse - the
+    // caller pages further with `page` instead of the whole roster ever
+    // being fetched at once.
+    const requestedLimit = parseInt(
+      req.nextUrl.searchParams.get("limit") || ""
+    );
+    const limit = Math.min(
+      100,
+      requestedLimit > 0 ? requestedLimit : search.trim() ? 50 : 10
     );
 
     const riskFilter =
@@ -148,6 +156,17 @@ export async function GET(req: NextRequest) {
     } = await teachersQuery;
 
     if (teachersError) {
+      // A page requested past the last available record (e.g. a stray
+      // double "Load more" click) isn't a real failure - just no more rows.
+      if (teachersError.code === "PGRST103") {
+        return NextResponse.json({
+          success: true,
+          teachers: [],
+          hasMore: false,
+          pagination: { page, limit, total: count || 0, totalPages: Math.ceil((count || 0) / limit) },
+        });
+      }
+
       console.error(teachersError);
 
       return NextResponse.json(
@@ -261,18 +280,19 @@ export async function GET(req: NextRequest) {
     //     return true;
     //   });
 
+    const total = count || 0;
+
     return NextResponse.json({
       success: true,
 
       teachers: teachersData,
+      hasMore: total > (page - 1) * limit + (teachersData?.length || 0),
 
       pagination: {
         page,
         limit,
-        total: count || 0,
-        totalPages: Math.ceil(
-          (count || 0) / limit
-        ),
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     });
   } catch (error) {

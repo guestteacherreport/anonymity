@@ -331,7 +331,7 @@ export default function SchoolEditForm() {
                             <div className="flex flex-col gap-2 sm:gap-2.5" id="schoolYear">
                                 <label className="font-outfit font-medium text-sm sm:text-base text-[#121212] leading-6">School Year</label>
                                 <p className="font-inter text-xs sm:text-sm text-[#6B7280] -mt-1">
-                                    Each school year creates a new record. Regular teachers often transfer between years, changing a school's dynamics.
+                                    Each school year creates a new record. Classroom teachers often transfer between years, changing a school's dynamics.
                                 </p>
                                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                                     {SCHOOL_YEARS.map((year) => (

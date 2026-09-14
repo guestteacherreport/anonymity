@@ -120,7 +120,7 @@ export default async function Home() {
                 {content.heroEyebrow}
               </div>
               <h1 className="text-gray-950 font-inter text-[clamp(25px,5vw,50px)] font-bold leading-[1.13]">
-                {content.heroHeading}
+                <RichContent content={content.heroHeading} inline />
               </h1>
               <div className="flex items-center gap-[15px] flex-wrap justify-center">
                 <Link href={content.primaryButtonHref} className="flex items-center justify-center gap-2  px-8 py-4 rounded-xl bg-blue-600 text-white font-inter text-base font-bold leading-6 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/6">

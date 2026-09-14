@@ -67,6 +67,300 @@ function TextInput({ placeholder, value, onChange, type = "text", error, id }: {
   );
 }
 
+type SchoolOption = {
+  id: number;
+  school_name: string;
+  city?: string;
+  state?: string;
+  street_address?: string;
+  zipcode?: string;
+};
+
+type TeacherOption = {
+  id: number;
+  name: string;
+  school_id: number;
+};
+
+// Shared by Add Event and Edit Event (rather than each maintaining its own
+// copy) so both forms search/paginate schools identically. Self-contained:
+// owns its own suggestions/pagination state and flips its dropdown above the
+// field (vs. below) based on the viewport, so it works the same whether it's
+// rendered inside the Add Event slide-in panel or the Edit Event modal.
+function SchoolSearchInput({
+  value,
+  onChange,
+  onSelect,
+  label = "School Name",
+  required,
+  placeholder = "e.g. Lincoln High School",
+  error,
+  id,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onSelect: (school: SchoolOption) => void;
+  label?: string;
+  required?: boolean;
+  placeholder?: string;
+  error?: string;
+  id?: string;
+}) {
+  const [suggestions, setSuggestions] = useState<SchoolOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [placement, setPlacement] = useState<"up" | "down">("down");
+  const fieldRef = useRef<HTMLDivElement>(null);
+  // Every keystroke fires its own fetch (no debounce, matching the existing
+  // pattern), so responses can arrive out of order - e.g. a broad early
+  // query like "B" can resolve after the final "Bradley" query and clobber
+  // it. Tagging each request and only applying the latest one keeps a fast
+  // search term change (or Load More racing a new keystroke) from ever
+  // showing results for a stale query.
+  const requestIdRef = useRef(0);
+
+  const fetchSchools = useCallback(async (query: string, pageNum = 1, append = false) => {
+    if (!query.trim()) {
+      requestIdRef.current += 1;
+      setSuggestions([]);
+      setHasMore(false);
+      return;
+    }
+
+    const requestId = ++requestIdRef.current;
+    try {
+      if (append) setLoadingMore(true); else setLoading(true);
+      const params = new URLSearchParams({ search: query, page: String(pageNum) });
+      const response = await fetch(`/api/schoolSearch?${params.toString()}`);
+      if (requestId !== requestIdRef.current) return;
+
+      if (response.ok) {
+        const data = await response.json();
+        if (requestId !== requestIdRef.current) return;
+        const results: SchoolOption[] = Array.isArray(data) ? data : data.schools || [];
+        setSuggestions((prev) => (append ? [...prev, ...results] : results));
+        setHasMore(Boolean(data.hasMore));
+        setPage(pageNum);
+      }
+    } catch (error) {
+      console.error("Error fetching schools:", error);
+      if (!append && requestId === requestIdRef.current) {
+        setSuggestions([]);
+        setHasMore(false);
+      }
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showSuggestions) return;
+    const fieldRect = fieldRef.current?.getBoundingClientRect();
+    if (!fieldRect) return;
+    const menuHeight = 192;
+    const spaceBelow = window.innerHeight - fieldRect.bottom;
+    const spaceAbove = fieldRect.top;
+    setPlacement(spaceBelow < menuHeight && spaceAbove > spaceBelow ? "up" : "down");
+  }, [showSuggestions, suggestions.length]);
+
+  return (
+    <div className="relative" ref={fieldRef}>
+      <FieldLabel required={required}>{label}</FieldLabel>
+      <TextInput
+        id={id}
+        value={value}
+        onChange={(v) => {
+          onChange(v);
+          fetchSchools(v, 1, false);
+          setShowSuggestions(true);
+        }}
+        placeholder={placeholder}
+        error={error}
+      />
+      {showSuggestions && suggestions.length > 0 && (
+        <div className={`${placement === "up" ? "absolute bottom-full mb-1" : "absolute top-full mt-1"} left-0 right-0 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto`}>
+          {loading && (
+            <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
+          )}
+          {!loading && suggestions.map((school) => (
+            <button
+              key={school.id}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onSelect(school);
+                setShowSuggestions(false);
+              }}
+              className="w-full flex flex-col text-left px-4 py-3 hover:bg-[#F3F4F5] border-b border-[#E0E0E2] last:border-b-0 transition-colors"
+            >
+              <span className="font-inter text-sm text-[#121212]">{school.school_name}</span>
+              {(school.city || school.state) && (
+                <span className="font-inter text-xs text-[#6B7280]">
+                  {[school.city, school.state].filter(Boolean).join(", ")}
+                </span>
+              )}
+            </button>
+          ))}
+          {!loading && hasMore && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => fetchSchools(value, page + 1, true)}
+              disabled={loadingMore}
+              className="w-full px-4 py-3 text-center font-inter text-sm text-[#0171F9] hover:bg-[#F3F4F5] disabled:opacity-60 transition-colors"
+            >
+              {loadingMore ? "Loading more..." : "Load more results"}
+            </button>
+          )}
+        </div>
+      )}
+      {showSuggestions && !loading && suggestions.length === 0 && value.trim() && (
+        <div className={`${placement === "up" ? "absolute bottom-full mb-1" : "absolute top-full mt-1"} left-0 right-0 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-50`}>
+          <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No schools found</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Mirrors SchoolSearchInput - shared by Add Event and Edit Event. Search is
+// scoped to whichever school is currently selected (schoolId), matching the
+// existing /api/teachers?school_id= requirement.
+function TeacherSearchInput({
+  value,
+  onChange,
+  onSelect,
+  schoolId,
+  label = "Teacher's Full Name",
+  placeholder = "e.g. Maria Gonzalez",
+  error,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onSelect: (teacher: TeacherOption) => void;
+  schoolId?: number | string | null;
+  label?: string;
+  placeholder?: string;
+  error?: string;
+}) {
+  const [suggestions, setSuggestions] = useState<TeacherOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [placement, setPlacement] = useState<"up" | "down">("down");
+  const fieldRef = useRef<HTMLDivElement>(null);
+  // See SchoolSearchInput's requestIdRef - same out-of-order-response guard.
+  const requestIdRef = useRef(0);
+
+  const fetchTeachers = useCallback(async (query: string, forSchoolId: number | string | null | undefined, pageNum = 1, append = false) => {
+    if (!query.trim() || !forSchoolId) {
+      requestIdRef.current += 1;
+      setSuggestions([]);
+      setHasMore(false);
+      return;
+    }
+
+    const requestId = ++requestIdRef.current;
+    try {
+      if (append) setLoadingMore(true); else setLoading(true);
+      const params = new URLSearchParams({ search: query, school_id: String(forSchoolId), page: String(pageNum) });
+      const response = await fetch(`/api/teachers?${params.toString()}`);
+      if (requestId !== requestIdRef.current) return;
+
+      if (response.ok) {
+        const data = await response.json();
+        if (requestId !== requestIdRef.current) return;
+        const results: TeacherOption[] = Array.isArray(data) ? data : data.teachers || [];
+        setSuggestions((prev) => (append ? [...prev, ...results] : results));
+        setHasMore(Boolean(data.hasMore));
+        setPage(pageNum);
+      }
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+      if (!append && requestId === requestIdRef.current) {
+        setSuggestions([]);
+        setHasMore(false);
+      }
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showSuggestions) return;
+    const fieldRect = fieldRef.current?.getBoundingClientRect();
+    if (!fieldRect) return;
+    const menuHeight = 192;
+    const spaceBelow = window.innerHeight - fieldRect.bottom;
+    const spaceAbove = fieldRect.top;
+    setPlacement(spaceBelow < menuHeight && spaceAbove > spaceBelow ? "up" : "down");
+  }, [showSuggestions, suggestions.length]);
+
+  return (
+    <div className="relative" ref={fieldRef}>
+      <FieldLabel>{label}</FieldLabel>
+      <TextInput
+        value={value}
+        onChange={(v) => {
+          onChange(v);
+          fetchTeachers(v, schoolId, 1, false);
+          setShowSuggestions(true);
+        }}
+        placeholder={placeholder}
+        error={error}
+      />
+      {showSuggestions && suggestions.length > 0 && (
+        <div className={`${placement === "up" ? "absolute bottom-full mb-1" : "absolute top-full mt-1"} left-0 right-0 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto`}>
+          {loading && (
+            <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
+          )}
+          {!loading && suggestions.map((teacher) => (
+            <button
+              key={teacher.id}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onSelect(teacher);
+                setShowSuggestions(false);
+              }}
+              className="w-full text-left px-4 py-3 hover:bg-[#F3F4F5] font-inter text-sm text-[#121212] border-b border-[#E0E0E2] last:border-b-0 transition-colors"
+            >
+              {teacher.name}
+            </button>
+          ))}
+          {!loading && hasMore && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => fetchTeachers(value, schoolId, page + 1, true)}
+              disabled={loadingMore}
+              className="w-full px-4 py-3 text-center font-inter text-sm text-[#0171F9] hover:bg-[#F3F4F5] disabled:opacity-60 transition-colors"
+            >
+              {loadingMore ? "Loading more..." : "Load more results"}
+            </button>
+          )}
+        </div>
+      )}
+      {showSuggestions && !loading && suggestions.length === 0 && value.trim() && (
+        <div className={`${placement === "up" ? "absolute bottom-full mb-1" : "absolute top-full mt-1"} left-0 right-0 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-10`}>
+          <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No teachers found</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-2 mb-6">
@@ -211,11 +505,13 @@ function AddEventSidebar({
   onClose,
   onSave,
   fetchUpcoming,
+  initialDate,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onSave: (event: CalendarEvent) => void
   fetchUpcoming: () => void
+  initialDate?: string | null;
 }) {
   const today = format(new Date(), "yyyy-MM-dd");
   const [startDate, setStartDate] = useState(today);
@@ -235,47 +531,21 @@ function AddEventSidebar({
   const [notes, setNotes] = useState("");
   const dateRef1 = useRef<HTMLInputElement>(null);
   const dateRef2 = useRef<HTMLInputElement>(null);
-  const [schoolSuggestions, setSchoolSuggestions] = useState<string[]>([]);
-  const [schoolSearchLoading, setSchoolSearchLoading] = useState(false);
-  const [showSchoolSuggestions, setShowSchoolSuggestions] = useState(false);
-  const [teacherSuggestions, setTeacherSuggestions] = useState<string[]>([]);
-  const [teacherSearchLoading, setTeacherSearchLoading] = useState(false);
-  const [showTeacherSuggestions, setShowTeacherSuggestions] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [suggestionPlacement, setSuggestionPlacement] = useState<"up" | "down">("down");
   const formRef1 = useRef<HTMLDivElement>(null);
-  const suggestionScrollRef = useRef<HTMLDivElement>(null);
-  const schoolFieldRef = useRef<HTMLDivElement>(null);
-  const teacherFieldRef = useRef<HTMLDivElement>(null);
 
   const [title, setTitle] = useState("");
 
-  const updateSuggestionPlacement = useCallback(() => {
-    const fieldRef = showSchoolSuggestions ? schoolFieldRef : teacherFieldRef;
-    const fieldRect = fieldRef.current?.getBoundingClientRect();
-    const scrollRect = suggestionScrollRef.current?.getBoundingClientRect();
-
-    if (!fieldRect || !scrollRect) return;
-
-    const menuHeight = 192;
-    const spaceBelow = scrollRect.bottom - fieldRect.bottom;
-    const spaceAbove = fieldRect.top - scrollRect.top;
-    setSuggestionPlacement(spaceBelow < menuHeight && spaceAbove > spaceBelow ? "up" : "down");
-  }, [showSchoolSuggestions, showTeacherSuggestions]);
-
+  // Applies a double-clicked date each time the form opens with one, without
+  // touching reset()/handleSave's own use of `today` - a plain "Add Job /
+  // Event" open (initialDate null) still defaults to today exactly as before.
   useEffect(() => {
-    if (!showSchoolSuggestions && !showTeacherSuggestions) return;
-
-    updateSuggestionPlacement();
-    window.addEventListener("resize", updateSuggestionPlacement);
-    suggestionScrollRef.current?.addEventListener("scroll", updateSuggestionPlacement);
-
-    return () => {
-      window.removeEventListener("resize", updateSuggestionPlacement);
-      suggestionScrollRef.current?.removeEventListener("scroll", updateSuggestionPlacement);
-    };
-  }, [showSchoolSuggestions, showTeacherSuggestions, updateSuggestionPlacement]);
+    if (isOpen && initialDate) {
+      setStartDate(initialDate);
+      setEndDate(initialDate);
+    }
+  }, [isOpen, initialDate]);
 
   useEffect(() => {
     scrollToFirstError(errors, formRef1);
@@ -470,50 +740,6 @@ function AddEventSidebar({
     }
   };
 
-  const fetchSchools = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setSchoolSuggestions([]);
-      return;
-    }
-
-    try {
-      setSchoolSearchLoading(true);
-      const response = await fetch(`/api/schoolSearch?search=${encodeURIComponent(query)}`);
-
-      if (response.ok) {
-        const data = await response.json();
-        setSchoolSuggestions(Array.isArray(data) ? data : data.schools || []);
-      }
-    } catch (error) {
-      console.error("Error fetching schools:", error);
-      setSchoolSuggestions([]);
-    } finally {
-      setSchoolSearchLoading(false);
-    }
-  }, []);
-
-  const fetchTeachers = useCallback(async (query: string, schoolId: number) => {
-    if (!query.trim()) {
-      setTeacherSuggestions([]);
-      return;
-    }
-
-    try {
-      setTeacherSearchLoading(true);
-      const response = await fetch(`/api/teachers?search=${encodeURIComponent(query)}&school_id=${schoolId}`);
-
-      if (response.ok) {
-        const data = await response.json();
-        setTeacherSuggestions(Array.isArray(data) ? data : data.teachers || []);
-      }
-    } catch (error) {
-      console.error("Error fetching teachers:", error);
-      setTeacherSuggestions([]);
-    } finally {
-      setTeacherSearchLoading(false);
-    }
-  }, []);
-
   return (
     <>
       <div
@@ -541,7 +767,7 @@ function AddEventSidebar({
           </button>
         </div>
 
-        <div ref={suggestionScrollRef} className="flex-1 overflow-y-auto px-6 flex flex-col hide-scrollbar">
+        <div className="flex-1 overflow-y-auto px-6 flex flex-col hide-scrollbar">
           {/* <div>
             <SectionHeader
               title="Job / Event Details"
@@ -664,53 +890,22 @@ function AddEventSidebar({
               }
             />
             <div className="flex flex-col gap-4">
-              <div className="relative" ref={schoolFieldRef}>
-                <FieldLabel required>School Name</FieldLabel>
-                <TextInput
-                  value={schoolName}
-                  id="schoolName"
-                  onChange={(value: string) => {
-                    setErrors((prev) => ({
-                      ...prev,
-                      schoolName: "",
-                    }))
-                    setSchoolName(value);
-                    fetchSchools(value);
-                    setSchoolId("");
-                    setShowSchoolSuggestions(true);
-                  }}
-                  placeholder="e.g. Lincoln High School"
-                  error={errors.schoolName}
-                />
-                {showSchoolSuggestions && (schoolSuggestions.length > 0) && (
-                  <div className={`${suggestionPlacement === "up" ? "absolute bottom-full mb-1" : "absolute top-full mt-1"} left-0 right-0 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto`}>
-                    {schoolSearchLoading && (
-                      <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
-                    )}
-                    {!schoolSearchLoading && schoolSuggestions.length > 0 && (
-                      schoolSuggestions.map((school: any, idx: number) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setSchoolAddress(`${school.street_address}, ${school.city}, ${school.state}, ${school.zipcode}`);
-                            setSchoolName(school.school_name);
-                            setSchoolId(school.id);
-                            setShowSchoolSuggestions(false);
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-[#F3F4F5] font-inter text-sm text-[#121212] border-b border-[#E0E0E2] last:border-b-0 transition-colors"
-                        >
-                          {school.school_name}
-                        </button>
-                      ))
-                    )}
-                    {!schoolSearchLoading && schoolSuggestions.length === 0 && (
-                      <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No schools found</div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <SchoolSearchInput
+                id="schoolName"
+                value={schoolName}
+                required
+                error={errors.schoolName}
+                onChange={(value) => {
+                  setErrors((prev) => ({ ...prev, schoolName: "" }));
+                  setSchoolName(value);
+                  setSchoolId("");
+                }}
+                onSelect={(school) => {
+                  setSchoolAddress(`${school.street_address}, ${school.city}, ${school.state}, ${school.zipcode}`);
+                  setSchoolName(school.school_name);
+                  setSchoolId(school.id);
+                }}
+              />
               <div id="schoolAddress">
                 <FieldLabel required>School Address</FieldLabel>
                 <TextInput
@@ -748,7 +943,7 @@ function AddEventSidebar({
 
           <div>
             <SectionHeader
-              title="Regular Teacher's Info"
+              title="Classroom teacher's Info"
               icon={
                 <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
                   <circle cx="9" cy="6" r="3.5" stroke="#0171F9" strokeWidth="1.5" />
@@ -757,45 +952,18 @@ function AddEventSidebar({
               }
             />
             <div className="flex flex-col gap-4">
-              <div className="relative" ref={teacherFieldRef}>
-                <FieldLabel>Teacher's Full Name</FieldLabel>
-                <TextInput
-                  value={teacherName}
-                  onChange={(value: string) => {
-                    setTeacherName(value);
-                    setTeacherId("");
-                    setShowTeacherSuggestions(true);
-                    fetchTeachers(value, schoolId);
-                  }}
-                  placeholder="e.g. Maria Gonzalez"
-                />
-                {showTeacherSuggestions && (teacherSuggestions.length > 0) && (
-                  <div className={`${suggestionPlacement === "up" ? "absolute bottom-full mb-1" : "absolute top-full mt-1"} left-0 right-0 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto`}>
-                    {teacherSearchLoading && (
-                      <div className="px-4 py-3 text-center text-sm text-[#6B7280]">Searching...</div>
-                    )}
-                    {!teacherSearchLoading && teacherSuggestions.length > 0 && (
-                      teacherSuggestions.map((teacher: any, idx1: number) => (
-                        <button
-                          key={idx1}
-                          type="button"
-                          onMouseDown={() => {
-                            setTeacherName(teacher.name);
-                            setTeacherId(teacher.id);
-                            setShowTeacherSuggestions(false);
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-[#F3F4F5] font-inter text-sm text-[#121212] border-b border-[#E0E0E2] last:border-b-0 transition-colors"
-                        >
-                          {teacher.name}
-                        </button>
-                      ))
-                    )}
-                    {!teacherSearchLoading && teacherSuggestions.length === 0 && teacherName.trim() && (
-                      <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No teachers found</div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <TeacherSearchInput
+                value={teacherName}
+                schoolId={schoolId}
+                onChange={(value) => {
+                  setTeacherName(value);
+                  setTeacherId("");
+                }}
+                onSelect={(teacher) => {
+                  setTeacherName(teacher.name);
+                  setTeacherId(teacher.id);
+                }}
+              />
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <FieldLabel>Teacher's Phone</FieldLabel>
@@ -878,6 +1046,12 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Set when a calendar day is double-clicked, so Add Event opens pre-filled
+  // with that date instead of today. Kept as the plain "YYYY-MM-DD" string
+  // each day cell's own data-date attribute already provides, never
+  // round-tripped through a Date object, so there's no UTC/local conversion
+  // to shift it.
+  const [prefilledDate, setPrefilledDate] = useState<string | null>(null);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -1064,7 +1238,9 @@ export default function CalendarPage() {
           school_address: event.school_address || "",
           school_phone: event.school_phone || "",
           school_email: event.school_email || "",
+          school_id: event.school_id || null,
           teacher_name: event.teacher_name || "",
+          teacher_id: event.teacher_id || null,
           teacher_phone: event.teacher_phone || "",
           teacher_email: event.teacher_email || "",
           notes: event.notes || "",
@@ -1108,6 +1284,17 @@ export default function CalendarPage() {
 
   const handleSelectDate = (info: any) => {
     setSelectedDay(new Date(info.dateStr));
+  };
+
+  // Opens Add Event pre-filled with a specific date (from a day-cell double
+  // click - see dayCellDidMount below). Add Event's own date fields don't
+  // allow a past date (min={today}), so a double-click on a past day still
+  // opens the form pre-filled at today rather than landing on a date the
+  // form would reject.
+  const openAddEventForDate = (dateStr: string) => {
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    setPrefilledDate(dateStr < todayStr ? todayStr : dateStr);
+    setIsSidebarOpen(true);
   };
 
   const validateForm = (): boolean => {
@@ -1281,7 +1468,7 @@ export default function CalendarPage() {
             </span> : ""}
           </div>
           <button
-            onClick={() => setIsSidebarOpen(true)}
+            onClick={() => { setPrefilledDate(null); setIsSidebarOpen(true); }}
             className="flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-[#0171F9] text-white font-inter text-sm sm:text-base font-bold rounded-xl hover:bg-blue-700 transition-colors cursor-pointer self-start sm:self-auto"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -1351,6 +1538,19 @@ export default function CalendarPage() {
               contentHeight="auto"
               events={fullCalendarEvents}
               dateClick={handleSelectDate}
+              dayCellDidMount={(info) => {
+                // FullCalendar has no dedicated double-click prop, and its
+                // own dateClick doesn't reliably fire twice for a fast
+                // double-click, so the native browser dblclick event is used
+                // directly on each day cell. This is fully independent of
+                // dateClick/handleSelectDate above (which still runs on
+                // every single click exactly as before), and reads the
+                // cell's own data-date attribute rather than info.date, to
+                // avoid any Date-object/timezone round-trip.
+                const dateStr = info.el.getAttribute("data-date");
+                if (!dateStr) return;
+                info.el.addEventListener("dblclick", () => openAddEventForDate(dateStr));
+              }}
               eventClick={handleSelectEvent}
               eventDidMount={(info) => {
                 const { backgroundColor, borderColor, textColor } = info.event;
@@ -1404,9 +1604,10 @@ export default function CalendarPage() {
 
       <AddEventSidebar
         isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
+        onClose={() => { setIsSidebarOpen(false); setPrefilledDate(null); }}
         onSave={handleAddEvent}
         fetchUpcoming={fetchUpcomingJobs}
+        initialDate={prefilledDate}
       />
 
       {selectedEvent && (
@@ -1644,13 +1845,18 @@ export default function CalendarPage() {
                     <h3 className="text-[#121212] font-inter text-base font-bold mb-4">School Information</h3>
                     <div className="space-y-4">
                       <div id="school_name">
-                        <FieldLabel required>School Name</FieldLabel>
-                        <TextInput
+                        <SchoolSearchInput
                           value={editFormData.school_name}
-
-                          onChange={(v) => setEditFormData({ ...editFormData, school_name: v })}
-                          placeholder="School name"
+                          required
                           error={errors2.school_name}
+                          placeholder="School name"
+                          onChange={(v) => setEditFormData({ ...editFormData, school_name: v, school_id: null })}
+                          onSelect={(school) => setEditFormData({
+                            ...editFormData,
+                            school_name: school.school_name,
+                            school_address: `${school.street_address}, ${school.city}, ${school.state}, ${school.zipcode}`,
+                            school_id: school.id,
+                          })}
                         />
                       </div>
                       <div id="school_address">
@@ -1690,11 +1896,17 @@ export default function CalendarPage() {
                     <h3 className="text-[#121212] font-inter text-base font-bold mb-4">Teacher Information</h3>
                     <div className="space-y-4">
                       <div>
-                        <FieldLabel>Teacher Name</FieldLabel>
-                        <TextInput
+                        <TeacherSearchInput
                           value={editFormData.teacher_name}
-                          onChange={(v) => setEditFormData({ ...editFormData, teacher_name: v })}
+                          schoolId={editFormData.school_id}
+                          label="Teacher Name"
                           placeholder="Teacher name"
+                          onChange={(v) => setEditFormData({ ...editFormData, teacher_name: v, teacher_id: null })}
+                          onSelect={(teacher) => setEditFormData({
+                            ...editFormData,
+                            teacher_name: teacher.name,
+                            teacher_id: teacher.id,
+                          })}
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">

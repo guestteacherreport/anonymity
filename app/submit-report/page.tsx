@@ -1,13 +1,25 @@
 "use client";
 
-import { useRef, useState, useReducer, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useState, useReducer, useCallback, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { scrollToError } from "@/lib/function";
 import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
 import { CalendarIcon } from "@/lib/icons";
+
+/* ─── Constants ───────────────────────────────────── */
+
+// Used to filter the School Name search when a name (e.g. "Bradley") matches
+// many schools across different states.
+const US_STATES = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI",
+  "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN",
+  "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH",
+  "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA",
+  "WV", "WI", "WY",
+];
 
 /* ─── Types ───────────────────────────────────────── */
 
@@ -200,6 +212,29 @@ const SearchIcon = () => (
 
 
 
+const LockIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+    <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" stroke="#4B6B91" strokeWidth="1.3" />
+    <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" stroke="#4B6B91" strokeWidth="1.3" strokeLinecap="round" />
+  </svg>
+);
+
+// Shown next to fields that are collected for internal reference but never
+// displayed on the posted report (Teacher Name, Job ID, Assignment Date).
+// The label text is hidden in the narrow band where the two-column Job
+// ID/Date row is too tight for the full label to sit next to a long field
+// label without wrapping - full width (mobile, stacked) and wide desktop
+// widths both have room, so only that middle band goes icon-only.
+const NotShownNote = () => (
+  <span
+    className="inline-flex max-w-full shrink-0 items-center gap-1 rounded-md border border-[#D8E8FF] bg-[#F4F8FF] px-1.5 py-1 font-inter text-[11px] font-medium leading-4 whitespace-nowrap text-[#4B6B91]"
+    title="Not visible publicly"
+  >
+    <LockIcon />
+    <span className="hidden max-sm:inline md:inline">Not visible publicly</span>
+  </span>
+);
+
 const StarFilled = () => (
   <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M16.3462 10.4515L16.5806 11.0062L17.1802 11.059L23.2271 11.5834L18.6538 15.5482L18.1987 15.9427L18.3345 16.5297L19.6968 22.4232L14.5171 19.2982L14.0005 18.9867L13.4839 19.2982L8.30225 22.4232L9.6665 16.5297L9.80225 15.9427L9.34717 15.5482L4.77295 11.5834L10.8198 11.059L11.4204 11.0062L11.6548 10.4515L13.9995 4.90173L16.3462 10.4515Z" fill="#FFBF0F" stroke="#FFBF0F" strokeWidth="2" />
@@ -261,8 +296,8 @@ const WarningBanner = () => (
   <div className="flex items-start gap-2 p-[17px_16px] rounded-[6px] border border-[#FFC107] bg-[#FFF3CD]">
     <ShieldIcon />
     <p className="text-[#856404] font-inter text-sm font-medium leading-[23px]">
-      <strong className="font-bold">IMPORTANT — To protect minors:</strong>{" "}
-      Under NO circumstance should a student&apos;s name or description be posted or mentioned on this site at any time!!!
+      <strong className="font-bold">Your privacy is protected:</strong>{" "}
+      All submissions are completely anonymous — your identity is never shared with schools, teachers, or other users.
     </p>
   </div>
 );
@@ -280,13 +315,13 @@ const RATING_CATEGORIES: { label: string; key: RatingKeys }[] = [
 ];
 
 const ALL_TAGS = [
-  "Friendly Teachers", "Unfriendly Teachers", "Unwelcoming Environment",
-  "Friendly Students", "Unfriendly Students", "Great Leadership", "Poor Leadership",
-  "Job As Described", "Job NOT As Described", "None/Few Student Behaviors", "Many Student Behaviors", "Helpful Aides/Proctors", "Unhelpful Aides/Proctors","Detailed Lesson Plans","Insufficient Lesson Plans","No Lesson Plans","Welcoming Environment"
+  "Friendly Teachers", "Unfriendly Teachers", "Unwelcoming Environment", "Welcoming Environment",
+  "Helpful Office Staff", "Unhelpful Office Staff", "Friendly Students", "Unfriendly Students", "Great Leadership", "Poor Leadership",
+  "Job As Described", "Job NOT As Described", "None/Few Student Behaviors", "Many Student Behaviors", "Helpful Aides/Proctors", "Unhelpful Aides/Proctors","Detailed Lesson Plans","Insufficient Lesson Plans","No Lesson Plans"
 ];
 
 const NEGATIVE_TAGS = new Set([
-  "Unfriendly Teachers", "Unwelcoming Environment", "Unfriendly Students",
+  "Unfriendly Teachers", "Unwelcoming Environment","Unhelpful Office Staff", "Unfriendly Students",
   "Poor Leadership", "Job NOT As Described", "Negative Impact Student(s)","None/Few Student Behaviors","Insufficient Lesson Plans", "Unhelpful Aides/Proctors","No Lesson Plans"
 ]);
 
@@ -354,8 +389,11 @@ function ReturnChoiceGroup({ value, onChange }: { value: ReturnChoice; onChange:
 
 /* ─── Page ───────────────────────────────────────────────────────────── */
 
-export default function SubmitReportPage() {
+function SubmitReportForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefillSchoolId = searchParams.get("schoolId");
+  const prefillTeacherId = searchParams.get("teacherId");
   const [state, dispatch] = useReducer(formReducer, initialState);
   const [errors, setErrors] = useState<FormErrors>({});
   const dateRef = useRef<HTMLInputElement>(null);
@@ -365,6 +403,10 @@ export default function SubmitReportPage() {
   const [schoolSuggestions, setSchoolSuggestions] = useState<string[]>([]);
   const [schoolSearchLoading, setSchoolSearchLoading] = useState(false);
   const [showSchoolSuggestions, setShowSchoolSuggestions] = useState(false);
+  const [schoolStateFilter, setSchoolStateFilter] = useState("All");
+  const [schoolPage, setSchoolPage] = useState(1);
+  const [schoolHasMore, setSchoolHasMore] = useState(false);
+  const [schoolLoadingMore, setSchoolLoadingMore] = useState(false);
 
   // Teachers search state
   const [teacherSuggestions, setTeacherSuggestions] = useState<string[]>([]);
@@ -373,6 +415,7 @@ export default function SubmitReportPage() {
 
   // Form submission loading state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewReport, setPreviewReport] = useState<FormState | null>(null);
   const isGuestTeacher = session?.user?.role === "guest_teacher";
 
   const updateField = useCallback(
@@ -382,26 +425,46 @@ export default function SubmitReportPage() {
     []
   );
 
-  // Fetch schools by search query
-  const fetchSchools = useCallback(async (query: string) => {
+  // Fetch schools by search query, optionally narrowed by state and paged.
+  // `append` is used for "Load more" - later pages are added to the
+  // existing suggestions instead of replacing them.
+  const fetchSchools = useCallback(async (query: string, stateFilter: string, page = 1, append = false) => {
     if (!query.trim()) {
       setSchoolSuggestions([]);
+      setSchoolHasMore(false);
       return;
     }
 
     try {
-      setSchoolSearchLoading(true);
-      const response = await fetch(`/api/schoolSearch?search=${encodeURIComponent(query)}`);
+      if (append) {
+        setSchoolLoadingMore(true);
+      } else {
+        setSchoolSearchLoading(true);
+      }
+
+      const params = new URLSearchParams({ search: query, page: String(page) });
+      if (stateFilter && stateFilter !== "All") {
+        params.set("state", stateFilter);
+      }
+
+      const response = await fetch(`/api/schoolSearch?${params.toString()}`);
 
       if (response.ok) {
         const data = await response.json();
-        setSchoolSuggestions(Array.isArray(data) ? data : data.schools || []);
+        const results = Array.isArray(data) ? data : data.schools || [];
+        setSchoolSuggestions((prev) => (append ? [...prev, ...results] : results));
+        setSchoolHasMore(Boolean(data.hasMore));
+        setSchoolPage(page);
       }
     } catch (error) {
       console.error("Error fetching schools:", error);
-      setSchoolSuggestions([]);
+      if (!append) {
+        setSchoolSuggestions([]);
+        setSchoolHasMore(false);
+      }
     } finally {
       setSchoolSearchLoading(false);
+      setSchoolLoadingMore(false);
     }
   }, []);
 
@@ -441,44 +504,84 @@ export default function SubmitReportPage() {
     }
   }, [status, session, router]);
 
+  // Pre-select a school/teacher when arriving from a Browse Schools,
+  // Browse Teachers, School Detail, or Teacher Detail page via
+  // ?schoolId=&teacherId= - reuses the same public view APIs those pages
+  // already call, and the same fields the manual search dropdown sets, so
+  // the pre-filled school/teacher stay fully editable afterward. A missing
+  // or invalid id (deleted record, bad param, no param at all) just leaves
+  // the form at its normal blank state - no error, no special mode.
+  useEffect(() => {
+    if (!prefillSchoolId) return;
+    let cancelled = false;
+
+    async function prefillFromParams() {
+      try {
+        // Fire both lookups in parallel (rather than teacher-after-school)
+        // so the form fills in as fast as the slower of the two requests,
+        // not their sum. The teacher is still only applied once we can
+        // check it against the resolved school below.
+        const schoolPromise = fetch(`/api/view-school/${encodeURIComponent(prefillSchoolId as string)}`);
+        const teacherPromise = prefillTeacherId
+          ? fetch(`/api/view-teacher/${encodeURIComponent(prefillTeacherId)}`)
+          : null;
+
+        const schoolRes = await schoolPromise;
+        if (!schoolRes.ok || cancelled) return;
+        const schoolData = await schoolRes.json();
+        const school = schoolData?.school;
+        if (!school || cancelled) return;
+
+        updateField("schoolName", school.school_name);
+        updateField("city", school.city);
+        updateField("schoolGrades", school.grade_level || []);
+        updateField("schoolId", school.id);
+        updateField(
+          "schoolAssociation",
+          school.school_association === "School District" ? school.school_district_name : school.school_association
+        );
+
+        if (!teacherPromise) return;
+        const teacherRes = await teacherPromise;
+        if (!teacherRes.ok || cancelled) return;
+        const teacherData = await teacherRes.json();
+        const teacher = teacherData?.teacher;
+        // Only trust a teacher that actually belongs to the resolved school -
+        // a mismatched teacherId param must never attach the wrong teacher.
+        if (teacher && !cancelled && Number(teacher.school_id) === Number(school.id)) {
+          updateField("teacherName", teacher.name);
+          updateField("teacherId", teacher.id);
+        }
+      } catch (error) {
+        console.error("Error pre-filling report from URL params:", error);
+      }
+    }
+
+    prefillFromParams();
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally run once on mount using the URL's initial params.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (isGuestTeacher && !state.publishImmediately) {
       publishDelayRef.current?.focus();
     }
   }, [isGuestTeacher, state.publishImmediately]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const ratings = [
-      state.ratings.classroomBehavior,
-      state.ratings.lessonPreparedness,
-      state.ratings.staffFriendliness,
-      state.ratings.schoolCleanliness,
-      state.ratings.supportLevel,
-    ];
-
-    const avg =
-      ratings.reduce((sum, val) => sum + Number(val || 0), 0) /
-      ratings.length;
-
-    // add new param
-
-    state.sentiments =
-  avg >= 4
-    ? "Positive"
-    : avg >= 2.7
-      ? "Neutral"
-      : avg > 0
-        ? "Negative"
-        : "";
-
-    if (session) {
-      state.user_id = Number(session?.user?.id)
-    }
-    
-
-    const validationErrors = validateForm(state);
+    const ratings = Object.values(state.ratings);
+    const averageRating = ratings.reduce((sum, value) => sum + Number(value || 0), 0) / ratings.length;
+    const report = {
+      ...state,
+      user_id: session ? Number(session.user?.id) : 0,
+      sentiments: averageRating >= 4 ? "Positive" : averageRating >= 2.7 ? "Neutral" : averageRating > 0 ? "Negative" : "",
+    };
+    const validationErrors = validateForm(report);
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length > 0) {
@@ -486,36 +589,36 @@ export default function SubmitReportPage() {
       return;
     }
 
+    setPreviewReport(report);
+  };
+
+  const confirmSubmit = async () => {
+    if (!previewReport) return;
+
     try {
       setIsSubmitting(true);
       const response = await fetch("/api/submit-report", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(state),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(previewReport),
       });
-     
       const data = await response.json();
+
       if (!response.ok) {
         setIsSubmitting(false);
+        setPreviewReport(null);
         if (data.field === "jobId") {
           setErrors((prev) => ({ ...prev, jobId: data.message }));
           scrollToError({ jobId: data.message });
-        } else {
-          setErrors({["yourIdentity"]: data.message})
         }
-        toast.error(data.message || "Failed to submit report", {
-            duration: 6000,
-          });
-        // throw new Error("Failed to submit report");
-      } else {
-        dispatch({ type: "RESET" });
-        router.push(`/submit-report/success${state.postAs === "anonymous" ? `?anonymous=true` : ""}`);
-
+        toast.error(data.message || "Failed to submit report", { duration: 6000 });
+        return;
       }
 
-     
+      const isAnonymous = previewReport.postAs === "anonymous";
+      dispatch({ type: "RESET" });
+      setPreviewReport(null);
+      router.push(`/submit-report/success${isAnonymous ? "?anonymous=true" : ""}`);
     } catch (error) {
       console.error("Error submitting report:", error);
       setIsSubmitting(false);
@@ -556,7 +659,31 @@ export default function SubmitReportPage() {
 
                 {/* School Name */}
                 <div className="flex flex-col gap-2 relative">
-                  <label className={fieldLabel}>School Name</label>
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <label className={fieldLabel}>School Name</label>
+                    <div className="flex items-center gap-1.5">
+                      <label htmlFor="schoolStateFilter" className="font-inter text-xs text-[#6B7280]">
+                        Filter by state
+                      </label>
+                      <select
+                        id="schoolStateFilter"
+                        value={schoolStateFilter}
+                        onChange={(e) => {
+                          const nextState = e.target.value;
+                          setSchoolStateFilter(nextState);
+                          if (state.schoolName.trim()) {
+                            fetchSchools(state.schoolName, nextState, 1, false);
+                          }
+                        }}
+                        className="rounded-lg border border-[#E0E0E2] bg-white px-2 py-1 font-inter text-xs text-[#121212] outline-none focus:border-[#0171F9]"
+                      >
+                        <option value="All">All states</option>
+                        {US_STATES.map((abbr) => (
+                          <option key={abbr} value={abbr}>{abbr}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                   <div className="relative">
                     <div className={`${inputBase} py-[14px]`}>
                       <SearchIcon />
@@ -580,7 +707,7 @@ export default function SubmitReportPage() {
                           setTeacherSuggestions([]);
                           updateField("schoolGrades", []);
                           updateField("schoolName", e.target.value);
-                          fetchSchools(e.target.value);
+                          fetchSchools(e.target.value, schoolStateFilter, 1, false);
                           setShowSchoolSuggestions(true);
                           setErrors((prev) => ({
                             ...prev,
@@ -633,11 +760,27 @@ export default function SubmitReportPage() {
 
                                 setShowSchoolSuggestions(false);
                               }}
-                              className="w-full text-left px-4 py-3 hover:bg-[#F3F4F5] font-inter text-sm text-[#121212] border-b border-[#E0E0E2] last:border-b-0 transition-colors"
+                              className="w-full flex flex-col text-left px-4 py-3 hover:bg-[#F3F4F5] border-b border-[#E0E0E2] last:border-b-0 transition-colors"
                             >
-                              {school.school_name}
+                              <span className="font-inter text-sm text-[#121212]">{school.school_name}</span>
+                              {(school.city || school.state) && (
+                                <span className="font-inter text-xs text-[#6B7280]">
+                                  {[school.city, school.state].filter(Boolean).join(", ")}
+                                </span>
+                              )}
                             </button>
                           ))
+                        )}
+                        {!schoolSearchLoading && schoolHasMore && (
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => fetchSchools(state.schoolName, schoolStateFilter, schoolPage + 1, true)}
+                            disabled={schoolLoadingMore}
+                            className="w-full px-4 py-3 text-center font-inter text-sm text-[#0171F9] hover:bg-[#F3F4F5] disabled:opacity-60 transition-colors"
+                          >
+                            {schoolLoadingMore ? "Loading more..." : "Load more results"}
+                          </button>
                         )}
                         {!schoolSearchLoading && schoolSuggestions.length === 0 && state.schoolName.trim() && (
                           <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No schools found</div>
@@ -649,34 +792,11 @@ export default function SubmitReportPage() {
                     <p className="text-red-500 text-xs">{errors.schoolName}</p>
                   )}
                 </div>
-
-                {/* Job ID */}
-                <div className="flex flex-col gap-2">
-                  <label className={fieldLabel}>Job ID</label>
-                  <input
-                    type="text"
-                    id="jobId"
-                    placeholder="Enter the Job ID for this assignment"
-                    value={state.jobId || ""}
-                    onChange={(e) => {
-                      updateField("jobId", e.target.value);
-                      setErrors((prev) => ({
-                        ...prev,
-                        jobId: "",
-                      }));
-                    }}
-                    className={`${inputBase} w-full py-[14px] text-[#171717]`}
-                    autoComplete="off"
-                  />
-                  {errors.jobId && (
-                    <p className="text-red-500 text-xs">{errors.jobId}</p>
-                  )}
-                </div>
-
-                {/* Teacher + Date row */}
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-[1.25fr_1fr] sm:items-start">
-                  <div className="flex min-w-0 flex-col gap-2 relative">
-                    <label className={fieldLabel}>Teacher Name</label>
+<div className="flex min-w-0 flex-col gap-2 relative">
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
+                      <label className={fieldLabel}>Teacher Name</label>
+                      <NotShownNote />
+                    </div>
                     <div className="relative">
                       <div className={`${inputBase} py-[14px]`}>
                         <SearchIcon />
@@ -754,8 +874,43 @@ export default function SubmitReportPage() {
                       <p className="text-red-500 text-xs">{errors.teacherName}</p>
                     )}
                   </div>
+               
+
+                {/* Teacher + Date row */}
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:items-start">
+
+                   {/* Job ID */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
+                    <label className={fieldLabel}>Job ID</label>
+                    <NotShownNote />
+                  </div>
+                  <input
+                    type="text"
+                    id="jobId"
+                    placeholder="Enter the Job ID for this assignment"
+                    value={state.jobId || ""}
+                    onChange={(e) => {
+                      updateField("jobId", e.target.value);
+                      setErrors((prev) => ({
+                        ...prev,
+                        jobId: "",
+                      }));
+                    }}
+                    className={`${inputBase} w-full py-[14px] text-[#171717]`}
+                    autoComplete="off"
+                  />
+                  {errors.jobId && (
+                    <p className="text-red-500 text-xs">{errors.jobId}</p>
+                  )}
+                </div>
+
+                  
                   <div className="flex min-w-0 flex-col gap-2">
-                    <label className={fieldLabel}>Date of Assignment</label>
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
+                      <label className={fieldLabel}>Date of Assignment</label>
+                      <NotShownNote />
+                    </div>
                     <div onClick={() => dateRef.current?.showPicker()} className={`${inputBase} justify-between py-[14px]`}>
                       <input
                         ref={dateRef}
@@ -1147,6 +1302,118 @@ export default function SubmitReportPage() {
         </div>
       </main>
       <Footer />
+
+      {previewReport && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="report-preview-title">
+          <div className="flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="flex flex-shrink-0 flex-col gap-2 border-b border-black/10 p-5 sm:p-8 sm:pb-5">
+              <h2 id="report-preview-title" className="font-outfit text-2xl font-semibold text-[#121212]">Your Report Preview</h2>
+              <p className="font-inter text-sm leading-relaxed text-[#6B7280]">Review every detail before posting. The private reference details are shown here for confirmation but will not appear in the posted report.</p>
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 py-6 sm:px-8 hide-scrollbar">
+              <section className="rounded-xl bg-[#F7F9FE] p-4">
+                <p className="font-inter text-xs font-medium uppercase tracking-wide text-[#6B7280]">Assignment</p>
+                <p className="mt-1 font-outfit text-lg font-semibold text-[#121212]">{previewReport.schoolName}</p>
+                <p className="font-inter text-sm text-[#6B7280]">{[previewReport.city, previewReport.schoolAssociation].filter(Boolean).join(" · ")}</p>
+                <p className="mt-2 font-inter text-sm text-[#121212]">Grade level: <span className="font-medium">{previewReport.gradeLevel}</span></p>
+              </section>
+
+              <section className="rounded-xl border border-[#D8E8FF] bg-[#F4F8FF] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-inter text-xs font-semibold uppercase tracking-wide text-[#4B6B91]">Private reference details</p>
+                  <span className="rounded-md bg-white px-2 py-1 font-inter text-[11px] font-medium text-[#4B6B91]">Not posted publicly</span>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div><p className="font-inter text-xs text-[#6B7280]">Teacher name</p><p className="mt-1 break-words font-inter text-sm font-medium text-[#121212]">{previewReport.teacherName}</p></div>
+                  <div><p className="font-inter text-xs text-[#6B7280]">Job ID</p><p className="mt-1 break-words font-inter text-sm font-medium text-[#121212]">{previewReport.jobId}</p></div>
+                  <div><p className="font-inter text-xs text-[#6B7280]">Assignment date</p><p className="mt-1 font-inter text-sm font-medium text-[#121212]">{previewReport.date}</p></div>
+                </div>
+              </section>
+
+              <section>
+                <p className="font-inter text-xs font-medium uppercase tracking-wide text-[#6B7280]">Posted by</p>
+                <p className="mt-1 font-inter text-sm text-[#121212]">{previewReport.postAs === "show" ? previewReport.yourName : "Anonymous"}</p>
+              </section>
+
+              <section>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-inter text-xs font-medium uppercase tracking-wide text-[#6B7280]">Ratings</p>
+                  <span className="font-inter text-xs text-[#6B7280]">Out of 5</span>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-3">
+                  {RATING_CATEGORIES.map(({ label, key }) => {
+                    const rating = previewReport.ratings[key];
+                    return (
+                      <div key={key} className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                        <span className="font-inter text-sm text-[#121212]">{label}</span>
+                        <div className="flex items-center gap-1" aria-label={`${label}: ${rating} out of 5`}>
+                          {Array.from({ length: 5 }, (_, index) => index + 1).map((star) => (
+                            <span key={star} className="flex h-6 w-6 items-center justify-center">{rating >= star ? <StarFilled /> : <StarEmpty />}</span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section>
+                <p className="font-inter text-xs font-medium uppercase tracking-wide text-[#6B7280]">Feedback</p>
+                <p className="mt-1 whitespace-pre-wrap font-inter text-sm leading-relaxed text-[#121212]">{previewReport.feedback}</p>
+              </section>
+
+              <section>
+                <p className="font-inter text-xs font-medium uppercase tracking-wide text-[#6B7280]">Tags</p>
+                <div className="mt-2 flex flex-wrap gap-2">{previewReport.selectedTags.map((tag) => <span key={tag} className="rounded-full bg-[#EFF6FF] px-3 py-1 font-inter text-xs text-[#0171F9]">{tag}</span>)}</div>
+              </section>
+
+              <section>
+                <p className="font-inter text-xs font-medium uppercase tracking-wide text-[#6B7280]">Final Thoughts</p>
+                <div className="mt-3 flex flex-col gap-3">
+                  
+                  <div className="rounded-xl border border-[#E4EAF2] bg-[#FBFCFE] p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="font-inter text-sm font-semibold text-[#121212]">Return to this school</p>
+                      <span className="inline-flex rounded-full bg-[#EAF3FF] px-3 py-1 font-inter text-xs font-semibold capitalize text-[#1769AA]">{previewReport.returnToSchool}</span>
+                    </div>
+                    {previewReport.schoolComment && (
+                      <p className="mt-3 border-t border-[#E4EAF2] pt-3 whitespace-pre-wrap font-inter text-sm leading-relaxed text-[#6B7280]">{previewReport.schoolComment}</p>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-[#E4EAF2] bg-[#FBFCFE] p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="font-inter text-sm font-semibold text-[#121212]">Return to this teacher or class</p>
+                      <span className="inline-flex rounded-full bg-[#EAF3FF] px-3 py-1 font-inter text-xs font-semibold capitalize text-[#1769AA]">{previewReport.returnToTeacher}</span>
+                    </div>
+                    {previewReport.teacherComment && (
+                      <p className="mt-3 border-t border-[#E4EAF2] pt-3 whitespace-pre-wrap font-inter text-sm leading-relaxed text-[#6B7280]">{previewReport.teacherComment}</p>
+                    )}
+                  </div>
+                  
+                </div>
+              </section>
+
+              <section>
+                <p className="font-inter text-xs font-medium uppercase tracking-wide text-[#6B7280]">Publishing Preference</p>
+                <p className="mt-1 font-inter text-sm text-[#121212]">{previewReport.publishImmediately ? "Publish immediately after approval" : `Publish ${previewReport.publishDelayDays} days after approval`}</p>
+              </section>
+            </div>
+            <div className="flex flex-shrink-0 flex-col-reverse gap-3 border-t border-black/10 p-5 sm:flex-row sm:justify-end sm:p-8 sm:pt-5">
+              <button type="button" onClick={() => setPreviewReport(null)} disabled={isSubmitting} className="h-12 rounded-xl border border-black/20 px-6 font-inter text-sm font-medium text-[#2C3031] hover:bg-gray-50 disabled:opacity-60">Keep editing</button>
+              <button type="button" onClick={confirmSubmit} disabled={isSubmitting} className="h-12 rounded-xl bg-[#0171F9] px-6 font-inter text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-75">{isSubmitting ? "Posting..." : "Post report"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
+  );
+}
+
+export default function SubmitReportPage() {
+  return (
+    <Suspense fallback={null}>
+      <SubmitReportForm />
+    </Suspense>
   );
 }

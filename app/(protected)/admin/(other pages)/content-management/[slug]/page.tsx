@@ -31,7 +31,7 @@ type EditorField = {
 const editorFields: Record<ContentPageSlug, EditorField[]> = {
   home: [
     { key: "heroEyebrow", label: "Hero label", kind: "text" },
-    { key: "heroHeading", label: "Hero heading", kind: "text" },
+    { key: "heroHeading", label: "Hero heading", kind: "rich" },
     { key: "primaryButtonLabel", label: "Primary button label", kind: "text" },
     { key: "primaryButtonHref", label: "Primary button link", kind: "url", hint: "Use a site path such as /submit-report." },
     { key: "secondaryButtonLabel", label: "Secondary button label", kind: "text" },
@@ -166,7 +166,7 @@ function htmlToMarkdown(node: Node): string {
 
 function RichTextField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const renderedValueRef = useRef(value);
+  const renderedValueRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (renderedValueRef.current === value || !editorRef.current) return;
@@ -198,7 +198,6 @@ function RichTextField({ value, onChange }: { value: string; onChange: (value: s
           renderedValueRef.current = nextValue;
           onChange(nextValue);
         }}
-        dangerouslySetInnerHTML={{ __html: markdownToHtml(value) }}
         className="block min-h-[120px] w-full resize-y overflow-auto px-4 py-3 font-inter text-sm leading-6 text-[#191C1D] outline-none"
       />
       <p className="border-t border-[#E7E8EC] px-4 py-2 font-inter text-xs text-[#737786]">Use the toolbar for bold, italic. Separate paragraphs with a blank line.</p>
