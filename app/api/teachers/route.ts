@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const statusValue =
       status === "Active" ? 1 : 0;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("teachers")
       .insert([
         {
@@ -29,7 +29,9 @@ export async function POST(req: NextRequest) {
           school_id,
           status: statusValue,
         },
-      ]);
+      ])
+      .select()
+      .single();
 
     if (error) {
       console.error("Supabase Insert Error:", error);
@@ -49,6 +51,7 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         message: "Teacher added successfully",
+        teacher: data,
       },
       {
         status: 201,

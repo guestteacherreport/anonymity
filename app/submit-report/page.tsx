@@ -412,6 +412,9 @@ function SubmitReportForm() {
   const [teacherSuggestions, setTeacherSuggestions] = useState<string[]>([]);
   const [teacherSearchLoading, setTeacherSearchLoading] = useState(false);
   const [showTeacherSuggestions, setShowTeacherSuggestions] = useState(false);
+  const [teacherPage, setTeacherPage] = useState(1);
+  const [teacherHasMore, setTeacherHasMore] = useState(false);
+  const [teacherLoadingMore, setTeacherLoadingMore] = useState(false);
 
   // Form submission loading state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -468,26 +471,42 @@ function SubmitReportForm() {
     }
   }, []);
 
-  // Fetch teachers by search query
-  const fetchTeachers = useCallback(async (query: string, schoolId: number) => {
+  // Fetch teachers by search query, scoped to the selected school and paged.
+  // `append` is used for "Load more" - later pages are added to the
+  // existing suggestions instead of replacing them.
+  const fetchTeachers = useCallback(async (query: string, schoolId: number, page = 1, append = false) => {
     if (!query.trim()) {
       setTeacherSuggestions([]);
+      setTeacherHasMore(false);
       return;
     }
 
     try {
-      setTeacherSearchLoading(true);
-      const response = await fetch(`/api/teachers?search=${encodeURIComponent(query)}&school_id=${schoolId}`);
+      if (append) {
+        setTeacherLoadingMore(true);
+      } else {
+        setTeacherSearchLoading(true);
+      }
+
+      const params = new URLSearchParams({ search: query, school_id: String(schoolId), page: String(page) });
+      const response = await fetch(`/api/teachers?${params.toString()}`);
 
       if (response.ok) {
         const data = await response.json();
-        setTeacherSuggestions(Array.isArray(data) ? data : data.teachers || []);
+        const results = Array.isArray(data) ? data : data.teachers || [];
+        setTeacherSuggestions((prev) => (append ? [...prev, ...results] : results));
+        setTeacherHasMore(Boolean(data.hasMore));
+        setTeacherPage(page);
       }
     } catch (error) {
       console.error("Error fetching teachers:", error);
-      setTeacherSuggestions([]);
+      if (!append) {
+        setTeacherSuggestions([]);
+        setTeacherHasMore(false);
+      }
     } finally {
       setTeacherSearchLoading(false);
+      setTeacherLoadingMore(false);
     }
   }, []);
 
@@ -705,6 +724,7 @@ function SubmitReportForm() {
                           updateField("teacherName", "");
                           updateField("teacherId", 0);
                           setTeacherSuggestions([]);
+                          setTeacherHasMore(false);
                           updateField("schoolGrades", []);
                           updateField("schoolName", e.target.value);
                           fetchSchools(e.target.value, schoolStateFilter, 1, false);
@@ -746,6 +766,7 @@ function SubmitReportForm() {
                                 updateField("teacherName", "");
                                 updateField("teacherId", 0);
                                 setTeacherSuggestions([]);
+                                setTeacherHasMore(false);
                                 updateField("schoolGrades", []);
                                 updateField("schoolName", school.school_name);
                                 updateField("city",school.city);
@@ -819,7 +840,7 @@ function SubmitReportForm() {
                             updateField("teacherId", 0);
                             updateField("teacherName", e.target.value);
 
-                            fetchTeachers(e.target.value, state.schoolId);
+                            fetchTeachers(e.target.value, state.schoolId, 1, false);
                             setShowTeacherSuggestions(true);
                             setErrors((prev) => ({
                               ...prev,
@@ -862,6 +883,17 @@ function SubmitReportForm() {
                                 {teacher.name}
                               </button>
                             ))
+                          )}
+                          {!teacherSearchLoading && teacherHasMore && (
+                            <button
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => fetchTeachers(state.teacherName, state.schoolId, teacherPage + 1, true)}
+                              disabled={teacherLoadingMore}
+                              className="w-full px-4 py-3 text-center font-inter text-sm text-[#0171F9] hover:bg-[#F3F4F5] disabled:opacity-60 transition-colors"
+                            >
+                              {teacherLoadingMore ? "Loading more..." : "Load more results"}
+                            </button>
                           )}
                           {!teacherSearchLoading && teacherSuggestions.length === 0 && state.teacherName.trim() && (
                             <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No matching teacher found - you can submit this as a new teacher name</div>

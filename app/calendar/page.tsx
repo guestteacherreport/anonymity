@@ -82,6 +82,48 @@ type TeacherOption = {
   school_id: number;
 };
 
+// Shared by Add Event and Edit Event (both call this right before saving).
+// A teacher picked from the dropdown already carries a real id, trusted
+// as-is. A typed name with no id is resolved against the school's existing
+// teachers first (reusing the same search endpoint the dropdown itself
+// calls) so re-submitting an already-existing name never creates a
+// duplicate - only once no match is found does it fall back to creating a
+// new teacher record, reusing the existing POST /api/teachers endpoint.
+async function resolveOrCreateTeacherId(
+  teacherName: string,
+  teacherId: number | string | null | undefined,
+  schoolId: number | string | null | undefined
+): Promise<number | null> {
+  const trimmedName = teacherName.trim();
+  if (!trimmedName) return null;
+  if (teacherId) return Number(teacherId);
+  if (!schoolId) return null;
+
+  const searchParams = new URLSearchParams({
+    search: trimmedName,
+    school_id: String(schoolId),
+    limit: "100",
+  });
+  const searchRes = await fetch(`/api/teachers?${searchParams.toString()}`);
+  if (searchRes.ok) {
+    const searchData = await searchRes.json();
+    const matches: TeacherOption[] = Array.isArray(searchData) ? searchData : searchData.teachers || [];
+    const exactMatch = matches.find((t) => t.name?.trim().toLowerCase() === trimmedName.toLowerCase());
+    if (exactMatch) return exactMatch.id;
+  }
+
+  const createRes = await fetch("/api/teachers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: trimmedName, status: "Active", school_id: schoolId }),
+  });
+  const createData = await createRes.json();
+  if (!createRes.ok || !createData.success) {
+    throw new Error(createData.message || "Failed to create teacher");
+  }
+  return createData.teacher?.id ?? null;
+}
+
 // Shared by Add Event and Edit Event (rather than each maintaining its own
 // copy) so both forms search/paginate schools identically. Self-contained:
 // owns its own suggestions/pagination state and flips its dropdown above the
@@ -354,7 +396,11 @@ function TeacherSearchInput({
       )}
       {showSuggestions && !loading && suggestions.length === 0 && value.trim() && (
         <div className={`${placement === "up" ? "absolute bottom-full mb-1" : "absolute top-full mt-1"} left-0 right-0 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-10`}>
-          <div className="px-4 py-3 text-center text-sm text-[#6B7280]">No teachers found</div>
+          <div className="px-4 py-3 text-center text-sm text-[#6B7280]">
+            {schoolId
+              ? "No teachers found - it will be created automatically when you save"
+              : "No teachers found"}
+          </div>
         </div>
       )}
     </div>
@@ -653,6 +699,10 @@ function AddEventSidebar({
 
     setIsSaving(true);
     try {
+      // Resolve the teacher before creating anything - if this throws, the
+      // catch below reports it and no event is created.
+      const resolvedTeacherId = await resolveOrCreateTeacherId(teacherName, teacherId, schoolId);
+
       const [sy, sm, sd] = startDate.split("-").map(Number);
       const [sh, smin] = startTime.split(":").map(Number);
       const [ey, em, ed] = endDate.split("-").map(Number);
@@ -686,7 +736,7 @@ function AddEventSidebar({
           schoolEmail: schoolEmail.trim() || null,
           schoolId: schoolId || null,
           teacherName: teacherName.trim() || null,
-          teacherId: teacherId || null,
+          teacherId: resolvedTeacherId,
           teacherPhone: teacherPhone.trim() || null,
           teacherEmail: teacherEmail.trim() || null,
           notes: notes.trim() || null,
@@ -1016,6 +1066,7 @@ function AddEventSidebar({
             </button>
             <button
               onClick={handleSave}
+              disabled={isSaving}
               className="flex-1 py-3 rounded-xl bg-[#0171F9] text-white font-inter text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSaving ? (
@@ -1347,10 +1398,18 @@ export default function CalendarPage() {
 
     setIsSavingEvent(true);
     try {
+      // Resolve the teacher before saving anything - if this throws, the
+      // catch below reports it and the event is left unchanged.
+      const resolvedTeacherId = await resolveOrCreateTeacherId(
+        editFormData.teacher_name || "",
+        editFormData.teacher_id,
+        editFormData.school_id
+      );
+
       const response = await fetch(`/api/calendar-events/${selectedEvent.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editFormData),
+        body: JSON.stringify({ ...editFormData, teacher_id: resolvedTeacherId }),
       });
 
       if (!response.ok) {
@@ -1384,6 +1443,8 @@ export default function CalendarPage() {
       setSelectedEvent(updatedEventData);
     } catch (error) {
       console.error("Error saving event:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to save event";
+      setErrors2((prev) => ({ ...prev, submit: errorMessage }));
     } finally {
       setIsSavingEvent(false);
     }
@@ -1941,10 +2002,17 @@ export default function CalendarPage() {
                     />
                   </div>
 
+                  {errors2.submit && (
+                    <div className="px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                      {errors2.submit}
+                    </div>
+                  )}
+
                   <div className="flex gap-3 pt-4">
                     <button
                       onClick={() => setIsEditingEvent(false)}
-                      className="flex-1 py-3 rounded-xl border border-[#E2E2E2] text-[#121212] font-inter text-sm font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
+                      disabled={isSavingEvent}
+                      className="flex-1 py-3 rounded-xl border border-[#E2E2E2] text-[#121212] font-inter text-sm font-semibold hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Cancel
                     </button>
