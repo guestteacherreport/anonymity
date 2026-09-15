@@ -10,8 +10,14 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-inter: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-outfit: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* These previously hardcoded the literal family name "Inter"/"Outfit"
+     instead of referencing the next/font-generated variable (set on <html>
+     in layout.tsx), so the font-inter/font-outfit utilities never actually
+     used the downloaded webfont - they silently fell back to whatever
+     generic system font matched, which is why custom typography wasn't
+     showing up anywhere despite the fonts being loaded. */
+  --font-inter: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-outfit: var(--font-outfit), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {

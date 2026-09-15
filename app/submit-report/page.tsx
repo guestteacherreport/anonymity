@@ -814,10 +814,7 @@ function SubmitReportForm() {
                   )}
                 </div>
 <div className="flex min-w-0 flex-col gap-2 relative">
-                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
-                      <label className={fieldLabel}>Teacher Name</label>
-                      <NotShownNote />
-                    </div>
+                    <label className={fieldLabel}>Teacher Name</label>
                     <div className="relative">
                       <div className={`${inputBase} py-[14px]`}>
                         <SearchIcon />
@@ -1252,13 +1249,19 @@ function SubmitReportForm() {
                       <p className="text-red-500 text-xs ">{errors.postAs}</p>
                     )}
 
-                  </div>{state?.postAs === "show" && <input
-                    type="text"
-                    className={`${inputBase} w-full py-[10px]`}
-                    placeholder="Your Name"
-                    value={state.postAs === "show" ? state.yourName || "" : ""}
-                    onChange={(e) => updateField("yourName", state.postAs != "anonymous" ? e.target.value : "")}
-                  />}
+                  </div>{state?.postAs === "show" && <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
+                      <label className={fieldLabel}>Name</label>
+                      <NotShownNote />
+                    </div>
+                    <input
+                      type="text"
+                      className={`${inputBase} w-full py-[10px]`}
+                      placeholder="Your Name"
+                      value={state.postAs === "show" ? state.yourName || "" : ""}
+                      onChange={(e) => updateField("yourName", state.postAs != "anonymous" ? e.target.value : "")}
+                    />
+                  </div>}
                 </div>
 
                     {/* yourIdentity */}
@@ -1348,6 +1351,7 @@ function SubmitReportForm() {
                 <p className="mt-1 font-outfit text-lg font-semibold text-[#121212]">{previewReport.schoolName}</p>
                 <p className="font-inter text-sm text-[#6B7280]">{[previewReport.city, previewReport.schoolAssociation].filter(Boolean).join(" · ")}</p>
                 <p className="mt-2 font-inter text-sm text-[#121212]">Grade level: <span className="font-medium">{previewReport.gradeLevel}</span></p>
+                <p className="mt-1 font-inter text-sm text-[#121212]">Teacher: <span className="font-medium">{previewReport.teacherName}</span></p>
               </section>
 
               <section className="rounded-xl border border-[#D8E8FF] bg-[#F4F8FF] p-4">
@@ -1356,16 +1360,23 @@ function SubmitReportForm() {
                   <span className="rounded-md bg-white px-2 py-1 font-inter text-[11px] font-medium text-[#4B6B91]">Not posted publicly</span>
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div><p className="font-inter text-xs text-[#6B7280]">Teacher name</p><p className="mt-1 break-words font-inter text-sm font-medium text-[#121212]">{previewReport.teacherName}</p></div>
                   <div><p className="font-inter text-xs text-[#6B7280]">Job ID</p><p className="mt-1 break-words font-inter text-sm font-medium text-[#121212]">{previewReport.jobId}</p></div>
                   <div><p className="font-inter text-xs text-[#6B7280]">Assignment date</p><p className="mt-1 font-inter text-sm font-medium text-[#121212]">{previewReport.date}</p></div>
+                                  <div><p className="font-inter text-xs text-[#6B7280]">Posted by</p><p className="mt-1 font-inter text-sm font-medium text-[#121212]">{previewReport.postAs === "show" ? previewReport.yourName : "Anonymous"}</p></div>
+
                 </div>
+                
               </section>
 
-              <section>
-                <p className="font-inter text-xs font-medium uppercase tracking-wide text-[#6B7280]">Posted by</p>
+              {/* <section>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-inter text-xs font-medium uppercase tracking-wide text-[#6B7280]">Posted by</p>
+                  {previewReport.postAs === "show" && (
+                    <span className="rounded-md bg-[#F4F8FF] px-2 py-1 font-inter text-[11px] font-medium text-[#4B6B91]">Not posted publicly</span>
+                  )}
+                </div>
                 <p className="mt-1 font-inter text-sm text-[#121212]">{previewReport.postAs === "show" ? previewReport.yourName : "Anonymous"}</p>
-              </section>
+              </section> */}
 
               <section>
                 <div className="flex items-center justify-between gap-3">
