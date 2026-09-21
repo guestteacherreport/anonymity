@@ -1201,7 +1201,10 @@ function SubmitReportForm() {
 
                 {/* postAs */}
                 <div className="flex flex-col gap-2" id="postAs">
-                  <label className={fieldLabel}>Post As</label>
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
+                    <label className={fieldLabel}>Post As</label>
+                    {state.postAs === "anonymous" && <NotShownNote />}
+                  </div>
                   <div className="flex p-[6px] gap-[10px] rounded-lg bg-[#F3F4F5] w-fit overflow-x-auto">
                     <button
                       type="button"
@@ -1359,9 +1362,12 @@ function SubmitReportForm() {
                   <p className="font-inter text-xs font-semibold uppercase tracking-wide text-[#4B6B91]">Private reference details</p>
                   <span className="rounded-md bg-white px-2 py-1 font-inter text-[11px] font-medium text-[#4B6B91]">Not posted publicly</span>
                 </div>
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className={`mt-3 grid grid-cols-1 gap-3 ${previewReport.postAs === "anonymous" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
                   <div><p className="font-inter text-xs text-[#6B7280]">Job ID</p><p className="mt-1 break-words font-inter text-sm font-medium text-[#121212]">{previewReport.jobId}</p></div>
                   <div><p className="font-inter text-xs text-[#6B7280]">Assignment date</p><p className="mt-1 font-inter text-sm font-medium text-[#121212]">{previewReport.date}</p></div>
+                  {previewReport.postAs === "anonymous" && (
+                    <div><p className="font-inter text-xs text-[#6B7280]">Posted by</p><p className="mt-1 font-inter text-sm font-medium text-[#121212]">Anonymous</p></div>
+                  )}
                 </div>
               </section>
 
