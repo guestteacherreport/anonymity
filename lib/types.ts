@@ -46,6 +46,9 @@ export interface Report {
   reviewText: string;
   tags: string[];
   your_name: string;
+  user_id?: number;
+  submitter_name?: string | null;
+  submitter_email?: string | null;
   feedback: string;
   classroom_behavior: number;
   lesson_preparedness: number;

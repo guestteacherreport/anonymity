@@ -54,9 +54,15 @@ export async function GET(
 
     const offset = (page - 1) * limit;
 
+    // Explicit column list (rather than "*") so internal-only fields like
+    // user_id never ride along in this guest-teacher-facing response, even
+    // though the UI doesn't currently render them.
     let reportsQuery = supabase
       .from("reports")
-      .select("*", { count: "exact" })
+      .select(
+        "id, your_name, teacher_id, teacher_name, created_at, AI_sentiment, feedback, tags, classroom_behavior, lesson_preparedness, staff_friendliness, school_cleanliness, support_level, return_to_school, return_to_teacher, teacher_comment, school_comment",
+        { count: "exact" }
+      )
       .eq("status", 2)
       .not("published_at", "is", null)
 

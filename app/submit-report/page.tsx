@@ -220,7 +220,7 @@ const LockIcon = () => (
 );
 
 // Shown next to fields that are collected for internal reference but never
-// displayed on the posted report (Teacher Name, Job ID, Assignment Date).
+// displayed on the posted report (Job ID, Assignment Date).
 // The label text is hidden in the narrow band where the two-column Job
 // ID/Date row is too tight for the full label to sit next to a long field
 // label without wrapping - full width (mobile, stacked) and wide desktop
@@ -1252,7 +1252,6 @@ function SubmitReportForm() {
                   </div>{state?.postAs === "show" && <div className="flex flex-col gap-2">
                     <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
                       <label className={fieldLabel}>Name</label>
-                      <NotShownNote />
                     </div>
                     <input
                       type="text"
@@ -1352,6 +1351,7 @@ function SubmitReportForm() {
                 <p className="font-inter text-sm text-[#6B7280]">{[previewReport.city, previewReport.schoolAssociation].filter(Boolean).join(" · ")}</p>
                 <p className="mt-2 font-inter text-sm text-[#121212]">Grade level: <span className="font-medium">{previewReport.gradeLevel}</span></p>
                 <p className="mt-1 font-inter text-sm text-[#121212]">Teacher: <span className="font-medium">{previewReport.teacherName}</span></p>
+                <p className="mt-1 font-inter text-sm text-[#121212]">Posted by: <span className="font-medium">{previewReport.postAs === "show" ? previewReport.yourName : "Anonymous"}</span></p>
               </section>
 
               <section className="rounded-xl border border-[#D8E8FF] bg-[#F4F8FF] p-4">
@@ -1359,13 +1359,10 @@ function SubmitReportForm() {
                   <p className="font-inter text-xs font-semibold uppercase tracking-wide text-[#4B6B91]">Private reference details</p>
                   <span className="rounded-md bg-white px-2 py-1 font-inter text-[11px] font-medium text-[#4B6B91]">Not posted publicly</span>
                 </div>
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div><p className="font-inter text-xs text-[#6B7280]">Job ID</p><p className="mt-1 break-words font-inter text-sm font-medium text-[#121212]">{previewReport.jobId}</p></div>
                   <div><p className="font-inter text-xs text-[#6B7280]">Assignment date</p><p className="mt-1 font-inter text-sm font-medium text-[#121212]">{previewReport.date}</p></div>
-                                  <div><p className="font-inter text-xs text-[#6B7280]">Posted by</p><p className="mt-1 font-inter text-sm font-medium text-[#121212]">{previewReport.postAs === "show" ? previewReport.yourName : "Anonymous"}</p></div>
-
                 </div>
-                
               </section>
 
               {/* <section>

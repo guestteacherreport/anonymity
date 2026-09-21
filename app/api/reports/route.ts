@@ -1,7 +1,21 @@
 import { supabase } from "@/lib/supabase";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {
+    // This route attaches submitter_name/submitter_email below - the real
+    // identity behind an Anonymous report - so it must never be reachable
+    // by an unauthenticated caller or a guest_teacher, even though the
+    // admin UI that calls it is already page-gated. The check has to live
+    // here, not just in middleware/page routing, since this is a raw API
+    // route.
+    const session = await getServerSession(authOptions);
+
+    if (session?.user?.role !== "admin") {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
 
     const page = parseInt(
@@ -93,6 +107,27 @@ export async function GET(request: Request) {
       );
     }
 
+    const userIds = Array.from(
+      new Set(
+        (data || [])
+          .map((row: any) => row.user_id)
+          .filter((id: unknown) => id !== null && id !== undefined)
+      )
+    );
+
+    let submittersById = new Map<number, { full_name: string | null; email: string | null }>();
+
+    if (userIds.length > 0) {
+      const { data: submitters } = await supabase
+        .from("users")
+        .select("id, full_name, email")
+        .in("id", userIds);
+
+      submittersById = new Map(
+        (submitters || []).map((u: any) => [u.id, { full_name: u.full_name, email: u.email }])
+      );
+    }
+
     const reports = (data || []).map(
       (row: any) => ({
         ...row,
@@ -101,6 +136,13 @@ export async function GET(request: Request) {
         tags: Array.isArray(row.tags)
           ? row.tags
           : [],
+
+        // Internal-only: resolves the submitting account even when post_as
+        // is Anonymous and your_name is redacted, so admins can still trace
+        // an anonymous report back to its submitter. Never expose this on
+        // guest-facing endpoints/pages.
+        submitter_name: submittersById.get(row.user_id)?.full_name ?? null,
+        submitter_email: submittersById.get(row.user_id)?.email ?? null,
       })
     );
 

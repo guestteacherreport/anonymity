@@ -128,7 +128,16 @@ function ReturnCard({
                       <XIcon />
                     </button>
                   </div>
-    
+
+                  {selectedReport.post_as == 1 && (selectedReport.submitter_name || selectedReport.submitter_email) && (
+                    <div
+                      title="Internal record only — not shown on the posted report"
+                      className="font-inter font-normal text-[11px] text-[#9CA3AF] italic"
+                    >
+                      Internal: {selectedReport.submitter_name || selectedReport.submitter_email}
+                    </div>
+                  )}
+
                   <div className="flex flex-col gap-3 mt-4">
                     <div className="flex items-center gap-2">
                       <SchoolIcon />

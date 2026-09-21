@@ -13,11 +13,16 @@ import Footer from "@/app/components/Footer";
 import PageLoader from "@/app/components/PageLoader";
 import "./calendar.css";
 import { CalendarIcon } from "@/lib/icons";
-import { formatDateTimeLocal, getRandomEventColors, scrollToFirstError } from "@/lib/function";
+import {
+  getRandomEventColors,
+  scrollToFirstError,
+} from "@/lib/function";
 import { ObjectType } from "@/lib/types";
 
+const MAX_ASSIGNMENT_DAYS = 6;
+
 type UpcomingJobsCardProps = {
-  events: CalendarEvent[];
+  events: UpcomingJobItem[];
   hasMore: boolean;
   loadingMore: boolean;
   onLoadMore: () => void;
@@ -38,6 +43,23 @@ interface CalendarEvent {
   reminders: number;
   user_id?: any;
 }
+
+// A grouped Upcoming Jobs entry - purely a display convenience over several
+// individual calendar_event rows that share an assignment and start time.
+// It never gets its own id/edit action; `members` are the real underlying
+// events (each with its own real id), and only those can be opened for
+// editing - see UpcomingJobsCard.
+interface UpcomingJobGroup {
+  grouped: true;
+  groupKey: string;
+  title: string;
+  school_name: string;
+  color: string;
+  bgColor: string;
+  members: CalendarEvent[];
+}
+
+type UpcomingJobItem = CalendarEvent | UpcomingJobGroup;
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
@@ -62,6 +84,43 @@ function TextInput({ placeholder, value, onChange, type = "text", error, id }: {
         className={`w-full bg-[#F5F6FA] border rounded-lg px-4 py-3 text-sm font-inter text-[#121212] placeholder:text-[#ADADAD] outline-none focus:ring-2 transition-all ${error ? "border-red-500 focus:ring-red-200" : "border-0 focus:ring-[#0171F9]/30"
           }`}
       />
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    </div>
+  );
+}
+
+// Used for each day row in the multi-day Add Event form - identical markup
+// to the original single Start/End Date fields, just made reusable since
+// there can now be up to MAX_ASSIGNMENT_DAYS of them. Owns its own ref so
+// clicking anywhere in the field (not just the native icon) opens the
+// picker, matching the original behavior.
+function DateField({ id, value, onChange, min, error }: {
+  id?: string; value: string; onChange: (v: string) => void; min?: string; error?: string;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div>
+      <div
+        onClick={() => ref.current?.showPicker()}
+        className={`flex items-center text-sm gap-[6px] px-4 rounded-lg py-[14px] ${error ? "bg-red-50 border border-red-500" : "bg-[#F3F4F5]"}`}
+      >
+        {/* flex-1/min-w-0 (rather than w-full + justify-between, which relied
+        on overflow-hidden to clip the input) let the icon size itself first,
+        so the same px-4 padding on the container lands as equal left/right
+        space around the text and icon instead of favoring one side. */}
+        <input
+          type="date"
+          id={id}
+          ref={ref}
+          min={min}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="flex-1 min-w-0 bg-transparent outline-none font-inter text-sm text-[#121212] appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
+        />
+        <div className="flex items-center cursor-pointer">
+          <CalendarIcon />
+        </div>
+      </div>
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
   );
@@ -501,31 +560,52 @@ function UpcomingJobsCard({
         <>
           {/* Scrollable list */}
           <div className="max-h-[400px] overflow-y-auto">
-            {events.map((event, idx) => (
-              <div
-                key={idx}
-                onClick={() => eventId({ event })}
-                className={`cursor-pointer px-4 py-4 ${idx < events.length - 1
-                  ? "border-b border-[#F0F0F0]"
-                  : ""
-                  } bg-white`}
-              >
-                <div className="flex items-start gap-2">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1"
-                    style={{ backgroundColor: event.color }}
-                  />
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[#121212] font-inter text-sm font-semibold">
-                      {event.title}
-                    </span>
-                    <span className="text-[#9A9A9A] font-inter text-xs font-medium">
-                      {format(event.start, "EEE MMM d, yyyy")}
-                    </span>
+            {events.map((event, idx) => {
+              const isGroup = "grouped" in event && event.grouped;
+              const members = isGroup ? (event as UpcomingJobGroup).members : null;
+
+              return (
+                <div
+                  key={isGroup ? (event as UpcomingJobGroup).groupKey : (event as CalendarEvent).id}
+                  className={`px-4 py-4 ${idx < events.length - 1 ? "border-b border-[#F0F0F0]" : ""} bg-white`}
+                >
+                  <div
+                    onClick={!isGroup ? () => eventId({ event }) : undefined}
+                    className={`flex items-start gap-2 ${!isGroup ? "cursor-pointer" : ""}`}
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1"
+                      style={{ backgroundColor: event.color }}
+                    />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[#121212] font-inter text-sm font-semibold">
+                        {event.title}
+                      </span>
+                      <span className="text-[#9A9A9A] font-inter text-xs font-medium">
+                        {isGroup && members
+                          ? `${format(members[0].start, "EEE MMM d")} - ${format(members[members.length - 1].start, "EEE MMM d")} · ${format(members[0].start, "h:mm aa")} start`
+                          : format((event as CalendarEvent).start, "EEE MMM d, yyyy")}
+                      </span>
+                    </div>
                   </div>
+                  {isGroup && members && (
+                    <div className="flex flex-wrap gap-1.5 mt-2 pl-4">
+                      {members.map((member) => (
+                        <button
+                          key={member.id}
+                          type="button"
+                          onClick={() => eventId({ event: member })}
+                          title={`${format(member.start, "h:mm aa")} - ${format(member.end, "h:mm aa")}`}
+                          className="px-2 py-1 rounded-md border border-[#E5E5E5] font-inter text-xs text-[#121212] hover:bg-[#F3F4F5] transition-colors cursor-pointer"
+                        >
+                          {format(member.start, "EEE M/d")}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Footer */}
@@ -560,10 +640,18 @@ function AddEventSidebar({
   initialDate?: string | null;
 }) {
   const today = format(new Date(), "yyyy-MM-dd");
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  // Each day of a multi-day assignment gets its own date + start/end time -
+  // a single-day job is simply a dayEntries array of length 1. See
+  // MAX_ASSIGNMENT_DAYS for the shared client+server day-count limit. Any
+  // day of the week, including Sunday, is a valid pick.
+  // startTimeTouched/endTimeTouched/dateTouched mark a day (other than the
+  // first) as manually edited by the guest teacher, so it stops following
+  // Day 1's time, or stops being auto-recomputed when an earlier day's
+  // date shifts. Day 1 is always the "source" - its own fields are never
+  // marked touched.
+  const [dayEntries, setDayEntries] = useState<{ date: string; startTime: string; endTime: string; dateTouched?: boolean; startTimeTouched?: boolean; endTimeTouched?: boolean }[]>([
+    { date: today, startTime: "", endTime: "" },
+  ]);
   const [schoolName, setSchoolName] = useState("");
   const [schoolAddress, setSchoolAddress] = useState("");
   const [schoolId, setSchoolId] = useState<any>();
@@ -575,8 +663,6 @@ function AddEventSidebar({
   const [teacherPhone, setTeacherPhone] = useState("");
   const [teacherEmail, setTeacherEmail] = useState("");
   const [notes, setNotes] = useState("");
-  const dateRef1 = useRef<HTMLInputElement>(null);
-  const dateRef2 = useRef<HTMLInputElement>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const formRef1 = useRef<HTMLDivElement>(null);
@@ -588,8 +674,7 @@ function AddEventSidebar({
   // Event" open (initialDate null) still defaults to today exactly as before.
   useEffect(() => {
     if (isOpen && initialDate) {
-      setStartDate(initialDate);
-      setEndDate(initialDate);
+      setDayEntries([{ date: initialDate, startTime: "", endTime: "" }]);
     }
   }, [isOpen, initialDate]);
 
@@ -598,8 +683,7 @@ function AddEventSidebar({
   }, [errors]);
 
   const reset = () => {
-    setStartDate(today); setEndDate(today);
-    // setStartTime("08:00"); setEndTime("15:00");
+    setDayEntries([{ date: today, startTime: "", endTime: "" }]);
     setSchoolName(""); setSchoolAddress("");
     setSchoolPhone(""); setSchoolEmail("");
     setTeacherName(""); setTeacherPhone(""); setTeacherEmail("");
@@ -610,6 +694,125 @@ function AddEventSidebar({
 
   const handleClose = () => { reset(); onClose(); };
 
+  // Day 1's start/end time is pre-filled into every other day that hasn't
+  // been manually edited yet - editing Day 1 keeps those days in sync, but
+  // touching a specific day's own time field opts that one day out (it
+  // stops following Day 1) while leaving the rest still synced.
+  const handleDayStartTimeChange = (idx: number, value: string) => {
+    setErrors((prev) => ({ ...prev, [`day-${idx}-startTime`]: "" }));
+    setDayEntries((prev) =>
+      prev.map((day, i) => {
+        if (i === idx) return { ...day, startTime: value, ...(idx > 0 && { startTimeTouched: true }) };
+        if (idx === 0 && i > 0 && !day.startTimeTouched) return { ...day, startTime: value };
+        return day;
+      })
+    );
+  };
+
+  const handleDayEndTimeChange = (idx: number, value: string) => {
+    setErrors((prev) => ({ ...prev, [`day-${idx}-endTime`]: "" }));
+    setDayEntries((prev) =>
+      prev.map((day, i) => {
+        if (i === idx) return { ...day, endTime: value, ...(idx > 0 && { endTimeTouched: true }) };
+        if (idx === 0 && i > 0 && !day.endTimeTouched) return { ...day, endTime: value };
+        return day;
+      })
+    );
+  };
+
+  // The min a given day's date picker will accept: today for the first
+  // day, or the day immediately after the previous row's date. Native
+  // `min` only steers the picker UI - handleDayDateChange below is what
+  // actually enforces the rule, since `min` alone can be bypassed (typed
+  // input, browsers that ignore it, or a stale previous-day value).
+  const dayMinDate = (idx: number) => {
+    if (idx === 0) return today;
+    const prevDate = dayEntries[idx - 1]?.date;
+    if (!prevDate) return today;
+    const d = new Date(`${prevDate}T00:00:00`);
+    d.setDate(d.getDate() + 1);
+    return format(d, "yyyy-MM-dd");
+  };
+
+  const nextCalendarDate = (dateStr: string) => {
+    const d = new Date(`${dateStr}T00:00:00`);
+    d.setDate(d.getDate() + 1);
+    return format(d, "yyyy-MM-dd");
+  };
+
+  // After a day's date changes, keep every later day chronological: a
+  // later day the guest teacher already set by hand (dateTouched) is left
+  // alone as long as it's still after the day before it; every other later
+  // day is auto prefilled with the next calendar day in sequence - so
+  // moving Day 1 pushes Day 2, Day 3, etc. forward in order instead of
+  // just clearing them, while any day they've manually chosen keeps its
+  // own date until it would conflict.
+  const cascadeDatesForward = (
+    entries: { date: string; startTime: string; endTime: string; dateTouched?: boolean; startTimeTouched?: boolean; endTimeTouched?: boolean }[],
+    fromIdx: number
+  ) => {
+    const next = [...entries];
+    let previous = next[fromIdx].date;
+    for (let i = fromIdx + 1; i < next.length; i++) {
+      const day = next[i];
+      if (day.dateTouched && day.date && day.date > previous) {
+        previous = day.date;
+        continue;
+      }
+      const auto = nextCalendarDate(previous);
+      next[i] = { ...day, date: auto, dateTouched: false };
+      previous = auto;
+    }
+    return next;
+  };
+
+  const handleDayDateChange = (idx: number, value: string) => {
+    const prevDate = idx > 0 ? dayEntries[idx - 1].date : null;
+    if (value && prevDate && value <= prevDate) {
+      setErrors((prev) => ({
+        ...prev,
+        [`day-${idx}-date`]: "Date must be after the previous day",
+      }));
+      return;
+    }
+
+    setDayEntries((prev) => {
+      const updatedSelf = prev.map((day, i) =>
+        i === idx ? { ...day, date: value, ...(idx > 0 && { dateTouched: true }) } : day
+      );
+      return cascadeDatesForward(updatedSelf, idx);
+    });
+
+    setErrors((prev) => {
+      const updated = { ...prev, [`day-${idx}-date`]: "", days: "" };
+      for (let i = idx + 1; i < dayEntries.length; i++) {
+        updated[`day-${i}-date`] = "";
+      }
+      return updated;
+    });
+  };
+
+  const addDay = () => {
+    if (dayEntries.length >= MAX_ASSIGNMENT_DAYS) return;
+
+    const last = dayEntries[dayEntries.length - 1];
+    const date = last?.date ? nextCalendarDate(last.date) : format(new Date(), "yyyy-MM-dd");
+
+    const first = dayEntries[0];
+    setDayEntries((prev) => [
+      ...prev,
+      { date, startTime: first?.startTime ?? "", endTime: first?.endTime ?? "" },
+    ]);
+  };
+
+  const removeDay = (idx: number) => {
+    setDayEntries((prev) => prev.filter((_, i) => i !== idx));
+    // Removing a row shifts every later row's index, which would otherwise
+    // leave day-N-* errors attached to the wrong row - clearing everything
+    // is simplest and safe since validateForm() recomputes on next submit.
+    setErrors({});
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -617,30 +820,8 @@ function AddEventSidebar({
       newErrors.title = "Title is required";
     }
 
-    if (!startDate.trim()) {
-      newErrors.startDate = "Start date is required";
-    }
-
-    if (!endDate.trim()) {
-      newErrors.endDate = "End date is required";
-    }
-
-    // Compare dates only if both are provided
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      if (start > end) {
-        newErrors.startDate = "Start date cannot be after end date";
-      }
-    }
-
-    if (!startTime) {
-      newErrors.startTime = "Start time is required";
-    }
-
-    if (!endTime) {
-      newErrors.endTime = "End time is required";
+    if (dayEntries.length > MAX_ASSIGNMENT_DAYS) {
+      newErrors.days = `A maximum of ${MAX_ASSIGNMENT_DAYS} days is allowed`;
     }
 
     const getMinutes = (time: string) => {
@@ -648,12 +829,27 @@ function AddEventSidebar({
       return hours * 60 + minutes;
     };
 
-    const startMinutes = getMinutes(startTime);
-    const endMinutes = getMinutes(endTime);
+    let previousDate: string | null = null;
+    dayEntries.forEach((day, idx) => {
+      if (!day.date.trim()) {
+        newErrors[`day-${idx}-date`] = "Date is required";
+      } else {
+        if (previousDate && day.date <= previousDate) {
+          newErrors[`day-${idx}-date`] = "Date must be after the previous day";
+        }
+        previousDate = day.date;
+      }
 
-    if (endMinutes <= startMinutes) {
-      newErrors.endTime = "End time must be after start time";
-    }
+      if (!day.startTime) {
+        newErrors[`day-${idx}-startTime`] = "Start time is required";
+      }
+      if (!day.endTime) {
+        newErrors[`day-${idx}-endTime`] = "End time is required";
+      }
+      if (day.startTime && day.endTime && getMinutes(day.endTime) <= getMinutes(day.startTime)) {
+        newErrors[`day-${idx}-endTime`] = "End time must be after start time";
+      }
+    });
 
     if (!schoolName.trim()) {
       newErrors.schoolName = "School name is required";
@@ -703,33 +899,18 @@ function AddEventSidebar({
       // catch below reports it and no event is created.
       const resolvedTeacherId = await resolveOrCreateTeacherId(teacherName, teacherId, schoolId);
 
-      const [sy, sm, sd] = startDate.split("-").map(Number);
-      const [sh, smin] = startTime.split(":").map(Number);
-      const [ey, em, ed] = endDate.split("-").map(Number);
-      const [eh, emin] = endTime.split(":").map(Number);
       const eventColors = getRandomEventColors();
 
-      // Generate all dates between start and end date
-      const startDateObj = new Date(sy, sm - 1, sd);
-      const endDateObj = new Date(ey, em - 1, ed);
-      const dates = [];
-      const currentDate = new Date(startDateObj);
-
-      while (currentDate <= endDateObj) {
-        dates.push(new Date(currentDate));
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-
-      const events = dates?.map((date) => {
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const day = date.getDate();
+      const events = dayEntries.map((day) => {
+        const [y, m, d] = day.date.split("-").map(Number);
+        const [sh, smin] = day.startTime.split(":").map(Number);
+        const [eh, emin] = day.endTime.split(":").map(Number);
 
         return {
           title: title,
-          start: new Date(year, month, day, sh, smin).toISOString(),
-          end: new Date(year, month, day, eh, emin).toISOString(),
+          date: day.date,
+          start: new Date(y, m - 1, d, sh, smin).toISOString(),
+          end: new Date(y, m - 1, d, eh, emin).toISOString(),
           school: schoolName,
           schoolAddress,
           schoolPhone: schoolPhone.trim() || null,
@@ -859,71 +1040,71 @@ function AddEventSidebar({
                 </svg>
               }
             />
-            <div className="grid grid-cols-2 gap-4">
-              <div >
-                <FieldLabel required>Start Date</FieldLabel>
-                <div onClick={() => dateRef1.current?.showPicker()} className={`flex items-center text-sm gap-[6px] px-4 rounded-lg overflow-hidden justify-between py-[14px] ${errors.startDate ? "bg-red-50 border border-red-500" : "bg-[#F3F4F5]"}`}>
-                  <input
-                    type="date"
-                    id="startDate"
-                    min={new Date().toISOString().split("T")[0]}
-                    ref={dateRef1}
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="bg-transparent outline-none w-full font-inter text-sm text-[#121212] appearance-none"
-                  />
-                  <div className="cursor-pointer">
-                    <CalendarIcon />
+            <div className="flex flex-col gap-4">
+              {dayEntries.map((day, idx) => (
+                <div key={idx} className="rounded-lg border border-[#E8E8E8] p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[#121212] font-inter text-sm font-semibold">Day {idx + 1}</span>
+                    {idx > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => removeDay(idx)}
+                        className="text-[#6B727F] hover:text-red-600 transition-colors cursor-pointer p-0.5"
+                        aria-label={`Remove day ${idx + 1}`}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                          <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <FieldLabel required>Date</FieldLabel>
+                      <DateField
+                        id={`day-${idx}-date`}
+                        value={day.date}
+                        min={dayMinDate(idx)}
+                        onChange={(v) => handleDayDateChange(idx, v)}
+                        error={errors[`day-${idx}-date`]}
+                      />
+                    </div>
+                    <div>
+                      <FieldLabel required>Start Time</FieldLabel>
+                      <input
+                        type="time"
+                        value={day.startTime}
+                        id={`day-${idx}-startTime`}
+                        onChange={(e) => handleDayStartTimeChange(idx, e.target.value)}
+                        className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${errors[`day-${idx}-startTime`] ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
+                          }`}
+                      />
+                      {errors[`day-${idx}-startTime`] && <p className="text-red-500 text-xs mt-1">{errors[`day-${idx}-startTime`]}</p>}
+                    </div>
+                    <div>
+                      <FieldLabel required>End Time</FieldLabel>
+                      <input
+                        type="time"
+                        value={day.endTime}
+                        id={`day-${idx}-endTime`}
+                        onChange={(e) => handleDayEndTimeChange(idx, e.target.value)}
+                        className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${errors[`day-${idx}-endTime`] ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
+                          }`}
+                      />
+                      {errors[`day-${idx}-endTime`] && <p className="text-red-500 text-xs mt-1">{errors[`day-${idx}-endTime`]}</p>}
+                    </div>
                   </div>
                 </div>
-                {errors.startDate && <p className="text-red-500 text-xs mt-1">{errors.startDate}</p>}
-              </div>
-              <div >
-                <FieldLabel required>End Date</FieldLabel>
-                <div onClick={() => dateRef2.current?.showPicker()} className={`flex items-center text-sm gap-[6px] px-4 rounded-lg overflow-hidden justify-between py-[14px] ${errors.endDate ? "bg-red-50 border border-red-500" : "bg-[#F3F4F5]"}`}>
-                  <input
-                    type="date"
-                    ref={dateRef2}
-                    id="endDate"
-                    min={startDate}
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="bg-transparent outline-none w-full font-inter text-sm text-[#121212] appearance-none"
-                  />
-                  <div className="cursor-pointer">
-                    <CalendarIcon />
-                  </div>
-                </div>
-                {errors.endDate && <p className="text-red-500 text-xs mt-1">{errors.endDate}</p>}
-              </div>
-              <div>
-                <FieldLabel required>Start Time</FieldLabel>
-                <div>
-                  <input
-                    type="time"
-                    value={startTime}
-                    id="startTime"
-                    onChange={(e) => setStartTime(e.target.value)}
-                    className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${errors.startTime ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
-                      }`}
-                  />
-                </div>
-                {errors.startTime && <p className="text-red-500 text-xs mt-1">{errors.startTime}</p>}
-              </div>
-              <div>
-                <FieldLabel required>End Time</FieldLabel>
-                <div>
-                  <input
-                    type="time"
-                    value={endTime}
-                    id="endTime"
-                    onChange={(e) => setEndTime(e.target.value)}
-                    className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${errors.endTime ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
-                      }`}
-                  />
-                </div>
-                {errors.endTime && <p className="text-red-500 text-xs mt-1">{errors.endTime}</p>}
-              </div>
+              ))}
+              {errors.days && <p className="text-red-500 text-xs">{errors.days}</p>}
+              <button
+                type="button"
+                onClick={addDay}
+                disabled={dayEntries.length >= MAX_ASSIGNMENT_DAYS}
+                className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-[#0171F9]/40 text-[#0171F9] font-inter text-sm font-semibold hover:bg-[#0171F9]/5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              >
+                + Add Another Day{dayEntries.length >= MAX_ASSIGNMENT_DAYS ? " (Max 6 days)" : ""}
+              </button>
             </div>
           </div>
           <hr className="border-[#E8E8E8] my-[30px]" />
@@ -1093,7 +1274,7 @@ export default function CalendarPage() {
   const router = useRouter();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedDayEvent, setSelectedDayEvent] = useState<CalendarEvent[]>([]);
-  const [upcomingJobs, setUpcomingJobs] = useState<CalendarEvent[]>([]);
+  const [upcomingJobs, setUpcomingJobs] = useState<UpcomingJobItem[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -1195,18 +1376,34 @@ export default function CalendarPage() {
 
       const data = await response.json();
 
-      const jobs = data.events.map((event: any) => ({
-        ...event,
-        start: new Date(event.start_date),
-        end: new Date(event.end_date),
-      }));
+      const jobs: UpcomingJobItem[] = data.events.map((item: any) => {
+        if (item.grouped) {
+          return {
+            ...item,
+            bgColor: item.bg_color,
+            members: item.members.map((member: any) => ({
+              ...member,
+              start: new Date(member.start_date),
+              end: new Date(member.end_date),
+              bgColor: member.bg_color,
+            })),
+          };
+        }
+        return {
+          ...item,
+          start: new Date(item.start_date),
+          end: new Date(item.end_date),
+        };
+      });
+
+      const jobKey = (job: UpcomingJobItem) => ("grouped" in job && job.grouped ? job.groupKey : (job as CalendarEvent).id);
 
       if (currentOffset === 0) {
         setUpcomingJobs(jobs);
       } else {
         setUpcomingJobs((prev) => {
-          const existingIds = new Set(prev.map((job) => job.id));
-          const newJobs = jobs.filter((job: any) => !existingIds.has(job.id));
+          const existingKeys = new Set(prev.map(jobKey));
+          const newJobs = jobs.filter((job) => !existingKeys.has(jobKey(job)));
 
           return [...prev, ...newJobs];
         });
@@ -1355,11 +1552,12 @@ export default function CalendarPage() {
       newErrors.title = "Title is required";
     }
     if (!editFormData.start_date.trim()) {
-      newErrors.start_date = "Start date is required";
+      newErrors.date = "Date is required";
+      newErrors.start_time = "Start time is required";
     }
 
     if (!editFormData.end_date.trim()) {
-      newErrors.end_date = "End date is required";
+      newErrors.end_time = "End time is required";
     }
 
     if (editFormData.start_date && editFormData.end_date) {
@@ -1374,9 +1572,9 @@ export default function CalendarPage() {
 
 
       if (startDate !== endDate) {
-        newErrors.end_date = "Start date and end date must be the same";
+        newErrors.end_time = "End time must be on the same date as the start time";
       } else if (startTime >= endTime) {
-        newErrors.end_date = "End time must be after start time";
+        newErrors.end_time = "End time must be after start time";
       }
     }
     if (!editFormData.school_name.trim()) {
@@ -1474,8 +1672,19 @@ export default function CalendarPage() {
       setEvents((prevEvents) =>
         prevEvents.filter((event) => event.id !== selectedEvent.id)
       );
-      setUpcomingJobs((prevEvents) =>
-        prevEvents.filter((event) => event.id !== selectedEvent.id))
+      setUpcomingJobs((prevJobs) =>
+        prevJobs
+          .map((job) => {
+            if (!("grouped" in job && job.grouped)) return job;
+            const members = job.members.filter((member) => member.id !== selectedEvent.id);
+            if (members.length === job.members.length) return job;
+            return members.length === 1 ? members[0] : { ...job, members };
+          })
+          .filter((job) => {
+            if ("grouped" in job && job.grouped) return job.members.length > 0;
+            return (job as CalendarEvent).id !== selectedEvent.id;
+          })
+      );
     } catch (error) {
       console.error("Error deleting event:", error);
       alert("Failed to delete event");
@@ -1726,14 +1935,18 @@ export default function CalendarPage() {
                         <label className="text-[#9A9A9A] font-inter text-sm font-medium">Event Title</label>
                         <p className="text-[#121212] font-inter text-base mt-1">{selectedEvent.title}</p>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <label className="text-[#9A9A9A] font-inter text-sm font-medium">Start Date</label>
-                          <p className="text-[#121212] font-inter text-base mt-1">{format(new Date(selectedEvent.start_date), "MMM d, yyyy h:mm aa")}</p>
+                          <label className="text-[#9A9A9A] font-inter text-sm font-medium">Date</label>
+                          <p className="text-[#121212] font-inter text-base mt-1">{format(new Date(selectedEvent.start_date), "MMM d, yyyy")}</p>
                         </div>
                         <div>
-                          <label className="text-[#9A9A9A] font-inter text-sm font-medium">End Date</label>
-                          <p className="text-[#121212] font-inter text-base mt-1">{format(new Date(selectedEvent.end_date), "MMM d, yyyy h:mm aa")}</p>
+                          <label className="text-[#9A9A9A] font-inter text-sm font-medium">Start Time</label>
+                          <p className="text-[#121212] font-inter text-base mt-1">{format(new Date(selectedEvent.start_date), "h:mm aa")}</p>
+                        </div>
+                        <div>
+                          <label className="text-[#9A9A9A] font-inter text-sm font-medium">End Time</label>
+                          <p className="text-[#121212] font-inter text-base mt-1">{format(new Date(selectedEvent.end_date), "h:mm aa")}</p>
                         </div>
                       </div>
                     </div>
@@ -1849,54 +2062,76 @@ export default function CalendarPage() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div id="start_date">
-                      <FieldLabel required>Start Date</FieldLabel>
-                      <input
-
-                        type="datetime-local"
-                        value={
-                          editFormData.start_date
-                            ? formatDateTimeLocal(editFormData.start_date)
-                            : ""
-                        }
-                        onChange={(e) =>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div id="date">
+                      <FieldLabel required>Date</FieldLabel>
+                      <DateField
+                        value={editFormData.start_date ? format(new Date(editFormData.start_date), "yyyy-MM-dd") : ""}
+                        error={errors2.date}
+                        onChange={(dateStr) => {
+                          setErrors2((prev) => ({ ...prev, date: "" }));
+                          if (!dateStr) {
+                            setEditFormData({ ...editFormData, start_date: "", end_date: "" });
+                            return;
+                          }
+                          const [y, m, d] = dateStr.split("-").map(Number);
+                          // Keeps each time-of-day, only moving both timestamps
+                          // onto the newly picked date.
+                          const applyDate = (iso: string) => {
+                            const t = new Date(iso);
+                            return new Date(y, m - 1, d, t.getHours(), t.getMinutes()).toISOString();
+                          };
                           setEditFormData({
                             ...editFormData,
-                            start_date: e.target.value
-                              ? new Date(e.target.value).toISOString()
-                              : "",
-                          })
-                        }
-                        className={`w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all ${errors2.start_date ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
+                            start_date: editFormData.start_date ? applyDate(editFormData.start_date) : new Date(y, m - 1, d).toISOString(),
+                            end_date: editFormData.end_date ? applyDate(editFormData.end_date) : "",
+                          });
+                        }}
+                      />
+                    </div>
+                    <div id="start_time">
+                      <FieldLabel required>Start Time</FieldLabel>
+                      <input
+                        type="time"
+                        value={editFormData.start_date ? format(new Date(editFormData.start_date), "HH:mm") : ""}
+                        onChange={(e) => {
+                          setErrors2((prev) => ({ ...prev, start_time: "" }));
+                          if (!e.target.value) return;
+                          const base = editFormData.start_date ? new Date(editFormData.start_date) : new Date();
+                          const [h, min] = e.target.value.split(":").map(Number);
+                          setEditFormData({
+                            ...editFormData,
+                            start_date: new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, min).toISOString(),
+                          });
+                        }}
+                        className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${errors2.start_time ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
                           }`}
                       />
-                      {errors2.start_date && <p className="text-red-500 text-xs mt-1">{errors2.start_date}</p>}
-
-
+                      {errors2.start_time && <p className="text-red-500 text-xs mt-1">{errors2.start_time}</p>}
                     </div>
-                    <div id="end_date">
-                      <FieldLabel required>End Date</FieldLabel>
+                    <div id="end_time">
+                      <FieldLabel required>End Time</FieldLabel>
                       <input
-
-                        type="datetime-local"
-                        value={
-                          editFormData.end_date
-                            ? formatDateTimeLocal(editFormData.end_date)
-                            : ""
-                        }
-                        onChange={(e) =>
+                        type="time"
+                        value={editFormData.end_date ? format(new Date(editFormData.end_date), "HH:mm") : ""}
+                        onChange={(e) => {
+                          setErrors2((prev) => ({ ...prev, end_time: "" }));
+                          if (!e.target.value) return;
+                          const base = editFormData.end_date
+                            ? new Date(editFormData.end_date)
+                            : editFormData.start_date
+                              ? new Date(editFormData.start_date)
+                              : new Date();
+                          const [h, min] = e.target.value.split(":").map(Number);
                           setEditFormData({
                             ...editFormData,
-                            end_date: e.target.value
-                              ? new Date(e.target.value).toISOString()
-                              : "",
-                          })
-                        }
-
-                        className={`w-full bg-[#F5F6FA] border-0 rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all ${errors2.start_date ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"}`}
+                            end_date: new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, min).toISOString(),
+                          });
+                        }}
+                        className={`w-full rounded-lg px-4 py-3 text-sm font-inter text-[#121212] outline-none focus:ring-2 transition-all ${errors2.end_time ? "bg-red-50 border border-red-500 focus:ring-red-200" : "bg-[#F5F6FA] border-0 focus:ring-[#0171F9]/30"
+                          }`}
                       />
-                      {errors2.end_date && <p className="text-red-500 text-xs mt-1">{errors2.end_date}</p>}
+                      {errors2.end_time && <p className="text-red-500 text-xs mt-1">{errors2.end_time}</p>}
                     </div>
                   </div>
 

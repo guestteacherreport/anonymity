@@ -1,12 +1,31 @@
 
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          error: "Login is required",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
 
-    const userid = searchParams.get("userid") || "";
+    // This is "my submitted reports" - always the caller's own id from the
+    // session, never the client-supplied query param, so one user can't
+    // page through another user's report history (including their real
+    // your_name) by passing a different userid.
+    const userid = session.user.id;
     const searchQuery = searchParams.get("search") || "";
 
     const page = parseInt(
@@ -20,17 +39,6 @@ export async function GET(req: Request) {
     );
 
     const offset = (page - 1) * limit;
-
-    if (!userid) {
-      return NextResponse.json(
-        {
-          error: "Login is required",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
 
     // =========================
     // FETCH REPORTS
