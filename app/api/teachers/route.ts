@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { parseTeacherStatus } from "@/lib/function";
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, status, school_id } = await req.json();
+    const { name, status, school_id, city, state, zipcode } = await req.json();
 
     if (!name || status === undefined || !school_id) {
       return NextResponse.json(
@@ -18,8 +19,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const statusValue =
-      status === "Active" ? 1 : 0;
+    const statusValue = parseTeacherStatus(status);
+
+    if (statusValue === null) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid status: expected Active or Inactive",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const location = {
+      city: typeof city === "string" ? city.trim() : "",
+      state: typeof state === "string" ? state.trim() : "",
+      zipcode: typeof zipcode === "string" ? zipcode.trim() : "",
+    };
+
+    // Any location field left blank falls back to the teacher's school, the
+    // same way existing teachers were backfilled, so /api/browse-teachers
+    // location filtering still finds teachers created without one.
+    if (!location.city || !location.state || !location.zipcode) {
+      const { data: school } = await supabase
+        .from("schools")
+        .select("city, state, zipcode")
+        .eq("id", school_id)
+        .maybeSingle();
+
+      if (school) {
+        location.city ||= school.city || "";
+        location.state ||= school.state || "";
+        location.zipcode ||= school.zipcode || "";
+      }
+    }
 
     const { data, error } = await supabase
       .from("teachers")
@@ -28,6 +63,9 @@ export async function POST(req: NextRequest) {
           name,
           school_id,
           status: statusValue,
+          city: location.city || null,
+          state: location.state || null,
+          zipcode: location.zipcode || null,
         },
       ])
       .select()

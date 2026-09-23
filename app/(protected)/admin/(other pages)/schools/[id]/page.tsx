@@ -144,6 +144,9 @@ interface Teacher {
   avg_rating: number;
   risk: TeacherRisk;
   status: string;
+  city?: string | null;
+  state?: string | null;
+  zipcode?: string | null;
 }
 
 const teacherRiskStyles: Record<TeacherRisk, { bg: string; text: string }> = {
@@ -188,6 +191,9 @@ interface EditTeacherSidebarProps {
 function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTeacherSidebarProps) {
   const [name, setName] = useState("");
   const [status, setStatus] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zipcode, setZipcode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -210,6 +216,9 @@ function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTea
           name: name.trim(),
           status,
           school_id: schoolId,
+          city: city.trim(),
+          state: state.trim(),
+          zipcode: zipcode.trim(),
         }),
       });
 
@@ -223,6 +232,9 @@ function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTea
       onClose();
       setName("");
       setStatus("");
+      setCity("");
+      setState("");
+      setZipcode("");
     } catch (err) {
       console.error("Error adding teacher:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -283,19 +295,65 @@ function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTea
             <div className="relative">
               <select
                 value={status}
-                onChange={(e) => {console.log(e.target.value,"value");setStatus(e.target.value)}}
+                onChange={(e) => setStatus(e.target.value)}
                 disabled={loading}
                 className="appearance-none w-full h-10 sm:h-12 px-3 sm:px-4 pr-10 rounded-lg bg-[#F3F4F5] font-inter font-normal text-sm text-[#6B7280] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="" disabled>Select</option>
                 <option value="1">Active</option>
-                <option value="2">Inactive</option>
+                <option value="0">Inactive</option>
               </select>
               <span className="pointer-events-none absolute right-3 sm:right-4 top-1/2 -translate-y-1/2">
                 <ChevronDownIcon />
               </span>
             </div>
           </div>
+
+          {/* City field */}
+          <div className="flex flex-col gap-0.5">
+            <label className="font-outfit font-medium text-sm sm:text-base text-[#212121] leading-6">City</label>
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Enter City"
+              disabled={loading}
+              className="h-10 sm:h-12 px-3 sm:px-4 rounded-lg bg-[#F3F4F5] font-inter font-normal text-sm text-[#6B7280] placeholder:text-[#6B7280] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            {/* State field */}
+            <div className="flex flex-col gap-0.5 flex-1">
+              <label className="font-outfit font-medium text-sm sm:text-base text-[#212121] leading-6">State</label>
+              <input
+                type="text"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                placeholder="Enter State"
+                disabled={loading}
+                className="h-10 sm:h-12 px-3 sm:px-4 rounded-lg bg-[#F3F4F5] font-inter font-normal text-sm text-[#6B7280] placeholder:text-[#6B7280] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            {/* Zipcode field */}
+            <div className="flex flex-col gap-0.5 flex-1">
+              <label className="font-outfit font-medium text-sm sm:text-base text-[#212121] leading-6">Zipcode</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={zipcode}
+                onChange={(e) => setZipcode(e.target.value)}
+                placeholder="Enter Zipcode"
+                disabled={loading}
+                className="h-10 sm:h-12 px-3 sm:px-4 rounded-lg bg-[#F3F4F5] font-inter font-normal text-sm text-[#6B7280] placeholder:text-[#6B7280] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+            </div>
+          </div>
+
+          <p className="font-inter text-xs text-[#6B7280] -mt-1">
+            Leave location blank to use the school&apos;s city, state and zipcode.
+          </p>
 
           {/* Error message */}
           {error && (
@@ -323,14 +381,21 @@ function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTea
 function EditTeacherSidebar({ isOpen, onClose, teacher, onTeacherUpdated }: EditTeacherSidebarProps) {
   const [name, setName] = useState("");
   const [status, setStatus] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zipcode, setZipcode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (teacher) {
-      console.log(teacher.status)
       setName(teacher.name);
-      setStatus(teacher.status);
+      // Stored as 1 (Active) / 0 (Inactive); older rows may hold 2 for
+      // Inactive, so anything other than 1 maps to the Inactive option.
+      setStatus(String(teacher.status) === "1" ? "1" : "0");
+      setCity(teacher.city || "");
+      setState(teacher.state || "");
+      setZipcode(teacher.zipcode || "");
     }
   }, [teacher]);
 
@@ -357,6 +422,9 @@ function EditTeacherSidebar({ isOpen, onClose, teacher, onTeacherUpdated }: Edit
         body: JSON.stringify({
           name: name.trim(),
           status,
+          city: city.trim(),
+          state: state.trim(),
+          zipcode: zipcode.trim(),
         }),
       });
 
@@ -432,11 +500,53 @@ function EditTeacherSidebar({ isOpen, onClose, teacher, onTeacherUpdated }: Edit
               >
                 <option value="" disabled>Select</option>
                 <option value="1">Active</option>
-                <option value="2">Inactive</option>
+                <option value="0">Inactive</option>
               </select>
               <span className="pointer-events-none absolute right-3 sm:right-4 top-1/2 -translate-y-1/2">
                 <ChevronDownIcon />
               </span>
+            </div>
+          </div>
+
+          {/* City field */}
+          <div className="flex flex-col gap-0.5">
+            <label className="font-outfit font-medium text-sm sm:text-base text-[#212121] leading-6">City</label>
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Enter City"
+              disabled={loading}
+              className="h-10 sm:h-12 px-3 sm:px-4 rounded-lg bg-[#F3F4F5] font-inter font-normal text-sm text-[#6B7280] placeholder:text-[#6B7280] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            {/* State field */}
+            <div className="flex flex-col gap-0.5 flex-1">
+              <label className="font-outfit font-medium text-sm sm:text-base text-[#212121] leading-6">State</label>
+              <input
+                type="text"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                placeholder="Enter State"
+                disabled={loading}
+                className="h-10 sm:h-12 px-3 sm:px-4 rounded-lg bg-[#F3F4F5] font-inter font-normal text-sm text-[#6B7280] placeholder:text-[#6B7280] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            {/* Zipcode field */}
+            <div className="flex flex-col gap-0.5 flex-1">
+              <label className="font-outfit font-medium text-sm sm:text-base text-[#212121] leading-6">Zipcode</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={zipcode}
+                onChange={(e) => setZipcode(e.target.value)}
+                placeholder="Enter Zipcode"
+                disabled={loading}
+                className="h-10 sm:h-12 px-3 sm:px-4 rounded-lg bg-[#F3F4F5] font-inter font-normal text-sm text-[#6B7280] placeholder:text-[#6B7280] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              />
             </div>
           </div>
 

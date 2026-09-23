@@ -146,3 +146,17 @@ export const getTeacherColor = (name: string) => {
 
   return colors[hash % colors.length];
 };
+// Teachers store status as 1 (Active) / 0 (Inactive). Callers send it in
+// several shapes - "Active"/"Inactive" labels, "1"/"0" select values, raw
+// numbers - so the teacher API routes normalise it here. Returns null for
+// anything unrecognised so the route can reject it.
+export const parseTeacherStatus = (status: unknown): 0 | 1 | null => {
+  if (status === 1 || status === "1" || status === true) return 1;
+  if (status === 0 || status === "0" || status === false) return 0;
+  if (typeof status === "string") {
+    const value = status.trim().toLowerCase();
+    if (value === "active") return 1;
+    if (value === "inactive") return 0;
+  }
+  return null;
+};
