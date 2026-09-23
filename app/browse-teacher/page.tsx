@@ -410,15 +410,15 @@ export default function BrowseTeacherPage() {
                     </button>}
                 </div>
 
-                {/* <div className="flex flex-col gap-3 mb-5 sm:mb-7">
+                <div className="flex flex-col gap-3 mb-5 sm:mb-7">
                   <span className="font-[Outfit] text-sm sm:text-base font-medium leading-6 text-[#121212]">
                     Location
                   </span>
 
                   <div className="flex items-center gap-1 px-[14px] py-3 bg-[#F3F4F5] rounded-lg">
-                    {/* <LocationPinIcon /> */}
+                    <LocationPinIcon />
 
-                    {/* <input
+                    <input
                       type="text"
                       onChange={(e) => setFilters({ ...filters, ["location"]: e.target.value })}
                       placeholder="City or Zip Code"
@@ -426,7 +426,7 @@ export default function BrowseTeacherPage() {
                       className="ml-1 w-full bg-transparent outline-none border-none font-[Inter] text-xs font-normal text-[#121212] placeholder:text-[#6B7280]"
                     />
                   </div>
-                </div>  */}
+                </div>
 
                 {/* <div className="flex flex-col gap-4 sm:gap-5 mb-5 sm:mb-7">
                   <span className="font-[Outfit] text-sm sm:text-base font-medium leading-6 text-[#121212]">Subject</span>

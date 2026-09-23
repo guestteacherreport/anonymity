@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
 
     if (location) {
       query = query.or(
-        `city.ilike.%${location}%`
+        `city.ilike.%${location}%,zipcode.ilike.%${location}%`
       );
     }
 

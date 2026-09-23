@@ -356,6 +356,7 @@ function TeacherSearchInput({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [schoolRequiredError, setSchoolRequiredError] = useState("");
   const [placement, setPlacement] = useState<"up" | "down">("down");
   const fieldRef = useRef<HTMLDivElement>(null);
   // See SchoolSearchInput's requestIdRef - same out-of-order-response guard.
@@ -414,12 +415,17 @@ function TeacherSearchInput({
       <TextInput
         value={value}
         onChange={(v) => {
+          if (!schoolId) {
+            setSchoolRequiredError("Please first select school");
+            return;
+          }
+          setSchoolRequiredError("");
           onChange(v);
           fetchTeachers(v, schoolId, 1, false);
           setShowSuggestions(true);
         }}
         placeholder={placeholder}
-        error={error}
+        error={schoolRequiredError || error}
       />
       {showSuggestions && suggestions.length > 0 && (
         <div className={`${placement === "up" ? "absolute bottom-full mb-1" : "absolute top-full mt-1"} left-0 right-0 bg-white border border-[#E0E0E2] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto`}>
