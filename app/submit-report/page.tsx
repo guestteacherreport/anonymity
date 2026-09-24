@@ -219,6 +219,12 @@ const LockIcon = () => (
   </svg>
 );
 
+// Converts the date input's YYYY-MM-DD value to MM-DD-YYYY for display.
+function formatDisplayDate(value: string): string {
+  const [year, month, day] = value.split("-");
+  return year && month && day ? `${month}-${day}-${year}` : value;
+}
+
 // Shown next to fields that are collected for internal reference but never
 // displayed on the posted report (Job ID, Assignment Date).
 // The label text is hidden in the narrow band where the two-column Job
@@ -293,12 +299,21 @@ const SendIcon = () => (
 /* ─── Warning banner ─────────────────────────────────────────────────── */
 
 const WarningBanner = () => (
-  <div className="flex items-start gap-2 p-[17px_16px] rounded-[6px] border border-[#FFC107] bg-[#FFF3CD]">
-    <ShieldIcon />
-    <p className="text-[#856404] font-inter text-sm font-medium leading-[23px]">
-      <strong className="font-bold">Your privacy is protected:</strong>{" "}
-      All submissions are completely anonymous — your identity is never shared with schools, teachers, or other users.
-    </p>
+  <div className="flex flex-col gap-3">
+    <div className="flex items-start gap-2 p-[17px_16px] rounded-[6px] border border-[#FFC107] bg-[#FFF3CD]">
+      <ShieldIcon />
+      <p className="text-[#856404] font-inter text-sm font-medium leading-[23px]">
+        <strong className="font-bold">IMPORTANT — To protect minors:</strong>{" "}
+        Under NO circumstance should a student&apos;s name or description be posted or mentioned on this site at any time!!!
+      </p>
+    </div>
+    <div className="flex items-start gap-2 p-[17px_16px] rounded-[6px] border border-[#FFC107] bg-[#FFF3CD]">
+      <ShieldIcon />
+      <p className="text-[#856404] font-inter text-sm font-medium leading-[23px]">
+        <strong className="font-bold">Your privacy is protected:</strong>{" "}
+        All submissions are completely anonymous — your identity is never shared with schools, teachers, or other users.
+      </p>
+    </div>
   </div>
 );
 
@@ -315,7 +330,7 @@ const RATING_CATEGORIES: { label: string; key: RatingKeys }[] = [
 ];
 
 const ALL_TAGS = [
-  "Friendly Teachers", "Unfriendly Teachers", "Unwelcoming Environment", "Welcoming Environment",
+  "Friendly Teachers", "Unfriendly Teachers",  "Welcoming Environment","Unwelcoming Environment",
   "Helpful Office Staff", "Unhelpful Office Staff", "Friendly Students", "Unfriendly Students", "Great Leadership", "Poor Leadership",
   "Job As Described", "Job NOT As Described", "None/Few Student Behaviors", "Many Student Behaviors", "Helpful Aides/Proctors", "Unhelpful Aides/Proctors","Detailed Lesson Plans","Insufficient Lesson Plans","No Lesson Plans"
 ];
@@ -1296,10 +1311,8 @@ function SubmitReportForm() {
 
               <div className="h-px bg-black opacity-10" />
 
-              {/* Bottom warning + submit */}
+              {/* Submit */}
               <div className="flex flex-col gap-6">
-                <WarningBanner />
-
                 <div className="flex flex-col justify-end gap-3 sm:gap-4 items-end">
                   <p className="font-inter w-full text-xs sm:text-sm text-[#121212]/60 sm:text-right text-center">
                     Once submitted, reports cannot be edited or undone.
@@ -1364,7 +1377,7 @@ function SubmitReportForm() {
                 </div>
                 <div className={`mt-3 grid grid-cols-1 gap-3 ${previewReport.postAs === "anonymous" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
                   <div><p className="font-inter text-xs text-[#6B7280]">Job ID</p><p className="mt-1 break-words font-inter text-sm font-medium text-[#121212]">{previewReport.jobId}</p></div>
-                  <div><p className="font-inter text-xs text-[#6B7280]">Assignment date</p><p className="mt-1 font-inter text-sm font-medium text-[#121212]">{previewReport.date}</p></div>
+                  <div><p className="font-inter text-xs text-[#6B7280]">Assignment date</p><p className="mt-1 font-inter text-sm font-medium text-[#121212]">{formatDisplayDate(previewReport.date)}</p></div>
                   {previewReport.postAs === "anonymous" && (
                     <div><p className="font-inter text-xs text-[#6B7280]">Posted by</p><p className="mt-1 font-inter text-sm font-medium text-[#121212]">Anonymous</p></div>
                   )}

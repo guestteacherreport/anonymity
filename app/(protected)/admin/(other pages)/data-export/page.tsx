@@ -550,7 +550,8 @@ export default function DataExportPage() {
   const handleExportRecord = async (recordId: string) => {
     setExportingRecordId(recordId);
     try {
-      const response = await fetch(`/api/data-export/export-record?record_id=${recordId}`);
+      const tz = encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
+      const response = await fetch(`/api/data-export/export-record?record_id=${recordId}&tz=${tz}`);
 
       if (!response.ok) {
         const error = await response.json();
@@ -584,6 +585,7 @@ export default function DataExportPage() {
       if (filterCity) {
         params.append("city", filterCity);
       }
+      params.append("tz", Intl.DateTimeFormat().resolvedOptions().timeZone);
 
       const response = await fetch(`/api/data-export/export-all?${params}`);
 
@@ -630,6 +632,7 @@ export default function DataExportPage() {
       }
       if (startDate) params.append("start_date", startDate);
       if (endDate) params.append("end_date", endDate);
+      params.append("tz", Intl.DateTimeFormat().resolvedOptions().timeZone);
 
       const response = await fetch(`/api/data-export/export?${params}`);
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { buildReportsCsv } from "@/lib/reportsCsv";
 
 export async function GET(req: NextRequest) {
   try {
@@ -47,8 +48,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const reports = flattenSchoolInfo(reportsData);
-
     // Insert export record
     const { error: insertError } = await supabase
       .from("exported_reports")
@@ -74,7 +73,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const csvContent = convertToCSV(reports || []);
+    const csvContent = buildReportsCsv(reportsData, req.nextUrl.searchParams.get("tz"));
 
     return new Response(csvContent, {
       status: 200,
@@ -93,78 +92,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-type ReportRowWithSchool = Record<string, unknown> & {
-  schools?: { city: string | null; state: string | null } | null;
-};
-
-// Pulls the embedded schools(city, state) out of each row into flat
-// school_city / school_state columns, and drops the nested object (it would
-// otherwise serialize as "[object Object]" in the CSV).
-function flattenSchoolInfo(rows: ReportRowWithSchool[] | null) {
-  return (rows || []).map(({ schools, ...report }) => ({
-    ...report,
-    school_city: schools?.city ?? null,
-    school_state: schools?.state ?? null,
-  }));
-}
-
-function convertValue(columnName: string, value: any): string {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  // Map integer values to readable strings
-  const mappings: Record<string, Record<number, string>> = {
-    return_to_teacher: {
-      1: "Yes",
-      2: "No",
-      3: "Maybe",
-    },
-    return_to_school: {
-      1: "Yes",
-      2: "No",
-      3: "Maybe",
-    },
-    post_as: {
-      1: "Anonymous",
-      2: "Public",
-    },
-    status: {
-      1: "Pending",
-      2: "Approved",
-      3: "Rejected",
-    },
-  };
-
-  // Check if this column has a mapping
-  if (mappings[columnName] && typeof value === "number") {
-    return mappings[columnName][value] || String(value);
-  }
-
-  return String(value);
-}
-
-function convertToCSV(data: any[]): string {
-  if (data?.length === 0) {
-    return "No data available";
-  }
-
-  const headers = Object.keys(data[0]);
-  const csvHeaders = headers.join(",");
-
-  const csvRows = data.map((row) =>
-    headers
-      .map((header) => {
-        const convertedValue = convertValue(header, row[header]);
-        if (convertedValue.includes(",") || convertedValue.includes('"') || convertedValue.includes("\n")) {
-          return `"${convertedValue.replace(/"/g, '""')}"`;
-        }
-        return convertedValue;
-      })
-      .join(",")
-  );
-
-  return [csvHeaders, ...csvRows].join("\n");
 }

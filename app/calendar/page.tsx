@@ -1334,7 +1334,13 @@ export default function CalendarPage() {
 
     try {
       setEvents([]);
-      const response = await fetch(`/api/calendar-events/get?month=${month}&year=${year}`);
+      // Month bounds in the user's local timezone: midnight on the 1st up
+      // to (not including) midnight on the 1st of the next month.
+      const rangeStart = new Date(Number(year), Number(month) - 1, 1).toISOString();
+      const rangeEnd = new Date(Number(year), Number(month), 1).toISOString();
+      const response = await fetch(
+        `/api/calendar-events/get?start=${encodeURIComponent(rangeStart)}&end=${encodeURIComponent(rangeEnd)}`
+      );
       if (response.ok) {
         const data = await response.json();
 
@@ -1537,7 +1543,10 @@ export default function CalendarPage() {
   }, [selectedDay]);
 
   const handleSelectDate = (info: any) => {
-    setSelectedDay(new Date(info.dateStr));
+    // new Date("YYYY-MM-DD") parses as UTC midnight, which lands on the
+    // previous day in timezones behind UTC - build a local date instead.
+    const [y, m, d] = info.dateStr.slice(0, 10).split("-").map(Number);
+    setSelectedDay(new Date(y, m - 1, d));
   };
 
   // Opens Add Event pre-filled with a specific date (from a day-cell double

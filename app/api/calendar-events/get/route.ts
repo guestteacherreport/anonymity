@@ -17,18 +17,26 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const month = Number(req.nextUrl.searchParams.get("month"));
-    const year = Number(req.nextUrl.searchParams.get("year"));
+    // The client sends the month's bounds in the user's own timezone
+    // (start inclusive, end exclusive), so events late on the last day of
+    // the month aren't pushed into the next month by UTC boundaries.
+    let rangeStart = new Date(req.nextUrl.searchParams.get("start") ?? "");
+    let rangeEnd = new Date(req.nextUrl.searchParams.get("end") ?? "");
 
-    const startOfMonth = new Date(Date.UTC(year, month - 1, 1));
-    const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59));
+    if (isNaN(rangeStart.getTime()) || isNaN(rangeEnd.getTime())) {
+      // Fallback for callers still sending month/year (UTC month bounds).
+      const month = Number(req.nextUrl.searchParams.get("month"));
+      const year = Number(req.nextUrl.searchParams.get("year"));
+      rangeStart = new Date(Date.UTC(year, month - 1, 1));
+      rangeEnd = new Date(Date.UTC(year, month, 1));
+    }
 
     const { data, error } = await supabase
       .from("calendar_event")
       .select("*")
       .eq("user_id", session.user.id)
-      .gte("start_date", startOfMonth.toISOString())
-      .lte("start_date", endOfMonth.toISOString())
+      .gte("start_date", rangeStart.toISOString())
+      .lt("start_date", rangeEnd.toISOString())
       .order("start_date", { ascending: true });
 
     if (error) {
