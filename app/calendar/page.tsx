@@ -183,6 +183,16 @@ async function resolveOrCreateTeacherId(
   return createData.teacher?.id ?? null;
 }
 
+// Used to filter the School Name search when a name (e.g. "Bradley") matches
+// many schools across different states.
+const US_STATES = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI",
+  "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN",
+  "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH",
+  "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA",
+  "WV", "WI", "WY",
+];
+
 // Shared by Add Event and Edit Event (rather than each maintaining its own
 // copy) so both forms search/paginate schools identically. Self-contained:
 // owns its own suggestions/pagination state and flips its dropdown above the
@@ -214,6 +224,7 @@ function SchoolSearchInput({
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [placement, setPlacement] = useState<"up" | "down">("down");
+  const [stateFilter, setStateFilter] = useState("All");
   const fieldRef = useRef<HTMLDivElement>(null);
   // Every keystroke fires its own fetch (no debounce, matching the existing
   // pattern), so responses can arrive out of order - e.g. a broad early
@@ -223,7 +234,7 @@ function SchoolSearchInput({
   // showing results for a stale query.
   const requestIdRef = useRef(0);
 
-  const fetchSchools = useCallback(async (query: string, pageNum = 1, append = false) => {
+  const fetchSchools = useCallback(async (query: string, forState: string, pageNum = 1, append = false) => {
     if (!query.trim()) {
       requestIdRef.current += 1;
       setSuggestions([]);
@@ -235,6 +246,9 @@ function SchoolSearchInput({
     try {
       if (append) setLoadingMore(true); else setLoading(true);
       const params = new URLSearchParams({ search: query, page: String(pageNum) });
+      if (forState && forState !== "All") {
+        params.set("state", forState);
+      }
       const response = await fetch(`/api/schoolSearch?${params.toString()}`);
       if (requestId !== requestIdRef.current) return;
 
@@ -272,13 +286,37 @@ function SchoolSearchInput({
 
   return (
     <div className="relative" ref={fieldRef}>
-      <FieldLabel required={required}>{label}</FieldLabel>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <FieldLabel required={required}>{label}</FieldLabel>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <label htmlFor={id ? `${id}StateFilter` : undefined} className="font-inter text-xs text-[#6B7280]">
+            Filter by state
+          </label>
+          <select
+            id={id ? `${id}StateFilter` : undefined}
+            value={stateFilter}
+            onChange={(e) => {
+              const nextState = e.target.value;
+              setStateFilter(nextState);
+              if (value.trim()) {
+                fetchSchools(value, nextState, 1, false);
+              }
+            }}
+            className="rounded-lg border border-[#E0E0E2] bg-white px-2 py-1 font-inter text-xs text-[#121212] outline-none focus:border-[#0171F9]"
+          >
+            <option value="All">All states</option>
+            {US_STATES.map((abbr) => (
+              <option key={abbr} value={abbr}>{abbr}</option>
+            ))}
+          </select>
+        </div>
+      </div>
       <TextInput
         id={id}
         value={value}
         onChange={(v) => {
           onChange(v);
-          fetchSchools(v, 1, false);
+          fetchSchools(v, stateFilter, 1, false);
           setShowSuggestions(true);
         }}
         placeholder={placeholder}
@@ -312,7 +350,7 @@ function SchoolSearchInput({
             <button
               type="button"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => fetchSchools(value, page + 1, true)}
+              onClick={() => fetchSchools(value, stateFilter, page + 1, true)}
               disabled={loadingMore}
               className="w-full px-4 py-3 text-center font-inter text-sm text-[#0171F9] hover:bg-[#F3F4F5] disabled:opacity-60 transition-colors"
             >
@@ -1902,7 +1940,7 @@ export default function CalendarPage() {
             onClick={() => setSelectedEvent(null)}
           />
           <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl shadow-2xl w-full max-w-[600px] max-h-[90vh] hide-scrollbar overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#E8E8E8] sticky top-0 bg-white">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#E8E8E8] sticky top-0 z-[60] bg-white">
               <h2 className="text-[#121212] font-inter text-lg font-bold">Event Details</h2>
               <div className="flex items-center gap-2">
                 <div className="flex gap-[5px]">
@@ -2026,7 +2064,8 @@ export default function CalendarPage() {
                   )}
 
 
-                  <div className="flex gap-3 pt-4">
+                  {/* Pinned footer - same treatment as the edit form's. */}
+                  <div className="flex gap-3 sticky bottom-0 z-[60] -mx-6 -mb-6 px-6 py-4 bg-white border-t border-[#E8E8E8]">
                     <button
                       onClick={() => setSelectedEvent(null)}
                       className="flex-1 py-3 rounded-xl border border-[#E2E2E2] text-[#121212] font-inter text-sm font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
@@ -2258,7 +2297,10 @@ export default function CalendarPage() {
                     </div>
                   )}
 
-                  <div className="flex gap-3 pt-4">
+                  {/* Pinned to the bottom of the modal so Save/Cancel stay
+                      reachable while scrolling a long form. The negative
+                      margins let it span the container's p-6 padding. */}
+                  <div className="flex gap-3 sticky bottom-0 z-[60] -mx-6 -mb-6 px-6 py-4 bg-white border-t border-[#E8E8E8]">
                     <button
                       onClick={() => setIsEditingEvent(false)}
                       disabled={isSavingEvent}

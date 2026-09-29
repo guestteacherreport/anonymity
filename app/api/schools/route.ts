@@ -52,8 +52,15 @@ export async function GET(req: NextRequest) {
     // =========================
     // STATE FILTER
     // =========================
+    // Case-insensitive so stray casing in imported data (e.g. "Al") still
+    // matches, and DC also matches rows stored as "District of Columbia".
+    // State codes contain no LIKE wildcards, so ilike acts as an exact match.
     if (state && state !== "All") {
-      query = query.eq("state", state);
+      const code = state.trim().replace(/[,()%_]/g, "");
+      query =
+        code.toUpperCase() === "DC"
+          ? query.or("state.ilike.DC,state.ilike.District of Columbia")
+          : query.ilike("state", code);
     }
 
     // =========================

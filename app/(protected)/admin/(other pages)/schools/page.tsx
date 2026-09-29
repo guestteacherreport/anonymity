@@ -28,6 +28,12 @@ const SentimentIcon = () => (
 );
 
 
+const LocationIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#191919" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" />
+    <circle cx="12" cy="9.5" r="2.5" />
+  </svg>
+);
 
 const ChevronDownIcon = () => (
   <svg width="9" height="6" viewBox="0 0 9 6" fill="none">
@@ -41,6 +47,22 @@ const PlusIcon = () => (
     <path d="M9 11H4C3.71667 11 3.47934 10.904 3.288 10.712C3.09667 10.52 3.00067 10.2827 3 10C2.99934 9.71733 3.09534 9.48 3.288 9.288C3.48067 9.096 3.718 9 4 9H9V4C9 3.71667 9.096 3.47934 9.288 3.288C9.48 3.09667 9.71733 3.00067 10 3C10.2827 2.99934 10.5203 3.09534 10.713 3.288C10.9057 3.48067 11.0013 3.718 11 4V9H16C16.2833 9 16.521 9.096 16.713 9.288C16.905 9.48 17.0007 9.71733 17 10C16.9993 10.2827 16.9033 10.5203 16.712 10.713C16.5207 10.9057 16.2833 11.0013 16 11H11V16C11 16.2833 10.904 16.521 10.712 16.713C10.52 16.905 10.2827 17.0007 10 17C9.71733 16.9993 9.48 16.9033 9.288 16.712C9.096 16.5207 9 16.2833 9 16V11Z" fill="white" />
   </svg>
 );
+
+// Static list rather than deriving states from the schools table, which
+// would mean pulling every school row just to build the dropdown.
+const US_STATES = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI",
+  "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN",
+  "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH",
+  "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA",
+  "WV", "WI", "WY",
+];
+
+// The schools data also covers Puerto Rico and Canada.
+const US_TERRITORIES = ["PR"];
+const CANADIAN_PROVINCES = [
+  "AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT",
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,7 +88,6 @@ export default function SchoolsPage() {
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  const [states, setStates] = useState<string[]>([]);
   const router = useRouter();
   const itemsPerPage = 10;
 
@@ -88,7 +109,6 @@ export default function SchoolsPage() {
         }
 
         const data = await response.json();
-        // setStates(data.states || []);
         setPaginated(data?.schools || []);
         setTotalPages(data.totalPages || 1);
         setTotal(data.total || 0);
@@ -173,8 +193,8 @@ export default function SchoolsPage() {
 
           {/* Filter dropdowns */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pb-3 sm:pb-4">
-            {/* Location */}
-            {/* <div className="relative flex-1 sm:flex-none">
+            {/* State */}
+            <div className="relative flex-1 sm:flex-none">
               <select
                   value={locationFilter}
                   onChange={(e) =>
@@ -182,17 +202,24 @@ export default function SchoolsPage() {
                   }
                   className="w-full appearance-none pl-9 sm:pl-10 pr-7 sm:pr-8 py-2.5 sm:py-[11px] rounded-[10px] border border-[rgba(178,178,178,0.20)] bg-[#FAFCFF] font-inter text-xs sm:text-sm text-[#121212] opacity-80 cursor-pointer outline-none"
                 >
-                  <option value="All">Location: All</option>
-
-                  {states?.map((state: string) => (
-                    <option key={state} value={state}>
-                      Location: {state}
-                    </option>
+                  <option value="All">State: All</option>
+                  {[
+                    { label: "United States", codes: US_STATES },
+                    { label: "US Territories", codes: US_TERRITORIES },
+                    { label: "Canada", codes: CANADIAN_PROVINCES },
+                  ].map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.codes.map((abbr) => (
+                        <option key={abbr} value={abbr}>
+                          State: {abbr}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               <span className="pointer-events-none absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2"><LocationIcon /></span>
               <span className="pointer-events-none absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2"><ChevronDownIcon /></span>
-            </div> */}
+            </div>
 
             {/* Risk */}
             <div className="relative flex-1 sm:flex-none">

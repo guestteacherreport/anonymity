@@ -1320,6 +1320,15 @@ function SubmitReportForm() {
                   <div className="flex flex-col sm:flex-row w-full sm:w-auto items-stretch sm:items-center gap-2 sm:gap-[10px]">
                     <button
                       type="button"
+                      onClick={() => {
+                        // Return to wherever the user came from (e.g. a school or
+                        // teacher page); fall back to home if opened directly.
+                        if (window.history.length > 1) {
+                          router.back();
+                        } else {
+                          router.push("/");
+                        }
+                      }}
                       className="flex h-[48px] sm:h-[52px] px-6 sm:px-8 items-center justify-center gap-2 rounded-xl border border-black/20 bg-white font-inter text-sm sm:text-base font-medium text-[#2C3031] cursor-pointer hover:bg-gray-50 transition-colors"
                     >
                       Cancel
