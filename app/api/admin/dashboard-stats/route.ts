@@ -1,8 +1,12 @@
 import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/apiAuth";
 
 export async function GET() {
   try {
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
+
     const now = new Date();
 
     const currentMonthStart = new Date(

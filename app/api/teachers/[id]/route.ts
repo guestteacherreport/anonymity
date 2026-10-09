@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { parseTeacherStatus } from "@/lib/function";
+import { requireAdmin } from "@/lib/apiAuth";
 
 
 // =========================
@@ -11,6 +12,9 @@ export async function DELETE(
 { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
+
     const { id } = await params;
 
     if (!id) {
@@ -60,6 +64,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
+
     const { id } = await params;
 
     if (!id) {

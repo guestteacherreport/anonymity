@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { buildReportsCsv } from "@/lib/reportsCsv";
+import { requireAdmin } from "@/lib/apiAuth";
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
+
     const schoolId = req.nextUrl.searchParams.get("school_id");
     const schoolName = req.nextUrl.searchParams.get("school");
     const teacherIds = req.nextUrl.searchParams.getAll("teacher_ids");

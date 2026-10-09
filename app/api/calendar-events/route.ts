@@ -118,7 +118,9 @@ export async function POST(req: NextRequest) {
       bg_color: event.bgColor,
       reminders: event.reminders ?? 0,
       user_timezone:event.user_timezone,
-      user_id: event.user_id,
+      // Always the signed-in user - never trusted from the payload, so one
+      // user can't create events (and reminder emails) on another's calendar.
+      user_id: session.user.id,
       assignment_id: assignmentId,
       created_at: new Date().toISOString(),
     }));

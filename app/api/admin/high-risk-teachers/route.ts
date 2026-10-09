@@ -1,7 +1,11 @@
 import { supabase } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/apiAuth";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth.response) return auth.response;
+
   const { searchParams } = new URL(request.url);
 
   const page = parseInt(searchParams.get("page") || "1", 10);

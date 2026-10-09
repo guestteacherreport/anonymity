@@ -8,6 +8,7 @@ import { scrollToError } from "@/lib/function";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { ObjectType } from "@/lib/types";
+import { validatePassword } from "@/lib/password";
 
 type FormState = {
   full_name: string;
@@ -18,14 +19,6 @@ type FormState = {
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
 
-const validatePassword = (password: string) => {
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$/;
-  if (!passwordRegex.test(password)) {
-    return "Password must be 8-16 chars, include uppercase, lowercase, number & special character";
-  }
-  return null;
-};
 
 /* ─── Validation ─────────────────────────────────── */
 

@@ -2,12 +2,16 @@ import { incrementSchoolAnalytics } from "@/lib/incrementSchoolAnalytics";
 import { publishReport } from "@/lib/publishReport";
 import { supabase } from "@/lib/supabase";
 import { updateTeacherAnalytics } from "@/lib/updateTeacherAnalytics";
+import { requireAdmin } from "@/lib/apiAuth";
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
+
     const { id } = await params;
 
     // Get report details first

@@ -35,7 +35,6 @@ export default function ForgotPasswordPage() {
         toast.error(data.error || "Something went wrong. Please try again.");
         return;
       }
-      console.log(data.resetUrl)
       setSent(true);
       toast.success(data.message);
     } catch {

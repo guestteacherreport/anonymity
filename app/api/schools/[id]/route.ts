@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { requireAdmin } from "@/lib/apiAuth";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Admin-only: returns full report rows (incl. user_id) and skips the
+    // per-school access gate the public /api/view-school endpoints enforce.
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
+
     const { id } = await params;
 
     const page = parseInt(req.nextUrl.searchParams.get("page") || "1");

@@ -1,12 +1,11 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/apiAuth";
 
 export async function GET() {
   try {
-    console.log(
-      "KEY:",
-      process.env.OPENAI_API_KEY
-    );
+    const auth = await requireAdmin();
+    if (auth.response) return auth.response;
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,

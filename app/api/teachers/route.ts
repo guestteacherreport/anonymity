@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { parseTeacherStatus } from "@/lib/function";
+import { requireRole } from "@/lib/apiAuth";
 
 export async function POST(req: NextRequest) {
   try {
+    // Admins add teachers from the school page; guest teachers add one from
+    // the Calendar when they type a teacher name that doesn't exist yet.
+    const auth = await requireRole(["admin", "guest_teacher"]);
+    if (auth.response) return auth.response;
+
     const { name, status, school_id, city, state, zipcode } = await req.json();
 
     if (!name || status === undefined || !school_id) {

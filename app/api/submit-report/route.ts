@@ -3,13 +3,21 @@ import { supabase } from "@/lib/supabase";
 import { analyzeReport } from "@/lib/analyze-report";
 import { sendGuestTeacherReportNotification } from "@/lib/email";
 import { getAppUrl } from "@/lib/app-url";
+import { requireSession } from "@/lib/apiAuth";
 
 export async function POST(req: Request) {
   try {
+    const auth = await requireSession();
+    if (auth.response) return auth.response;
+
+    // The report owner always comes from the verified session - any user_id
+    // in the request body is ignored so a report can't be filed as someone
+    // else.
+    const user_id = Number(auth.session.user.id);
+
     const body = await req.json();
 
     const {
-      user_id,
       schoolName,
       schoolId,
       teacherId,
