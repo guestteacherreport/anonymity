@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { scrollToError } from "@/lib/function";
 import toast from "react-hot-toast";
@@ -31,7 +30,6 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<ObjectType>({});
   const [loader, setLoader] = useState<boolean>(false);
   const [ButtonMsg, setButtonMsg] = useState<string>("Login");
-  const router = useRouter();
 
   const handleLogin = async () => {
     const validationErrors = validateForm(formValues);
@@ -59,7 +57,12 @@ export default function LoginPage() {
     }
 
     setButtonMsg("Redirecting...");
-    router.replace("/auth-redirect");
+    // Full page load, not router.replace: links on the login page (e.g. the
+    // header's Submit Report) were prefetched while logged out, and the
+    // client router cached the middleware's redirect to /login for them. A
+    // soft navigation keeps that cache, so those links would still bounce
+    // to /login after a successful sign-in.
+    window.location.replace("/auth-redirect");
   };
 
   return (
