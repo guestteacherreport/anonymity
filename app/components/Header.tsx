@@ -46,11 +46,12 @@ export default function Header() {
               <>
                 <Link href="/my-reports" aria-current={isActiveRoute("/my-reports") ? "page" : undefined} className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer ${isActiveRoute("/my-reports") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>My Reports</Link>
                 <Link href="/calendar" aria-current={isActiveRoute("/calendar") ? "page" : undefined} className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer ${isActiveRoute("/calendar") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>Calendar</Link>
+                <Link href="/account" aria-current={isActiveRoute("/account") ? "page" : undefined} className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors cursor-pointer ${isActiveRoute("/account") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>My Account</Link>
 
               </>
               : ""}
 
-            {(!session || (session && session?.user?.role == "guest_teacher")) ? <div className="w-44 ">
+            {(!session) ? <div className="w-44 ">
               <Link href="/contact" aria-current={isActiveRoute("/contact") ? "page" : undefined} className={`font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors ${isActiveRoute("/contact") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>Contact Us</Link>
             </div> : ""}
 
@@ -165,9 +166,17 @@ export default function Header() {
                   className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer ${isActiveRoute("/calendar") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}
                 >
                   Calendar
-                </button></> : ""}
-            {(!session || (session && session?.user?.role == "guest_teacher")) ? <button
-              onClick={() => {
+                </button>
+                <Link
+                  href="/account"
+                  onClick={closeMenu}
+                  aria-current={isActiveRoute("/account") ? "page" : undefined}
+                  className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 ${isActiveRoute("/account") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}
+                >
+                  My Account
+                </Link></> : ""}
+            {(!session) ? <button
+              onClick={() => { 
                 router.push("/contact");
               }}
               aria-current={isActiveRoute("/contact") ? "page" : undefined}

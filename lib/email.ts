@@ -64,6 +64,96 @@ export async function sendPasswordResetEmail(
   assertSent(result, "password reset");
 }
 
+export async function sendEmailChangeConfirmation(
+  to: string,
+  confirmUrl: string
+): Promise<void> {
+  const from = process.env.EMAIL_FROM;
+  if (!from) {
+    throw new Error("Email sender is not configured. Set EMAIL_FROM.");
+  }
+
+  const resend = getResendClient();
+
+  const result = await resend.emails.send({
+    from,
+    to: [to],
+    subject: "Confirm your new email address",
+    text: `You asked to change the email address on your account to this address.\n\nSign in to your account, then open this link to confirm the change (expires in 1 hour):\n\n${confirmUrl}\n\nUntil you confirm, your current email address stays active. If you did not request this, you can ignore this email.`,
+    html: `
+      <p>You asked to change the email address on your account to this address.</p>
+      <p>Sign in to your account, then open this link to confirm the change:</p>
+      <p><a href="${confirmUrl}">Confirm new email address</a></p>
+      <p>This link expires in 1 hour. Until you confirm, your current email address stays active. If you did not request this, you can ignore this email.</p>
+    `,
+  });
+
+  assertSent(result, "email change confirmation");
+}
+
+// Sent to the CURRENT address of an account without a password, so the
+// mailbox owner approves an email change before it is requested.
+export async function sendEmailChangeApproval(
+  to: string,
+  newEmail: string,
+  approveUrl: string
+): Promise<void> {
+  const from = process.env.EMAIL_FROM;
+  if (!from) {
+    throw new Error("Email sender is not configured. Set EMAIL_FROM.");
+  }
+
+  const resend = getResendClient();
+
+  const result = await resend.emails.send({
+    from,
+    to: [to],
+    subject: "Approve your email address change",
+    text: `Someone signed in to your account asked to change its email address to ${newEmail}.\n\nIf this was you, sign in to your account, then open this link to approve it (expires in 1 hour):\n\n${approveUrl}\n\nWe will then send a confirmation link to the new address. If you did not request this, ignore this email - your email address will not change.`,
+    html: `
+      <p>Someone signed in to your account asked to change its email address to <strong>${escapeHtml(newEmail)}</strong>.</p>
+      <p>If this was you, sign in to your account, then open this link to approve it:</p>
+      <p><a href="${approveUrl}">Approve email change</a></p>
+      <p>This link expires in 1 hour. We will then send a confirmation link to the new address. If you did not request this, ignore this email - your email address will not change.</p>
+    `,
+  });
+
+  assertSent(result, "email change approval");
+}
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return "***";
+  return `${local.slice(0, 1)}***@${domain}`;
+}
+
+export async function sendEmailChangedNotice(
+  to: string,
+  newEmail: string
+): Promise<void> {
+  const from = process.env.EMAIL_FROM;
+  if (!from) {
+    throw new Error("Email sender is not configured. Set EMAIL_FROM.");
+  }
+
+  const resend = getResendClient();
+  const masked = maskEmail(newEmail);
+
+  const result = await resend.emails.send({
+    from,
+    to: [to],
+    subject: "Your account email address was changed",
+    text: `The email address on your account was changed to ${masked}. This address will no longer be used to sign in or receive account emails.\n\nIf you did not make this change, please contact us immediately.`,
+    html: `
+      <p>The email address on your account was changed to <strong>${escapeHtml(masked)}</strong>.</p>
+      <p>This address will no longer be used to sign in or receive account emails.</p>
+      <p>If you did not make this change, please contact us immediately.</p>
+    `,
+  });
+
+  assertSent(result, "email changed notice");
+}
+
 export async function sendGuestTeacherReportNotification(
   recipients: string[],
   loginUrl: string

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { supabase } from "@/lib/supabase";
-import { verifyPasswordResetToken } from "@/lib/password-reset-token";
+import {
+  isUnusedPasswordResetToken,
+  passwordHashDigest,
+  verifyPasswordResetToken,
+} from "@/lib/password-reset-token";
 import { validatePassword } from "@/lib/password";
 
 export async function POST(req: Request) {
@@ -30,18 +34,56 @@ export async function POST(req: Request) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const { error } = await supabase
+    const { data: user, error: userError } = await supabase
       .from("users")
-      .update({ password: hashedPassword })
-      .eq("id", verified.userId);
+      .select("password")
+      .eq("id", verified.userId)
+      .maybeSingle();
 
-    if (error) {
-      console.error("reset-password update error:", error);
+    if (userError) {
+      console.error("reset-password: failed to load user", userError.code ?? userError.message);
       return NextResponse.json(
         { error: "Unable to reset password. Please try again." },
         { status: 500 }
+      );
+    }
+
+    // The one hash value both the token check and the swap below rely on.
+    const currentHash: string | null = user ? user.password ?? null : null;
+
+    // Already used (the password changed since the link was issued) or the
+    // account is gone.
+    if (!user || !isUnusedPasswordResetToken(verified, currentHash)) {
+      return NextResponse.json(
+        { error: "Reset link is invalid or expired" },
+        { status: 400 }
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Compare-and-swap in one UPDATE: only succeeds while the password is
+    // still the one checked above, so of two concurrent requests with the
+    // same token exactly one changes it. Arguments travel in the request
+    // body, never in a logged URL.
+    const { data: changed, error } = await supabase.rpc("reset_password_if_unchanged", {
+      p_user_id: Number(verified.userId),
+      p_expected_password_sha256: passwordHashDigest(currentHash),
+      p_new_password_hash: hashedPassword,
+    });
+
+    if (error) {
+      console.error("reset-password update error:", error.code ?? "", error.message);
+      return NextResponse.json(
+        { error: "Unable to reset password. Please try again." },
+        { status: 500 }
+      );
+    }
+
+    if (changed !== true) {
+      return NextResponse.json(
+        { error: "Reset link is invalid or expired" },
+        { status: 400 }
       );
     }
 

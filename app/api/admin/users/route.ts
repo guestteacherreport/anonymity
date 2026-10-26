@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/apiAuth";
+import { escapeLike, isDuplicateEmailError } from "@/lib/account";
+
+const DUPLICATE_EMAIL_ERROR = "This email address is already registered. Please use a different email address.";
 
 const VALID_ROLES = ["admin", "guest_teacher"] as const;
 
@@ -107,16 +110,18 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check existing user
+    // Check existing user (case-insensitive, on the value that is stored).
+    // Concurrent creates can both pass this; the lower(email) unique index
+    // rejects the second insert and is mapped to the same message below.
     const { data: existingUsers } = await supabase
       .from("users")
       .select("id")
-      .eq("email", email)
+      .ilike("email", escapeLike(email.trim()))
       .limit(1);
 
     if (existingUsers && existingUsers.length > 0) {
       return NextResponse.json(
-        { error: "This email address is already registered. Please use a different email address." },
+        { error: DUPLICATE_EMAIL_ERROR },
         { status: 400 }
       );
     }
@@ -128,9 +133,12 @@ export async function POST(req: Request) {
       .select("id, full_name, email, role");
 
     if (error) {
+      if (isDuplicateEmailError(error)) {
+        return NextResponse.json({ error: DUPLICATE_EMAIL_ERROR }, { status: 400 });
+      }
       console.log(error);
       return NextResponse.json(
-        { error: error.message },
+        { error: "Unable to create the user. Please try again." },
         { status: 500 }
       );
     }
@@ -188,17 +196,17 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: roleError }, { status: 400 });
     }
 
-    // Check if email already exists for a different user
+    // Check if email already exists for a different user (case-insensitive)
     const { data: existingUsers } = await supabase
       .from("users")
       .select("id")
-      .eq("email", email)
+      .ilike("email", escapeLike(email.trim()))
       .neq("id", id)
       .limit(1);
 
     if (existingUsers && existingUsers.length > 0) {
       return NextResponse.json(
-        { error: "This email address is already registered. Please use a different email address." },
+        { error: DUPLICATE_EMAIL_ERROR },
         { status: 400 }
       );
     }
@@ -220,9 +228,12 @@ export async function PUT(req: Request) {
       .select("id, full_name, email, role");
 
     if (error) {
+      if (isDuplicateEmailError(error)) {
+        return NextResponse.json({ error: DUPLICATE_EMAIL_ERROR }, { status: 400 });
+      }
       console.log(error);
       return NextResponse.json(
-        { error: error.message },
+        { error: "Unable to update the user. Please try again." },
         { status: 500 }
       );
     }

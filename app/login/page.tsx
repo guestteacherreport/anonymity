@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { scrollToError } from "@/lib/function";
 import toast from "react-hot-toast";
 import { ObjectType } from "@/lib/types";
+import { getSafeConfirmEmailCallback } from "@/lib/safe-callback";
 
 
 
@@ -24,7 +25,32 @@ function validateForm(state: ObjectType) {
   return errors;
 }
 
+// Set by the signIn callback in lib/auth.ts when a Google/Facebook sign-in is
+// refused. Only these fixed messages are shown - never text from the URL.
+const SOCIAL_SIGNIN_ERRORS: Record<string, string> = {
+  AccountExists:
+    "An account with this email already exists. Please sign in with your email and password, or use Forgot Password to reset it.",
+  SocialSignInUnavailable:
+    "We couldn't sign you in with this provider. Please sign in with your email and password, or contact us for help.",
+};
+
+// Middleware adds ?callbackUrl= when a signed-out user opens an emailed My
+// Account confirm/approve link. Only that page is accepted; anything else
+// goes to the usual role-based landing page.
+function getPostLoginUrl(): string {
+  const callback = new URLSearchParams(window.location.search).get("callbackUrl");
+  return getSafeConfirmEmailCallback(callback) ?? "/auth-redirect";
+}
+
 export default function LoginPage() {
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("error");
+    const message = code && Object.prototype.hasOwnProperty.call(SOCIAL_SIGNIN_ERRORS, code) ? SOCIAL_SIGNIN_ERRORS[code] : undefined;
+    if (message) {
+      toast.error(message, { id: `social-signin-${code}`, duration: 8000 });
+    }
+  }, []);
+
   const [showPassword, setShowPassword] = useState(false);
   const [formValues, setFormValues] = useState<ObjectType>({ email: "", password: "" });
   const [errors, setErrors] = useState<ObjectType>({});
@@ -62,7 +88,7 @@ export default function LoginPage() {
     // client router cached the middleware's redirect to /login for them. A
     // soft navigation keeps that cache, so those links would still bounce
     // to /login after a successful sign-in.
-    window.location.replace("/auth-redirect");
+    window.location.replace(getPostLoginUrl());
   };
 
   return (
@@ -226,7 +252,7 @@ export default function LoginPage() {
             {/* Google */}
             <button
               type="button"
-              onClick={() => signIn("google", { callbackUrl: "/auth-redirect" })}
+              onClick={() => signIn("google", { callbackUrl: getPostLoginUrl() })}
               className="cursor-pointer w-full py-3 rounded-lg border border-[#E5E7EB] bg-white text-[#212121] font-inter text-base font-semibold leading-6 text-center hover:bg-[#F9FAFB] active:bg-[#F3F4F6] transition-colors flex items-center justify-center gap-2"
             >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -241,7 +267,7 @@ export default function LoginPage() {
             {/* Facebook */}
             <button
               type="button"
-              onClick={() => signIn("facebook", { callbackUrl: "/auth-redirect" })}
+              onClick={() => signIn("facebook", { callbackUrl: getPostLoginUrl() })}
               className="cursor-pointer w-full py-3 rounded-lg border border-[#E5E7EB] bg-white text-[#212121] font-inter text-base font-semibold leading-6 text-center hover:bg-[#F9FAFB] active:bg-[#F3F4F6] transition-colors flex items-center justify-center gap-2"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

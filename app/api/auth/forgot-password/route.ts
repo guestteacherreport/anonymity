@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
     const { data: users } = await supabase
       .from("users")
-      .select("id")
+      .select("id, password")
       // Case-insensitive so "John@x.com" finds "john@x.com"; LIKE wildcards
       // in the input are escaped so this stays an exact match.
       .ilike("email", email.replace(/[%_\\]/g, "\\$&"))
@@ -35,7 +35,8 @@ export async function POST(req: Request) {
     const user = users?.[0];
 
     if (user) {
-      const token = createPasswordResetToken(String(user.id));
+      // Bound to the current password, so the link stops working once used.
+      const token = createPasswordResetToken(String(user.id), user.password ?? null);
       const resetUrl = `${getAppUrl(req)}/reset-password?token=${encodeURIComponent(token)}`;
      
       await sendPasswordResetEmail(email, resetUrl);

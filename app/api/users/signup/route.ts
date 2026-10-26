@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
 import { supabase } from "@/lib/supabase";
+import { escapeLike, isDuplicateEmailError } from "@/lib/account";
+import { validatePassword } from "@/lib/password";
+
+const DUPLICATE_EMAIL_ERROR = "Email address already exists! Please try another email address.";
 
 export async function POST(req: Request) {
   try {
@@ -10,7 +14,7 @@ export async function POST(req: Request) {
     const { full_name, email, password } = body;
 
     // Validation
-    if (!full_name || !email || !password) {
+    if (!full_name || !email || !password || typeof email !== "string") {
       return NextResponse.json(
         {
           error: "Missing required fields",
@@ -21,18 +25,24 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check existing user
+    const passwordError = typeof password === "string" ? validatePassword(password) : "Invalid password";
+    if (passwordError) {
+      return NextResponse.json({ error: passwordError }, { status: 400 });
+    }
+
+    // Check existing user (case-insensitive, matching the lower(email) unique
+    // index). This is only a fast path for a friendly message: concurrent
+    // signups can both pass it, and the index then rejects all but one.
     const { data: existingUsers } = await supabase
       .from("users")
       .select("id")
-      .eq("email", email)
+      .ilike("email", escapeLike(email))
       .limit(1);
 
     if (existingUsers && existingUsers.length > 0) {
       return NextResponse.json(
         {
-          error:
-            "Email address already exists! Please try another email address.",
+          error: DUPLICATE_EMAIL_ERROR,
         },
         {
           status: 400,
@@ -54,14 +64,26 @@ export async function POST(req: Request) {
           role: "guest_teacher",
         },
       ])
-      .select();
+      // Never return the password hash or other internal columns.
+      .select("id, full_name, email, role");
 
     if (error) {
+      if (isDuplicateEmailError(error)) {
+        return NextResponse.json(
+          {
+            error: DUPLICATE_EMAIL_ERROR,
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
       console.log(error);
 
       return NextResponse.json(
         {
-          error: error.message,
+          error: "Sign up failed, please try once again!",
         },
         {
           status: 500,
