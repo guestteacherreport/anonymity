@@ -38,6 +38,7 @@ interface Report {
   schools: ObjectType;
   status: number;
   published_at: string | null;
+  feedback_only?: boolean;
   sentiments: "Positive" | "Negative" | "Neutral";
   body: string;
   tags: string[];
@@ -218,6 +219,19 @@ function PublicationBadge({ publishedAt }: { publishedAt: string | null }) {
   );
 }
 
+// Feedback submitted without a Job ID: only the admin team sees it, so it
+// has no approval/publication state to show.
+function PrivateFeedbackBadge() {
+  return (
+    <span
+      title="Sent privately to the admin team without a Job ID. It is never published."
+      className="px-2 py-1 rounded text-xs font-semibold font-inter bg-[#FFF7ED] text-[#C2410C]"
+    >
+      Private feedback
+    </span>
+  );
+}
+
 /* ─── Sentiment badge ─────────────────────────────────────── */
 function SentimentBadge({ sentiment }: { sentiment: "Positive" | "Negative" | "Neutral" }) {
   if (sentiment === "Positive") {
@@ -379,16 +393,22 @@ function ReportCard({ report, defaultExpanded = false }: { report: Report; defau
             support_level: report.support_level,
           })} />
           <div className="flex items-center gap-2.5">
-            <StatusBadge
-              status={
-                report.status == 1
-                  ? "Pending"
-                  : report.status == 2
-                    ? "Approved"
-                    : "Rejected"
-              }
-            />
-            <PublicationBadge publishedAt={report.published_at} />
+            {report.feedback_only ? (
+              <PrivateFeedbackBadge />
+            ) : (
+              <>
+                <StatusBadge
+                  status={
+                    report.status == 1
+                      ? "Pending"
+                      : report.status == 2
+                        ? "Approved"
+                        : "Rejected"
+                  }
+                />
+                <PublicationBadge publishedAt={report.published_at} />
+              </>
+            )}
             <SentimentBadge sentiment={report.sentiments} />
           </div>
         </div>

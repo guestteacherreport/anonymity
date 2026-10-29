@@ -31,6 +31,7 @@ async function getHomePageData() {
           )
         `)
         .eq("status", 2)
+        .eq("feedback_only", false)
         .not("published_at", "is", null)
         .order("created_at", {
           ascending: false,
@@ -44,6 +45,7 @@ async function getHomePageData() {
           head: true,
         })
         .eq("status", 2)
+        .eq("feedback_only", false)
         .not("published_at", "is", null),
 
       supabase

@@ -1,9 +1,14 @@
 import { supabase } from "@/lib/supabase";
 import { incrementSchoolAnalytics } from "@/lib/incrementSchoolAnalytics";
 import { updateTeacherAnalytics } from "@/lib/updateTeacherAnalytics";
+import { isFeedbackOnly } from "@/lib/feedbackOnly";
 
 export async function publishReport(report: any, month: any) {
- 
+  // Private feedback must never reach the public stats/ratings below.
+  if (isFeedbackOnly(report)) {
+    throw new Error(`Report ${report.id} is feedback only and cannot be published`);
+  }
+
   const {
     data: monthlyStats,
     error: monthlyError,

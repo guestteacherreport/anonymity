@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { analyzeReport } from "@/lib/analyze-report";
-import { sendGuestTeacherReportNotification } from "@/lib/email";
+import { sendFeedbackOnlyNotification, sendGuestTeacherReportNotification } from "@/lib/email";
 import { getAppUrl } from "@/lib/app-url";
 import { requireSession } from "@/lib/apiAuth";
+import {
+  classifySubmission,
+  FEEDBACK_ONLY_DAILY_LIMIT,
+  FEEDBACK_ONLY_LIMIT_MESSAGE,
+  startOfUtcDay,
+} from "@/lib/feedbackOnly";
 
 export async function POST(req: Request) {
   try {
@@ -41,24 +47,55 @@ export async function POST(req: Request) {
       jobId,
     } = body;
 
-    const trimmedJobId = typeof jobId === "string" ? jobId.trim() : "";
+    // Normal Job ID report, or private feedback-only submission ("I don't
+    // have a Job ID"). Feedback-only requires the guest_teacher role and an
+    // empty Job ID; anything else keeps the Job ID required.
+    const kind = classifySubmission({ feedbackOnly: body.feedbackOnly, jobId }, auth.session.user.role);
 
-    if (!trimmedJobId) {
+    if (!kind.ok) {
       return NextResponse.json(
-        { error: "Job ID is required", message: "Job ID is required", field: "jobId" },
-        { status: 400 }
+        { error: kind.error, message: kind.message, ...(kind.field ? { field: kind.field } : {}) },
+        { status: kind.status }
       );
+    }
+
+    const feedbackOnly = kind.feedbackOnly;
+    const trimmedJobId = kind.jobId;
+
+    if (feedbackOnly) {
+      // Daily limit for feedback-only submissions (normal reports are not
+      // counted). The database trigger re-checks this under a lock, so this
+      // is only for a clean error in the common case.
+      const { count: todayCount, error: countError } = await supabase
+        .from("reports")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user_id)
+        .eq("feedback_only", true)
+        .gte("created_at", startOfUtcDay().toISOString());
+
+      if (countError) {
+        return NextResponse.json({ error: countError.message }, { status: 500 });
+      }
+
+      if ((todayCount ?? 0) >= FEEDBACK_ONLY_DAILY_LIMIT) {
+        return NextResponse.json(
+          { error: "Daily feedback limit reached", message: FEEDBACK_ONLY_LIMIT_MESSAGE },
+          { status: 429 }
+        );
+      }
     }
 
     // Fast-path duplicate check. The unique index on reports.job_id is the
     // authoritative guard against a race between two concurrent requests
     // for the same Job ID - this check just gives a clean error for the
     // common case without waiting on that race.
-    const { data: existingReport, error: existingReportError } = await supabase
-      .from("reports")
-      .select("id")
-      .eq("job_id", trimmedJobId)
-      .maybeSingle();
+    const { data: existingReport, error: existingReportError } = trimmedJobId
+      ? await supabase
+          .from("reports")
+          .select("id")
+          .eq("job_id", trimmedJobId)
+          .maybeSingle()
+      : { data: null, error: null };
 
     if (existingReportError) {
       return NextResponse.json(
@@ -78,7 +115,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const shouldDelayPublishing = (publishImmediately == 0);
+    // Feedback-only submissions are never published, so they have no
+    // publishing preference.
+    const shouldDelayPublishing = !feedbackOnly && (publishImmediately == 0);
     const delayDays = shouldDelayPublishing ? Number(publishDelayDays) : 0;
 
     if (shouldDelayPublishing && (!Number.isInteger(delayDays) || delayDays < 1)) {
@@ -108,7 +147,9 @@ export async function POST(req: Request) {
 
       if (existingTeacher) {
         resolvedTeacherId = existingTeacher.id;
-      } else {
+      } else if (!feedbackOnly) {
+        // Private feedback must never create a (public) teacher profile - it
+        // keeps the typed name in teacher_name only.
         const { data: newTeacher, error: newTeacherError } = await supabase
           .from("teachers")
           .insert({ name: trimmedTeacherName, school_id: schoolId, status: 1 })
@@ -147,6 +188,7 @@ export async function POST(req: Request) {
         {
           user_id: user_id,
           job_id: trimmedJobId,
+          feedback_only: feedbackOnly,
           city,
           school_name: schoolName,
 
@@ -231,10 +273,10 @@ export async function POST(req: Request) {
 
           AI_schoolIssues:
             aiReportAnalysis.school_issues,
-          publish: publishImmediately,
+          publish: feedbackOnly ? 0 : publishImmediately,
           publish_delay_days: delayDays,
           created_at: createdDate,
-          scheduled_publish_at: scheduledPublishAt.toISOString(),
+          scheduled_publish_at: feedbackOnly ? null : scheduledPublishAt.toISOString(),
         },
       ])
       .select();
@@ -245,6 +287,15 @@ export async function POST(req: Request) {
       // 23505 = unique_violation. Catches the race where two requests for
       // the same Job ID pass the pre-check above at the same time - the
       // database's unique index on reports.job_id is the final guard.
+      // GTF01 = feedback-only daily limit, raised by the reports trigger
+      // when concurrent requests race past the count above.
+      if (error.code === "GTF01") {
+        return NextResponse.json(
+          { error: "Daily feedback limit reached", message: FEEDBACK_ONLY_LIMIT_MESSAGE },
+          { status: 429 }
+        );
+      }
+
       if (error.code === "23505") {
         return NextResponse.json(
           {
@@ -281,10 +332,19 @@ export async function POST(req: Request) {
 
         if (recipients.length > 0) {
           try {
-            await sendGuestTeacherReportNotification(
-              recipients,
-              `${getAppUrl(req)}/admin/reports`
-            );
+            // Feedback-only gets its own "not for publication" email instead
+            // of the normal awaiting-approval notification.
+            if (feedbackOnly) {
+              await sendFeedbackOnlyNotification(
+                recipients,
+                `${getAppUrl(req)}/admin/reports?type=feedback`
+              );
+            } else {
+              await sendGuestTeacherReportNotification(
+                recipients,
+                `${getAppUrl(req)}/admin/reports`
+              );
+            }
           } catch (notificationError) {
             console.error("Unable to send report notification:", notificationError);
           }

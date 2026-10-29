@@ -88,6 +88,7 @@ export async function updateTeacherAnalytics(
           )
           .eq("teacher_id", teacherId)
           .eq("status", 2)
+          .eq("feedback_only", false)
           .order("created_at", {
             ascending: false,
           })

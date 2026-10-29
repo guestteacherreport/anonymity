@@ -42,6 +42,7 @@ export async function GET(request: Request) {
             .from("reports")
             .select("*")
             .eq("status", 2)
+            .eq("feedback_only", false)
             .is("published_at", null)
             .not("scheduled_publish_at", "is", null)
             .lte("scheduled_publish_at", now.toISOString());
@@ -98,6 +99,7 @@ export async function GET(request: Request) {
                         publish:1
                     })
                     .eq("id", report.id)
+                    .eq("feedback_only", false)
                     .is("published_at", null);
 
                     if (updateError) {

@@ -29,6 +29,7 @@ export async function GET(
       .select("*", { count: "exact", head: true })
       .eq("teacher_id", id)
       .eq("status", 2)
+      .eq("feedback_only", false)
       .not("published_at", "is", null);
 
     if (reportsError) {
@@ -48,6 +49,7 @@ export async function GET(
         .select("*", { count: "exact", head: true })
         .eq("teacher_id", id)
         .eq("status", 2)
+        .eq("feedback_only", false)
         .not("published_at", "is", null)
         .eq("return_to_teacher", 1),
 
@@ -56,6 +58,7 @@ export async function GET(
         .select("*", { count: "exact", head: true })
         .eq("teacher_id", id)
         .eq("status", 2)
+        .eq("feedback_only", false)
         .not("published_at", "is", null)
         .eq("return_to_teacher", 2),
 
@@ -64,6 +67,7 @@ export async function GET(
         .select("*", { count: "exact", head: true })
         .eq("teacher_id", id)
         .eq("status", 2)
+        .eq("feedback_only", false)
         .not("published_at", "is", null)
         .eq("return_to_teacher", 3),
     ]);

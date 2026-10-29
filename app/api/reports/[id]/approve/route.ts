@@ -3,6 +3,7 @@ import { publishReport } from "@/lib/publishReport";
 import { supabase } from "@/lib/supabase";
 import { updateTeacherAnalytics } from "@/lib/updateTeacherAnalytics";
 import { requireAdmin } from "@/lib/apiAuth";
+import { isFeedbackOnly } from "@/lib/feedbackOnly";
 
 export async function POST(
   request: Request,
@@ -28,6 +29,17 @@ export async function POST(
           error: "Report not found",
         },
         { status: 404 }
+      );
+    }
+
+    // Feedback-only submissions are private and can never be approved or
+    // published (the database rejects it too).
+    if (isFeedbackOnly(report)) {
+      return Response.json(
+        {
+          error: "Feedback-only submissions cannot be approved or published",
+        },
+        { status: 409 }
       );
     }
 
@@ -65,7 +77,8 @@ export async function POST(
             }
             : {}),
         })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("feedback_only", false);
 
     if (updateError) {
       return Response.json(

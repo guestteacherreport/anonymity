@@ -4,7 +4,9 @@ import ViewReport from "@/app/components/ViewReport";
 import { formatDate, getSentiment } from "@/lib/function";
 import { ChevronLeftIcon, ChevronRightIcon, RatingBar, ScoreCircle, StarRating } from "@/lib/icons";
 import { Report, Sentiment } from "@/lib/types";
-import { useState, useEffect } from "react";
+import { FEEDBACK_ONLY_LABEL, FEEDBACK_ONLY_STATUS_LABEL } from "@/lib/feedbackOnly";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 
 // ─── Icon Components ──────────────────────────────────────────────────────────
@@ -53,13 +55,18 @@ const CloseIcon = () => (
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function ReportsPage() {
+function ReportsPageContent() {
   const [paginated, setPaginated] = useState<Report[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sentimentFilter, setSentimentFilter] = useState<"All" | Sentiment>("All");
   const [statusFilter, setStatusFilter] = useState<"All" | any>("All");
+  // The feedback-only admin email links here with ?type=feedback.
+  const searchParams = useSearchParams();
+  const [typeFilter, setTypeFilter] = useState<"All" | "report" | "feedback">(
+    searchParams.get("type") === "feedback" ? "feedback" : "All"
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [totalPages, setTotalPages] = useState(1);
@@ -169,6 +176,7 @@ export default function ReportsPage() {
           search: search.trim(),
           sentiment: sentimentFilter,
           status: statusFilter,
+          type: typeFilter,
         });
 
         const response = await fetch(`/api/reports?${params}`);
@@ -196,10 +204,11 @@ export default function ReportsPage() {
     };
 
     fetchReports();
-  }, [currentPage, search, sentimentFilter, statusFilter, initialLoading]);
+  }, [currentPage, search, sentimentFilter, statusFilter, typeFilter, initialLoading]);
 
   const handleSentimentChange = (val: "All" | Sentiment) => { setSentimentFilter(val); setCurrentPage(1); };
   const handleStatusChange = (val: "All" | any) => { setStatusFilter(val); setCurrentPage(1); };
+  const handleTypeChange = (val: "All" | "report" | "feedback") => { setTypeFilter(val); setCurrentPage(1); };
 
   if (initialLoading) {
     return (
@@ -273,6 +282,21 @@ export default function ReportsPage() {
               <span className="pointer-events-none absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2"><FilterIcon /></span>
               <span className="pointer-events-none absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2"><ChevronDownIcon /></span>
             </div>
+
+            <div className="relative flex-1 sm:flex-none">
+              <select
+                value={typeFilter}
+                onChange={(e) => handleTypeChange(e.target.value as "All" | "report" | "feedback")}
+                aria-label="Report type"
+                className="w-full appearance-none pl-9 sm:pl-10 pr-7 sm:pr-8 py-2.5 sm:py-[11px] rounded-[10px] border border-[rgba(178,178,178,0.20)] bg-[#FAFCFF] font-inter text-xs sm:text-sm text-[#121212] opacity-80 cursor-pointer outline-none"
+              >
+                <option value="All">Type: All</option>
+                <option value="report">Type: Job ID reports</option>
+                <option value="feedback">Type: Feedback only</option>
+              </select>
+              <span className="pointer-events-none absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2"><FilterIcon /></span>
+              <span className="pointer-events-none absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2"><ChevronDownIcon /></span>
+            </div>
           </div>
         </div>
 
@@ -311,7 +335,13 @@ export default function ReportsPage() {
                         <span className="font-inter font-medium text-[12px] sm:text-[13px] lg:text-sm text-[#0B77F9] opacity-80">{`RPT-${report.id}`}</span>
                       </td>
                       <td className="px-2 sm:px-4 lg:px-5 py-2.5 sm:py-[17.5px] whitespace-nowrap">
-                        <span className="font-inter font-normal text-[12px] sm:text-[13px] lg:text-sm text-[#030711]">{report?.job_id || "—"}</span>
+                        {report.feedback_only ? (
+                          <span className="inline-flex items-center px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md bg-[#FFF7ED] font-inter font-medium text-[10px] sm:text-xs text-[#C2410C]">
+                            {FEEDBACK_ONLY_LABEL}
+                          </span>
+                        ) : (
+                          <span className="font-inter font-normal text-[12px] sm:text-[13px] lg:text-sm text-[#030711]">{report?.job_id || "—"}</span>
+                        )}
                       </td>
                       <td className="px-2 sm:px-4 lg:px-5 py-2.5 sm:py-[17.5px] whitespace-nowrap">
                         <span className="font-inter font-normal text-[12px] sm:text-[13px] lg:text-sm text-[#030711]">{report?.school_name}</span>
@@ -332,12 +362,12 @@ export default function ReportsPage() {
                       </td>
                       <td className="px-2 sm:px-4 lg:px-5 py-2.5 sm:py-[17.5px] whitespace-nowrap">
                         <span className="inline-flex items-center px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-md border border-[#EFF0F2] bg-[#F6F6F6] font-inter font-normal text-[12px] sm:text-sm text-[#030711]">
-                          {report.status == 1 ? "Pending" : report.status == 2 ? "Approved" : "Rejected"}
+                          {report.feedback_only ? FEEDBACK_ONLY_STATUS_LABEL : report.status == 1 ? "Pending" : report.status == 2 ? "Approved" : "Rejected"}
                         </span>
                       </td>
                       <td className="px-2 sm:px-4 lg:px-5 py-2.5 sm:py-[17.5px] whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1 sm:gap-3">
-                          {report.status === 1 && (
+                          {report.status === 1 && !report.feedback_only && (
                             <>
                               <button
                                 onClick={(e) => handleApproveReport(report.id, e)}
@@ -448,5 +478,14 @@ export default function ReportsPage() {
         }
       </div>
     </main>
+  );
+}
+
+// useSearchParams (for ?type=feedback) needs a Suspense boundary.
+export default function ReportsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReportsPageContent />
+    </Suspense>
   );
 }

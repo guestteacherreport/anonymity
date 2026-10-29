@@ -1,6 +1,7 @@
 import { formatDate, getSentiment } from "@/lib/function";
 import { ApproveIcon, RejectIcon } from "@/lib/icons";
 import { Report } from "@/lib/types";
+import { FEEDBACK_ONLY_LABEL, FEEDBACK_ONLY_STATUS_LABEL } from "@/lib/feedbackOnly";
 
 interface ViewReportProps {
   selectedReport: Report;
@@ -114,14 +115,29 @@ function ReturnCard({
                             : "bg-[#FFF3DC] text-[#D97706]"}`}>
                           {getSentiment(selectedReport).label}
                         </span>
-                        <span className="px-2.5 py-1 rounded-md font-inter font-semibold text-xs text-[#F8A202] bg-[#FFEECE]">
-                          {selectedReport.status == 1 ? "Pending" : selectedReport.status == 2 ? "Approved" : "Rejected"}
-                        </span>
-                        <span className={`px-2.5 py-1 rounded-md font-inter font-semibold text-xs ${selectedReport.published_at
-                          ? "bg-[rgba(16,185,129,0.10)] text-[#10B981]"
-                          : "bg-[#F2F2F2] text-[#6B7280]"}`}>
-                          {selectedReport.published_at ? "Published" : "Not published"}
-                        </span>
+                        {selectedReport.feedback_only ? (
+                          <span className="px-2.5 py-1 rounded-md font-inter font-semibold text-xs text-[#6B7280] bg-[#F2F2F2]">
+                            {FEEDBACK_ONLY_STATUS_LABEL}
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-md font-inter font-semibold text-xs text-[#F8A202] bg-[#FFEECE]">
+                            {selectedReport.status == 1 ? "Pending" : selectedReport.status == 2 ? "Approved" : "Rejected"}
+                          </span>
+                        )}
+                        {selectedReport.feedback_only ? (
+                          <span
+                            title="Private feedback submitted without a Job ID - cannot be approved or published"
+                            className="px-2.5 py-1 rounded-md font-inter font-semibold text-xs bg-[#FFF7ED] text-[#C2410C]"
+                          >
+                            {FEEDBACK_ONLY_LABEL} · Not for publication
+                          </span>
+                        ) : (
+                          <span className={`px-2.5 py-1 rounded-md font-inter font-semibold text-xs ${selectedReport.published_at
+                            ? "bg-[rgba(16,185,129,0.10)] text-[#10B981]"
+                            : "bg-[#F2F2F2] text-[#6B7280]"}`}>
+                            {selectedReport.published_at ? "Published" : "Not published"}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <button onClick={() => setSelectedReport(null)} className="p-2 cursor-pointer hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0">
@@ -231,7 +247,7 @@ function ReturnCard({
                 </div>
     
                 {/* Footer actions */}
-                {selectedReport.status == 1 &&
+                {selectedReport.status == 1 && !selectedReport.feedback_only &&
                   <div className="px-5 py-[17px] border-t border-[#F0F0F0] bg-white flex items-center gap-3">
                     <button
                       onClick={(e) => { handleApproveReport(Number(selectedReport.id), e);

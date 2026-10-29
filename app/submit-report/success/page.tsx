@@ -9,6 +9,7 @@ import Footer from "@/app/components/Footer";
 function SuccessContent() {
   const searchParams = useSearchParams();
   const anonymous = searchParams.get("anonymous");
+  const feedbackOnly = searchParams.get("feedback") === "true";
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#F7F9FE] via-[#F7F9FE] to-[#F7F9FE] flex items-center justify-center px-4 py-16">
@@ -24,12 +25,14 @@ function SuccessContent() {
 
         {/* Title */}
         <h1 className="font-[Outfit] text-[24px] font-bold text-[#111827] text-center leading-tight">
-          Your report has been submitted
+          {feedbackOnly ? "Your private feedback has been sent" : "Your report has been submitted"}
         </h1>
 
         {/* Description */}
         <p className="font-inter text-[15px] text-[#6B7280] text-center leading-[26px]">
-          Thank you for sharing your experience. Your feedback helps other guest teachers make informed decisions before stepping into the classroom.
+          {feedbackOnly
+            ? "Thank you. Your feedback was sent privately to the admin team. It will not be published or shown on any teacher or school page."
+            : "Thank you for sharing your experience. Your feedback helps other guest teachers make informed decisions before stepping into the classroom."}
         </p>
 
         {/* Anonymous badge */}

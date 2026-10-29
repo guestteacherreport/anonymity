@@ -39,6 +39,9 @@ type FormState = {
   schoolName: string,
   schoolId: number,
   jobId: string,
+  // "I don't have a Job ID": private feedback for the admin team only,
+  // never published (Guest Teachers only - enforced by the API and DB).
+  feedbackOnly: boolean,
   teacherId: number,
   teacherName: string,
   schoolAssociation: string,
@@ -79,6 +82,7 @@ const initialState: FormState = {
   existingIdentity: "",
   schoolId: 0,
   jobId: "",
+  feedbackOnly: false,
   teacherId: 0,
   schoolGrades: [],
   schoolAssociation: "",
@@ -147,7 +151,7 @@ function validateForm(state: FormState): FormErrors {
     errors.schoolName = "Please select a school from the list";
   }
 
-  if (!state.jobId.trim()) {
+  if (!state.feedbackOnly && !state.jobId.trim()) {
     errors.jobId = "Job ID is required";
   }
 
@@ -181,7 +185,7 @@ function validateForm(state: FormState): FormErrors {
     errors.returnToTeacher = "Required";
   }
 
-  if (!state.publishImmediately && (!/^\d+$/.test(state.publishDelayDays) || Number(state.publishDelayDays) < 1)) {
+  if (!state.feedbackOnly && !state.publishImmediately && (!/^\d+$/.test(state.publishDelayDays) || Number(state.publishDelayDays) < 1)) {
     errors.publishDelayDays = "Enter at least 1 day";
   }
   // if (!state.newIdentity && !state.existingIdentity) {
@@ -650,9 +654,14 @@ function SubmitReportForm() {
       }
 
       const isAnonymous = previewReport.postAs === "anonymous";
+      const isFeedbackOnly = previewReport.feedbackOnly;
       dispatch({ type: "RESET" });
       setPreviewReport(null);
-      router.push(`/submit-report/success${isAnonymous ? "?anonymous=true" : ""}`);
+      router.push(
+        isFeedbackOnly
+          ? "/submit-report/success?feedback=true"
+          : `/submit-report/success${isAnonymous ? "?anonymous=true" : ""}`
+      );
     } catch (error) {
       console.error("Error submitting report:", error);
       setIsSubmitting(false);
@@ -932,8 +941,9 @@ function SubmitReportForm() {
                   <input
                     type="text"
                     id="jobId"
-                    placeholder="Enter the Job ID for this assignment"
+                    placeholder={state.feedbackOnly ? "Not needed for private feedback" : "Enter the Job ID for this assignment"}
                     value={state.jobId || ""}
+                    disabled={state.feedbackOnly}
                     onChange={(e) => {
                       updateField("jobId", e.target.value);
                       setErrors((prev) => ({
@@ -941,11 +951,32 @@ function SubmitReportForm() {
                         jobId: "",
                       }));
                     }}
-                    className={`${inputBase} w-full py-[14px] text-[#171717]`}
+                    className={`${inputBase} w-full py-[14px] text-[#171717] disabled:opacity-60`}
                     autoComplete="off"
                   />
                   {errors.jobId && (
                     <p className="text-red-500 text-xs">{errors.jobId}</p>
+                  )}
+                  {isGuestTeacher && (
+                    <label className="flex items-center gap-2 font-inter text-sm text-[#121212] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="feedbackOnly"
+                        checked={state.feedbackOnly}
+                        onChange={(e) => {
+                          updateField("feedbackOnly", e.target.checked);
+                          if (e.target.checked) updateField("jobId", "");
+                          setErrors((prev) => ({ ...prev, jobId: "", publishDelayDays: "" }));
+                        }}
+                        className="h-4 w-4 accent-[#0171F9]"
+                      />
+                      I don&apos;t have a Job ID
+                    </label>
+                  )}
+                  {state.feedbackOnly && (
+                    <p className="font-inter text-xs text-[#4B6B91]">
+                      This will be sent privately to the admin team as feedback only. It will not be published or shown on any teacher or school page.
+                    </p>
                   )}
                 </div>
 
@@ -1174,7 +1205,7 @@ function SubmitReportForm() {
                   </div>
                 </div>
 
-                {isGuestTeacher && (
+                {isGuestTeacher && !state.feedbackOnly && (
                   <div className="flex flex-col gap-2" id="publishingPreference">
                     <label className={fieldLabel}>Publishing Preference</label>
                     <label className="flex items-center gap-3 rounded-lg bg-[#F3F4F5] px-4 py-3 font-inter text-sm text-[#121212] cursor-pointer">
@@ -1385,7 +1416,7 @@ function SubmitReportForm() {
                   <span className="rounded-md bg-white px-2 py-1 font-inter text-[11px] font-medium text-[#4B6B91]">Not posted publicly</span>
                 </div>
                 <div className={`mt-3 grid grid-cols-1 gap-3 ${previewReport.postAs === "anonymous" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-                  <div><p className="font-inter text-xs text-[#6B7280]">Job ID</p><p className="mt-1 break-words font-inter text-sm font-medium text-[#121212]">{previewReport.jobId}</p></div>
+                  <div><p className="font-inter text-xs text-[#6B7280]">Job ID</p><p className="mt-1 break-words font-inter text-sm font-medium text-[#121212]">{previewReport.feedbackOnly ? "None" : previewReport.jobId}</p></div>
                   <div><p className="font-inter text-xs text-[#6B7280]">Assignment date</p><p className="mt-1 font-inter text-sm font-medium text-[#121212]">{formatDisplayDate(previewReport.date)}</p></div>
                   {previewReport.postAs === "anonymous" && (
                     <div><p className="font-inter text-xs text-[#6B7280]">Posted by</p><p className="mt-1 font-inter text-sm font-medium text-[#121212]">Anonymous</p></div>
@@ -1464,7 +1495,7 @@ function SubmitReportForm() {
 
               <section>
                 <p className="font-inter text-xs font-medium uppercase tracking-wide text-[#6B7280]">Publishing Preference</p>
-                <p className="mt-1 font-inter text-sm text-[#121212]">{previewReport.publishImmediately ? "Publish immediately after approval" : `Publish ${previewReport.publishDelayDays} days after approval`}</p>
+                <p className="mt-1 font-inter text-sm text-[#121212]">{previewReport.feedbackOnly ? "Feedback only — sent privately to the admin team and never published" : previewReport.publishImmediately ? "Publish immediately after approval" : `Publish ${previewReport.publishDelayDays} days after approval`}</p>
               </section>
             </div>
             <div className="flex flex-shrink-0 flex-col-reverse gap-3 border-t border-black/10 p-5 sm:flex-row sm:justify-end sm:p-8 sm:pt-5">

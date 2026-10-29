@@ -59,6 +59,7 @@ export async function GET() {
         .from("reports")
         .select("*", { count: "exact", head: true })
         .eq("status",2)
+        .eq("feedback_only", false)
         .gte("created_at", currentMonthStart.toISOString())
         .lt("created_at", now.toISOString()),
 
@@ -67,6 +68,7 @@ export async function GET() {
         .from("reports")
         .select("*", { count: "exact", head: true })
         .eq("status",2)
+        .eq("feedback_only", false)
         .gte("created_at", lastMonthStart.toISOString())
         .lt("created_at", currentMonthStart.toISOString()),
 
@@ -75,6 +77,7 @@ export async function GET() {
         .from("reports")
         .select("*", { count: "exact", head: true })
         .eq("status",2)
+        .eq("feedback_only", false)
         .gte("created_at", thisWeekStart.toISOString())
         .lt("created_at", now.toISOString()),
 
@@ -83,6 +86,7 @@ export async function GET() {
         .from("reports")
         .select("*", { count: "exact", head: true })
         .eq("status",2)
+        .eq("feedback_only", false)
         .gte("created_at", lastWeekStart.toISOString())
         .lte("created_at", lastWeekEnd.toISOString()),
 
@@ -91,6 +95,7 @@ export async function GET() {
         .from("reports")
         .select("*", { count: "exact", head: true })
         .eq("status",2)
+        .eq("feedback_only", false)
         .eq("AI_sentiment", "Positive"),
 
       // Total neutral reports
@@ -98,6 +103,7 @@ export async function GET() {
         .from("reports")
         .select("*", { count: "exact", head: true })
         .eq("status",2)
+        .eq("feedback_only", false)
         .eq("AI_sentiment", "Neutral"),
 
       // Total negative reports
@@ -105,6 +111,7 @@ export async function GET() {
         .from("reports")
         .select("*", { count: "exact", head: true })
         .eq("status",2)
+        .eq("feedback_only", false)
         .eq("AI_sentiment", "Negative"),
 
       // Current month negative reports
@@ -113,6 +120,7 @@ export async function GET() {
         .select("*", { count: "exact", head: true })
         .eq("AI_sentiment", "Negative")
         .eq("status",2)
+        .eq("feedback_only", false)
         .gte("created_at", currentMonthStart.toISOString())
         .lt("created_at", now.toISOString()),
 
@@ -122,6 +130,7 @@ export async function GET() {
         .select("*", { count: "exact", head: true })
         .eq("AI_sentiment", "Negative")
         .eq("status",2)
+        .eq("feedback_only", false)
         .gte("created_at", lastMonthStart.toISOString())
         .lt("created_at", currentMonthStart.toISOString()),
 

@@ -79,7 +79,9 @@ const field = (key: string) => (row: ReportRow) => text(row[key]);
 const COLUMNS: (Column & { keys: string[] })[] = [
   { header: "Report ID", keys: ["id"], value: field("id") },
   { header: "Submitted On", keys: ["created_at"], value: (r, tz) => formatTimestamp(r.created_at, tz) },
-  { header: "Status", keys: ["status"], value: (r) => mapped(STATUS)(r.status) },
+  { header: "Status", keys: ["status"], value: (r) => (r.feedback_only === true ? "Private" : mapped(STATUS)(r.status)) },
+  // Feedback-only submissions (no Job ID) are private and never published.
+  { header: "Report Type", keys: ["feedback_only"], value: (r) => (r.feedback_only === true ? "Feedback only" : "Report") },
   { header: "Posted As", keys: ["post_as"], value: (r) => mapped(POST_AS)(r.post_as) },
   { header: "Reporter Name", keys: ["your_name"], value: field("your_name") },
 

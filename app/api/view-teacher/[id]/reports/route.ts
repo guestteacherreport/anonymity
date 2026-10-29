@@ -64,6 +64,7 @@ export async function GET(
         { count: "exact" }
       )
       .eq("status", 2)
+      .eq("feedback_only", false)
       .not("published_at", "is", null)
 
       .eq("teacher_id", id);

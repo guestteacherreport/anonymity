@@ -37,6 +37,11 @@ export async function GET(request: Request) {
     const status =
       searchParams.get("status") || "All";
 
+    // "feedback" = feedback-only submissions (no Job ID, never published),
+    // "report" = normal reports, anything else = both.
+    const type =
+      searchParams.get("type") || "All";
+
     const offset = (page - 1) * limit;
 
     // Base query
@@ -79,10 +84,19 @@ export async function GET(request: Request) {
       if (status === "Rejected")
         statusValue = 3;
 
+      // Pending/Approved/Rejected describe the approval workflow, which
+      // feedback-only submissions never enter.
       query = query.eq(
         "status",
         statusValue
-      );
+      ).eq("feedback_only", false);
+    }
+
+    // Type filter
+    if (type === "feedback") {
+      query = query.eq("feedback_only", true);
+    } else if (type === "report") {
+      query = query.eq("feedback_only", false);
     }
 
     const {

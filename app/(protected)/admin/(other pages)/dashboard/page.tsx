@@ -5,6 +5,7 @@ import ViewReport from "@/app/components/ViewReport";
 import { colors, formatDate, getSentiment, getTeacherColor } from "@/lib/function";
 import { RatingBar, ScoreCircle, StarRating } from "@/lib/icons";
 import { DashboardStats, ObjectType, Report } from "@/lib/types";
+import { FEEDBACK_ONLY_LABEL, FEEDBACK_ONLY_STATUS_LABEL } from "@/lib/feedbackOnly";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -609,6 +610,11 @@ export default function DashboardPage() {
                   >
                     <td className="px-2 sm:px-4 lg:px-5 py-2.5 sm:py-[17.5px] whitespace-nowrap">
                       <span className="font-inter font-medium text-[12px] sm:text-[13px] lg:text-sm text-[#0B77F9] opacity-80">{`RPT-${report.id}`}</span>
+                      {report.feedback_only && (
+                        <span className="ml-1.5 sm:ml-2 inline-flex items-center px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md bg-[#FFF7ED] font-inter font-medium text-[10px] sm:text-xs text-[#C2410C]">
+                          {FEEDBACK_ONLY_LABEL}
+                        </span>
+                      )}
                     </td>
                     <td className="px-2 sm:px-4 lg:px-5 py-2.5 sm:py-[17.5px] whitespace-nowrap">
                       <span className="font-inter font-normal text-[12px] sm:text-[13px] lg:text-sm text-[#030711]">{report?.school_name}</span>
@@ -629,12 +635,13 @@ export default function DashboardPage() {
                     </td>
                     <td className="px-2 sm:px-4 lg:px-5 py-2.5 sm:py-[17.5px] whitespace-nowrap">
                       <span className="inline-flex items-center px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-md border border-[#EFF0F2] bg-[#F6F6F6] font-inter font-normal text-[12px] sm:text-sm text-[#030711]">
-                        {report.status == 1 ? "Pending" : report.status == 2 ? "Approved" : "Rejected"}
+                        {report.feedback_only ? FEEDBACK_ONLY_STATUS_LABEL : report.status == 1 ? "Pending" : report.status == 2 ? "Approved" : "Rejected"}
                       </span>
                     </td>
                     <td className="px-2 sm:px-4 lg:px-5 py-2.5 sm:py-[17.5px] whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1 sm:gap-3">
-                        {report.status === 1 && (
+                        {/* Feedback-only submissions can never be approved or published. */}
+                        {report.status === 1 && !report.feedback_only && (
                           <>
                             <button
                               onClick={(e) => handleApproveReport(report.id, e)}

@@ -160,6 +160,7 @@ export async function incrementSchoolAnalytics(
                     .select("feedback, school_comment, AI_schoolStrength, AI_schoolIssues")
                     .eq("school_id", report.school_id)
                     .eq("status", 2)
+                    .eq("feedback_only", false)
                     .order("created_at", {
                         ascending: false,
                     })

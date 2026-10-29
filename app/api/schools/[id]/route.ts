@@ -83,6 +83,7 @@ export async function GET(
         .select("*", { count: "exact" })
         .eq("school_id", id)
         .eq("status", 2)
+        .eq("feedback_only", false)
         .not("published_at", "is", null)
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);

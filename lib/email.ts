@@ -207,6 +207,69 @@ Guest Teacher Reports Team`,
   results.forEach((result) => assertSent(result, "guest teacher report notification"));
 }
 
+// Content of the admin email for a feedback-only submission (no Job ID).
+// Like the normal report notification it carries no report content, only a
+// link to the admin Reports page.
+export function buildFeedbackOnlyNotificationEmail(reviewUrl: string) {
+  return {
+    subject: "Feedback only — not for publication: New private Guest Teacher feedback",
+    text: `Hello,
+
+A Guest Teacher has submitted private feedback without a Job ID.
+
+FEEDBACK ONLY — NOT FOR PUBLICATION
+This submission is for admin review only. It cannot be approved or published and does not appear on any public teacher or school page.
+
+Review it here: ${reviewUrl}
+
+Thank you,
+Guest Teacher Reports Team`,
+    html: `
+        <p>Hello,</p>
+
+        <p>A Guest Teacher has submitted <strong>private feedback</strong> without a Job ID.</p>
+
+        <p style="padding:10px 14px;background:#FFF7ED;border:1px solid #FDBA74;border-radius:4px;color:#9A3412;">
+          <strong>Feedback only — not for publication.</strong><br>
+          This submission is for admin review only. It cannot be approved or published and does not appear on any public teacher or school page.
+        </p>
+
+        <p>
+          <a href="${escapeHtml(reviewUrl)}" style="display:inline-block;padding:10px 18px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:4px;">
+            Review Feedback
+          </a>
+        </p>
+
+        <p>If the button above does not work, copy and paste the following URL into your browser:</p>
+
+        <p><a href="${escapeHtml(reviewUrl)}">${escapeHtml(reviewUrl)}</a></p>
+
+        <p>Thank you,<br><strong>Guest Teacher Reports Team</strong></p>
+      `,
+  };
+}
+
+export async function sendFeedbackOnlyNotification(
+  recipients: string[],
+  reviewUrl: string
+): Promise<void> {
+  const from = process.env.EMAIL_FROM;
+  if (!from) {
+    throw new Error("Email sender is not configured. Set EMAIL_FROM.");
+  }
+
+  const resend = getResendClient();
+  const email = buildFeedbackOnlyNotificationEmail(reviewUrl);
+
+  const results = await Promise.all(
+    recipients.map((recipient) =>
+      resend.emails.send({ from, to: [recipient], ...email })
+    )
+  );
+
+  results.forEach((result) => assertSent(result, "feedback-only notification"));
+}
+
 export async function sendSchoolAccessRequestNotification(
   recipients: string[],
   details: { guestTeacherName: string; guestTeacherEmail: string; schoolName: string; reviewUrl: string }
