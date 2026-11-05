@@ -989,7 +989,7 @@ function SubmitReportForm() {
                     {/* react-datepicker instead of a native date input so the
                         field shows MM-DD-YYYY regardless of the browser's
                         locale. The value is still kept as "YYYY-MM-DD". */}
-                    <div className={`${inputBase} justify-between py-[14px] [&_.react-datepicker-wrapper]:w-full [&_.react-datepicker__input-container]:!bg-transparent [&_.react-datepicker__input-container]:!p-0`}>
+                    <div className={`${inputBase} justify-between py-[14px] [&_.react-datepicker-wrapper]:w-full [&_.react-datepicker-wrapper>div]:!bg-transparent [&_.react-datepicker-wrapper>div]:!p-0`}>
                       <DatePicker
                         ref={dateRef}
                         id="date"
