@@ -6,10 +6,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { scrollToError } from "@/lib/function";
+import { getAllSchoolYearChoices } from "@/lib/schoolYear";
 
 
 type Association = "School District" | "Private" | "Charter";
-type SchoolYear = "2025-2026" | "2026-2027" | "2027-2028" | "2028-2029";
 type GradeLevel = "Pre-K" | "Elementary" | "Middle School" | "High School" | "Special Ed";
 
 
@@ -36,12 +36,15 @@ export default function SchoolEditForm() {
     const params = useParams();
     const schoolId = params.id as string;
     const router = useRouter();
-    const currentYear = new Date().getFullYear();
-
-    const SCHOOL_YEARS: SchoolYear[] = Array.from({ length: 5 }, (_, i) => {
-    const startYear = currentYear - 5 + i;
-    return `${startYear}-${startYear + 1}`;
-    }) as SchoolYear[];
+    // A school saved with a year outside the dropdown's range keeps that year
+    // as an extra option, so opening and saving the form doesn't silently
+    // drop or change it.
+    const [savedSchoolYear, setSavedSchoolYear] = useState("");
+    const schoolYearOptions = getAllSchoolYearChoices();
+    const SCHOOL_YEARS =
+        savedSchoolYear && !schoolYearOptions.includes(savedSchoolYear)
+            ? [savedSchoolYear, ...schoolYearOptions]
+            : schoolYearOptions;
     const [form, setForm] = useState<SchoolFormData>({
         name: "",
         association: "",
@@ -63,6 +66,7 @@ export default function SchoolEditForm() {
 
                 if (data.success && data.school) {
                     const school = data.school;
+                    setSavedSchoolYear(school.school_year || "");
                     setForm({
                         name: school.school_name || "",
                         association: school.school_association || "",
@@ -334,24 +338,28 @@ export default function SchoolEditForm() {
                                     Each school year creates a new record. Classroom teachers often transfer between years, changing a school's dynamics.
                                 </p>
                                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                                    {SCHOOL_YEARS.map((year) => (
-                                        <button
-                                            key={year}
-                                            onClick={() => {
-                                                setForm({ ...form, schoolYear: year })
+                                    <div className="relative w-full sm:w-[240px]">
+                                        <select
+                                            aria-label="School year"
+                                            value={form.schoolYear || ""}
+                                            onChange={(e) => {
+                                                setForm({ ...form, schoolYear: e.target.value })
                                                 setErrors((prev) => ({
                                                     ...prev,
                                                     schoolYear: "",
                                                 }));
                                             }}
-                                            className={`px-3 sm:px-6 py-1.5 sm:py-2 rounded-lg border font-inter text-xs sm:text-sm font-medium transition-all cursor-pointer ${form.schoolYear === year
-                                                ? "border-[#0B77F9] bg-[#DBECFF] text-[#0B77F9]"
-                                                : "border-[#B2B2B2] bg-[#FCFDFE] text-[#121212]"
-                                                }`}
+                                            className="appearance-none w-full h-10 sm:h-[43px] px-3 sm:px-4 pr-10 rounded-lg bg-[#F3F4F5] font-inter text-sm text-[#121212] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition-all cursor-pointer"
                                         >
-                                            {year}
-                                        </button>
-                                    ))}
+                                            <option value="" disabled>Select school year</option>
+                                            {SCHOOL_YEARS.map((year) => (
+                                                <option key={year} value={year}>{year}</option>
+                                            ))}
+                                        </select>
+                                        <svg className="pointer-events-none absolute right-3 sm:right-4 top-1/2 -translate-y-1/2" width="12" height="8" viewBox="0 0 12 8" fill="none" aria-hidden="true">
+                                            <path d="M1 1.5L6 6.5L11 1.5" stroke="#1E1E1E" strokeOpacity="0.6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </div>
                                     {errors.schoolYear && (
                                         <p className="text-red-500 text-xs ">
                                             {errors.schoolYear}

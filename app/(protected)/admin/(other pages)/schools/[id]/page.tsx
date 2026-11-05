@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { ChevronLeftIcon, ChevronRightIcon, DeleteWarningIcon } from "@/lib/icons";
+import { BULK_TEACHER_LIMIT, parseTeacherNames, teacherNameKey } from "@/lib/teacherBulk";
 
 // ─── Icon Components ──────────────────────────────────────────────────────────
 
@@ -178,7 +179,7 @@ interface AddTeacherSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   schoolId: string;
-  onTeacherAdded: () => void;
+  onTeacherAdded: (addedCount: number) => void;
 }
 
 interface EditTeacherSidebarProps {
@@ -188,18 +189,100 @@ interface EditTeacherSidebarProps {
   onTeacherUpdated: () => void;
 }
 
+interface SkippedTeachers {
+  alreadyAtSchool: string[];
+  duplicatesInList: string[];
+  tooLong: string[];
+}
+
+// One form for adding one or many teachers: each name is a tag. Press Enter
+// to add a tag; pasting several lines adds one tag per line. Commas are kept
+// as part of a name ("Smith, John").
 function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTeacherSidebarProps) {
-  const [name, setName] = useState("");
+  const [names, setNames] = useState<string[]>([]);
+  const [nameInput, setNameInput] = useState("");
   const [status, setStatus] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zipcode, setZipcode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [skipped, setSkipped] = useState<SkippedTeachers | null>(null);
+
+  // Adds names as tags, ignoring ones already tagged (case/spacing-insensitive).
+  const addNames = (raw: string | string[]) => {
+    const incoming = parseTeacherNames(raw);
+    if (incoming.length === 0) return;
+    setNames((prev) => {
+      const seen = new Set(prev.map(teacherNameKey));
+      const next = [...prev];
+      for (const name of incoming) {
+        const key = teacherNameKey(name);
+        if (!seen.has(key)) {
+          seen.add(key);
+          next.push(name);
+        }
+      }
+      return next;
+    });
+    setError(null);
+  };
+
+  const removeName = (index: number) => {
+    setNames((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addNames(nameInput);
+      setNameInput("");
+    } else if (e.key === "Backspace" && !nameInput && names.length > 0) {
+      removeName(names.length - 1);
+    }
+  };
+
+  const handleNamePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData("text");
+    if (/\r?\n/.test(text)) {
+      e.preventDefault();
+      addNames(nameInput + text);
+      setNameInput("");
+    }
+  };
+
+  const resetAndClose = () => {
+    setNames([]);
+    setNameInput("");
+    setStatus("");
+    setCity("");
+    setState("");
+    setZipcode("");
+    setError(null);
+    setSkipped(null);
+    onClose();
+  };
 
   const handleSave = async () => {
-    if (!name.trim() || !status) {
+    setSkipped(null);
+
+    // A name typed but not yet turned into a tag still counts.
+    const pending = parseTeacherNames(nameInput);
+    const allNames = [...names];
+    const seen = new Set(allNames.map(teacherNameKey));
+    for (const name of pending) {
+      if (!seen.has(teacherNameKey(name))) {
+        seen.add(teacherNameKey(name));
+        allNames.push(name);
+      }
+    }
+
+    if (allNames.length === 0 || !status) {
       setError("Please fill in all fields");
+      return;
+    }
+    if (allNames.length > BULK_TEACHER_LIMIT) {
+      setError(`You can add up to ${BULK_TEACHER_LIMIT} teachers at a time`);
       return;
     }
 
@@ -207,15 +290,14 @@ function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTea
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/teachers", {
+      const response = await fetch(`/api/admin/schools/${schoolId}/teachers`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: name.trim(),
+          names: allNames,
           status,
-          school_id: schoolId,
           city: city.trim(),
           state: state.trim(),
           zipcode: zipcode.trim(),
@@ -228,13 +310,23 @@ function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTea
         throw new Error(data.message || "Failed to add teacher");
       }
 
-      onTeacherAdded();
-      onClose();
-      setName("");
-      setStatus("");
-      setCity("");
-      setState("");
-      setZipcode("");
+      const addedCount: number = data.added?.length || 0;
+      const skippedResult: SkippedTeachers = data.skipped;
+      const skippedCount =
+        skippedResult.alreadyAtSchool.length +
+        skippedResult.duplicatesInList.length +
+        skippedResult.tooLong.length;
+
+      onTeacherAdded(addedCount);
+
+      if (skippedCount === 0) {
+        resetAndClose();
+      } else {
+        // Keep the panel open so the admin can see which names were skipped.
+        setNames([]);
+        setNameInput("");
+        setSkipped(skippedResult);
+      }
     } catch (err) {
       console.error("Error adding teacher:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -243,13 +335,13 @@ function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTea
     }
   };
 
-
+  const totalNames = names.length + (nameInput.trim() ? 1 : 0);
 
   return (
     <>
       {/* Backdrop */}
       <div
-        onClick={onClose}
+        onClick={resetAndClose}
         className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           }`}
       />
@@ -263,7 +355,7 @@ function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTea
         <div className="flex items-center justify-between px-4 sm:px-6 pt-6 pb-6 sm:pb-6">
           <h2 className="font-inter font-semibold text-xl sm:text-[25px] text-[#212121] leading-6">Add Teacher</h2>
           <button
-            onClick={onClose}
+            onClick={resetAndClose}
             className="flex items-center justify-center hover:opacity-70 transition-opacity cursor-pointer flex-shrink-0"
             aria-label="Close sidebar"
           >
@@ -275,18 +367,56 @@ function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTea
         <div className="h-px bg-black/10 mx-0" />
 
         {/* Form */}
-        <div className="flex flex-col gap-3 sm:gap-4 px-4 sm:px-6 pt-6 sm:pt-8">
-          {/* Name field */}
+        <div className="flex flex-col gap-3 sm:gap-4 px-4 sm:px-6 pt-6 sm:pt-8 pb-6 overflow-y-auto">
+          {/* Name tags field */}
           <div className="flex flex-col gap-0.5">
-            <label className="font-outfit font-medium text-sm sm:text-base text-[#212121] leading-6">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter Name"
-              disabled={loading}
-              className="h-10 sm:h-12 px-3 sm:px-4 rounded-lg bg-[#F3F4F5] font-inter font-normal text-sm text-[#6B7280] placeholder:text-[#6B7280] outline-none focus:ring-2 focus:ring-[#0171F9]/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            />
+            <label htmlFor="teacher-name-input" className="font-outfit font-medium text-sm sm:text-base text-[#212121] leading-6">Name</label>
+            <div
+              onClick={() => document.getElementById("teacher-name-input")?.focus()}
+              className={`flex flex-wrap items-center gap-2 min-h-10 sm:min-h-12 px-3 sm:px-4 py-2 rounded-lg bg-[#F3F4F5] cursor-text focus-within:ring-2 focus-within:ring-[#0171F9]/30 transition ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {names.map((name, index) => (
+                <span
+                  key={`${name}-${index}`}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-[#0B77F9] bg-[#DBECFF] font-inter text-sm font-medium text-[#0B77F9]"
+                >
+                  {name}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeName(index);
+                    }}
+                    disabled={loading}
+                    aria-label={`Remove ${name}`}
+                    className="cursor-pointer hover:opacity-70 leading-none"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              <input
+                id="teacher-name-input"
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={handleNameKeyDown}
+                onPaste={handleNamePaste}
+                onBlur={() => {
+                  if (nameInput.trim()) {
+                    addNames(nameInput);
+                    setNameInput("");
+                  }
+                }}
+                placeholder={names.length === 0 ? "Enter Name" : "Add another name"}
+                disabled={loading}
+                className="flex-1 min-w-[140px] bg-transparent font-inter font-normal text-sm text-[#121212] placeholder:text-[#6B7280] outline-none disabled:cursor-not-allowed"
+              />
+            </div>
+            <p className="font-inter text-xs text-[#6B7280] mt-1">
+              Press Enter after each name to add several teachers at once, or paste a list with one name per line.
+              {totalNames > 0 && ` ${totalNames} ${totalNames === 1 ? "teacher" : "teachers"} (max ${BULK_TEACHER_LIMIT}).`}
+            </p>
           </div>
 
           {/* Status field */}
@@ -352,8 +482,23 @@ function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTea
           </div>
 
           <p className="font-inter text-xs text-[#6B7280] -mt-1">
-            Leave location blank to use the school&apos;s city, state and zipcode.
+            Status and location apply to every teacher added. Leave location blank to use the school&apos;s city, state and zipcode.
           </p>
+
+          {/* Skipped names from the last save */}
+          {skipped && (
+            <div className="rounded-lg bg-[#FFF4E0] px-3 py-2 font-inter text-sm text-[#8A5A00] flex flex-col gap-1">
+              {skipped.alreadyAtSchool.length > 0 && (
+                <p>Already at this school (skipped): {skipped.alreadyAtSchool.join(", ")}</p>
+              )}
+              {skipped.duplicatesInList.length > 0 && (
+                <p>Repeated in the list (added once): {skipped.duplicatesInList.join(", ")}</p>
+              )}
+              {skipped.tooLong.length > 0 && (
+                <p>Name too long (skipped): {skipped.tooLong.join(", ")}</p>
+              )}
+            </div>
+          )}
 
           {/* Error message */}
           {error && (
@@ -368,7 +513,7 @@ function AddTeacherSidebar({ isOpen, onClose, schoolId, onTeacherAdded }: AddTea
             disabled={loading}
             className="flex items-center justify-center mt-6 sm:mt-8 px-4 sm:px-5 py-3 rounded-lg bg-[#0171F9] font-inter font-semibold text-sm sm:text-md text-white leading-6 hover:bg-[#0161dd] transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {loading ? "Saving..." : "Save"}
+            {loading ? "Saving..." : totalNames > 1 ? `Save ${totalNames} Teachers` : "Save"}
           </button>
         </div>
       </div>
@@ -734,8 +879,15 @@ function TeachersTab({ schoolId }: { schoolId: string }) {
   const startItem = totalTeachers === 0 ? 0 : (currentPage - 1) * TEACHERS_PER_PAGE + 1;
   const endItem = Math.min(currentPage * TEACHERS_PER_PAGE, totalTeachers);
 
-  const handleTeacherAdded = () => {
-    toast.success("Teacher created successfully");
+  const handleTeacherAdded = (addedCount: number) => {
+    if (addedCount === 1) {
+      toast.success("Teacher created successfully");
+    } else if (addedCount > 1) {
+      toast.success(`${addedCount} teachers created successfully`);
+    } else {
+      toast.error("No new teachers were added");
+      return;
+    }
     setRefreshTrigger((prev) => prev + 1);
   };
 

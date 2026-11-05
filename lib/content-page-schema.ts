@@ -66,7 +66,7 @@ export const contentPageDefaults: Record<ContentPageSlug, ContentPageContent> = 
     verifiedUserLabel: "Verified User",
   },
   about: {
-    heroEyebrow: "About Us",
+    heroEyebrow: "About GTR",
     heroHeading: "Built for Guest Teachers,",
     heroHeadingAccent: "By Guest Teachers",
     heroDescription: "Guest Teacher Report exists to give substitute educators the knowledge, community, and confidence they deserve before they ever step through a classroom door.",
@@ -170,11 +170,19 @@ export function mergeContentPage(slug: ContentPageSlug, content: unknown): Conte
   }
 
   return Object.fromEntries(
-    Object.entries(defaults).map(([key, fallback]) => [
-      key,
-      typeof (content as Record<string, unknown>)[key] === "string"
-        ? (content as Record<string, string>)[key]
-        : fallback,
-    ])
+    Object.entries(defaults).map(([key, fallback]) => {
+      const value = (content as Record<string, unknown>)[key];
+      if (typeof value !== "string") return [key, fallback];
+      return [key, retiredDefaults[slug]?.[key] === value ? fallback : value];
+    })
   );
 }
+
+// Old default values that saved pages still hold because the admin editor
+// stores the whole page. A stored value equal to one of these is replaced by
+// the current default; anything an admin actually typed is kept as-is.
+const retiredDefaults: Partial<Record<ContentPageSlug, Record<string, string>>> = {
+  about: {
+    heroEyebrow: "About Us",
+  },
+};

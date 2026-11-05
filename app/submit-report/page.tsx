@@ -8,6 +8,9 @@ import { scrollToError } from "@/lib/function";
 import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
 import { CalendarIcon } from "@/lib/icons";
+import { formatDateOnlyMDY, parseDateOnly, toDateOnly } from "@/lib/dateOnly";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 /* ─── Constants ───────────────────────────────────── */
 
@@ -224,10 +227,7 @@ const LockIcon = () => (
 );
 
 // Converts the date input's YYYY-MM-DD value to MM-DD-YYYY for display.
-function formatDisplayDate(value: string): string {
-  const [year, month, day] = value.split("-");
-  return year && month && day ? `${month}-${day}-${year}` : value;
-}
+const formatDisplayDate = formatDateOnlyMDY;
 
 // Shown next to fields that are collected for internal reference but never
 // displayed on the posted report (Job ID, Assignment Date).
@@ -415,7 +415,7 @@ function SubmitReportForm() {
   const prefillTeacherId = searchParams.get("teacherId");
   const [state, dispatch] = useReducer(formReducer, initialState);
   const [errors, setErrors] = useState<FormErrors>({});
-  const dateRef = useRef<HTMLInputElement>(null);
+  const dateRef = useRef<DatePicker>(null);
   const publishDelayRef = useRef<HTMLInputElement>(null);
   const { data: session, status } = useSession();
   // Schools search state
@@ -986,23 +986,30 @@ function SubmitReportForm() {
                       <label className={fieldLabel}>Date of Assignment</label>
                       <NotShownNote />
                     </div>
-                    <div onClick={() => dateRef.current?.showPicker()} className={`${inputBase} justify-between py-[14px]`}>
-                      <input
+                    {/* react-datepicker instead of a native date input so the
+                        field shows MM-DD-YYYY regardless of the browser's
+                        locale. The value is still kept as "YYYY-MM-DD". */}
+                    <div className={`${inputBase} justify-between py-[14px] [&_.react-datepicker-wrapper]:w-full [&_.react-datepicker__input-container]:!bg-transparent [&_.react-datepicker__input-container]:!p-0`}>
+                      <DatePicker
                         ref={dateRef}
-                        type="date"
                         id="date"
-                        max={new Date().toISOString().split("T")[0]}
-                        value={state.date || ""}
-                        onChange={(e) => {
-                          updateField("date", e.target.value)
+                        selected={parseDateOnly(state.date)}
+                        onChange={(date: Date | null) => {
+                          updateField("date", date ? toDateOnly(date) : "")
                           setErrors((prev) => ({
                             ...prev,
                             date: "",
                           }));
                         }}
+                        maxDate={new Date()}
+                        dateFormat="MM-dd-yyyy"
+                        placeholderText="MM-DD-YYYY"
+                        portalId="assignment-date-picker"
+                        autoComplete="off"
                         className="bg-transparent outline-none w-full font-inter text-sm text-[#121212] appearance-none"
                       />
                       <div
+                        onClick={() => dateRef.current?.setOpen(true)}
                         className="cursor-pointer"
                       >
                         <CalendarIcon />

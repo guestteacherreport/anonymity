@@ -1,4 +1,7 @@
 import * as XLSX from "xlsx";
+import { getCurrentSchoolYear } from "./schoolYear";
+
+export { getCurrentSchoolYear };
 
 export type SchoolImportRecord = {
   school_name: string;
@@ -51,15 +54,6 @@ function normalizeHeader(header: string): string {
     .replace(/\s+/g, " ");
 }
 
-export function getCurrentSchoolYear(): string {
-  const now = new Date();
-  const startYear =
-    now.getMonth() >= 7
-      ? now.getFullYear()
-      : now.getFullYear() - 1;
-
-  return `${startYear}-${startYear + 1}`;
-}
 
 export function inferAssociationFromFilename(
   filename: string
