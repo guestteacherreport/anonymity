@@ -152,7 +152,7 @@ export const contentPageMetadata: Record<ContentPageSlug, { title: string; path:
     description: "Landing page hero, calls to action, featured content.",
   },
   about: {
-    title: "About Us",
+    title: "About GTR",
     path: "/about",
     description: "About page hero, calls to action, and long-form organization content.",
   },
@@ -183,6 +183,6 @@ export function mergeContentPage(slug: ContentPageSlug, content: unknown): Conte
 // the current default; anything an admin actually typed is kept as-is.
 const retiredDefaults: Partial<Record<ContentPageSlug, Record<string, string>>> = {
   about: {
-    heroEyebrow: "About Us",
+    heroEyebrow: "About GTR",
   },
 };

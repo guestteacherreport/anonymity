@@ -36,7 +36,7 @@ export default function Header() {
 
           <nav className="hidden sm:flex items-center gap-10">
             <Link href="/" aria-current={isActiveRoute("/") ? "page" : undefined} className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors ${isActiveRoute("/") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>Home</Link>
-            <Link href="/about" aria-current={isActiveRoute("/about") ? "page" : undefined} className={`font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors ${isActiveRoute("/about") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>About Us</Link>
+            <Link href="/about" aria-current={isActiveRoute("/about") ? "page" : undefined} className={`font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors ${isActiveRoute("/about") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>About GTR</Link>
 
             <Link href="/submit-report" aria-current={isActiveRoute("/submit-report") ? "page" : undefined} className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors ${isActiveRoute("/submit-report") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>Submit Report</Link>
             <Link href="/browse-school" aria-current={isActiveRoute("/browse-school") ? "page" : undefined} className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors ${(isActiveRoute("/browse-school") || isActiveRoute("/school/")) ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}>Schools</Link>
@@ -119,7 +119,7 @@ export default function Header() {
               aria-current={isActiveRoute("/about") ? "page" : undefined}
               className={`font-inter text-[15px] font-normal text-[#121212] hover:text-blue-600 transition-colors py-2 text-left cursor-pointer ${isActiveRoute("/about") ? "!text-[#0171F9] font-semibold underline decoration-[#0171F9] decoration-2 underline-offset-[10px]" : ""}`}
             >
-              About Us
+              About GTR
             </button>
             <Link
               href="/submit-report"

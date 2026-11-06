@@ -19,7 +19,7 @@ export default function Footer() {
               <Link href="/" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Home</Link>
             </div>
             <div className="w-44 ">
-              <Link href="/about" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">About Us</Link>
+              <Link href="/about" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">About GTR</Link>
             </div>
             <div className="w-44 ">
               <Link href="/submit-report" className="font-[Outfit] text-base font-normal text-[#121212] hover:text-blue-600 transition-colors">Submit Report</Link>
